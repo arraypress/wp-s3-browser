@@ -1,10 +1,10 @@
 {
-  "name": "arraypress/s3-browser",
+  "name": "arraypress/wp-s3-browser",
   "version": "1.0.0",
   "description": "A comprehensive PHP library for integrating S3-compatible storage providers with WordPress. Features advanced media browser, upload/download management, presigned URLs, and support for multiple providers including AWS S3, Cloudflare R2, DigitalOcean Spaces, and more.",
   "type": "library",
   "license": "GPL-2.0-or-later",
-  "homepage": "https://github.com/arraypress/s3-browser/",
+  "homepage": "https://github.com/arraypress/wp-s3-browser/",
   "authors": [
     {
       "name": "ArrayPress Team",
@@ -28,8 +28,8 @@
   "minimum-stability": "dev",
   "prefer-stable": true,
   "support": {
-    "issues": "https://github.com/arraypress/s3-browser/issues",
-    "source": "https://github.com/arraypress/s3-browser"
+    "issues": "https://github.com/arraypress/wp-s3-browser/issues",
+    "source": "https://github.com/arraypress/wp-s3-browser"
   },
   "keywords": [
     "s3",

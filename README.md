@@ -20,7 +20,7 @@ A comprehensive PHP library for integrating S3-compatible storage providers with
 Install via Composer:
 
 ```bash
-composer require arraypress/s3-browser
+composer require arraypress/wp-s3-browser
 ```
 
 ## Basic Usage
@@ -32,16 +32,16 @@ use ArrayPress\S3\Browser;
 use ArrayPress\S3\Providers\CloudflareR2;
 
 // Create a provider instance
-$provider = new CloudflareR2('default', ['account_id' => 'your_account_id']);
+$provider = new CloudflareR2( 'default', [ 'account_id' => 'your_account_id' ] );
 
 // Initialize the browser
 $browser = new Browser(
-    $provider,
-    'your_access_key',
-    'your_secret_key',
-    ['post', 'page'], // Allowed post types (optional)
-    'default-bucket', // Default bucket (optional)
-    'uploads/'        // Default prefix (optional)
+	$provider,
+	'your_access_key',
+	'your_secret_key',
+	[ 'post', 'page' ], // Allowed post types (optional)
+	'default-bucket', // Default bucket (optional)
+	'uploads/'        // Default prefix (optional)
 );
 ```
 
