@@ -125,9 +125,9 @@ class BucketsTable extends WP_List_Table {
 	 * Column actions - Fixed to use JS navigation
 	 */
 	public function column_actions( $item ) {
-		// Change this to use class for JS targeting
+		// Add a dashicon to the browse button
 		return sprintf(
-			'<a href="#" class="button browse-bucket-button" data-bucket="%s">%s</a>',
+			'<a href="#" class="button browse-bucket-button" data-bucket="%s"><span class="dashicons dashicons-visibility"></span>%s</a>',
 			esc_attr( $item['name'] ),
 			esc_html__( 'Browse', 'arraypress-s3' )
 		);

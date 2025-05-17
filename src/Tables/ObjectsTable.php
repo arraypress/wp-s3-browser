@@ -394,7 +394,7 @@ class ObjectsTable extends WP_List_Table {
 		} else {
 			// Select button with check icon
 			$actions = sprintf(
-				'<a href="#" class="button s3-select-file" data-filename="%s" data-bucket="%s" data-key="%s"><span class="dashicons dashicons-yes"></span>%s</a>',
+				'<a href="#" class="button s3-select-file" data-filename="%s" data-bucket="%s" data-key="%s"><span class="dashicons dashicons-insert"></span>%s</a>',
 				esc_attr( $item['name'] ),
 				esc_attr( $this->bucket ),
 				esc_attr( $item['key'] ),
