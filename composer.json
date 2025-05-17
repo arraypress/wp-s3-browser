@@ -1,0 +1,60 @@
+{
+  "name": "arraypress/s3-browser",
+  "version": "1.0.0",
+  "description": "A comprehensive PHP library for integrating S3-compatible storage providers with WordPress. Features advanced media browser, upload/download management, presigned URLs, and support for multiple providers including AWS S3, Cloudflare R2, DigitalOcean Spaces, and more.",
+  "type": "library",
+  "license": "GPL-2.0-or-later",
+  "homepage": "https://github.com/arraypress/s3-browser/",
+  "authors": [
+    {
+      "name": "ArrayPress Team",
+      "homepage": "https://arraypress.com/"
+    }
+  ],
+  "require": {
+    "php": ">=7.4",
+    "arraypress/wp-asset-loader": "@dev"
+  },
+  "autoload": {
+    "psr-4": {
+      "ArrayPress\\S3\\": "src/"
+    }
+  },
+  "config": {
+    "optimize-autoloader": true,
+    "sort-packages": true,
+    "preferred-install": "dist"
+  },
+  "minimum-stability": "dev",
+  "prefer-stable": true,
+  "support": {
+    "issues": "https://github.com/arraypress/s3-browser/issues",
+    "source": "https://github.com/arraypress/s3-browser"
+  },
+  "keywords": [
+    "s3",
+    "aws",
+    "aws-s3",
+    "cloudflare-r2",
+    "digitalocean-spaces",
+    "linode-object-storage",
+    "vultr-object-storage",
+    "minio",
+    "object-storage",
+    "cloud-storage",
+    "file-storage",
+    "media-browser",
+    "wordpress",
+    "wp-plugin",
+    "file-upload",
+    "file-download",
+    "presigned-urls",
+    "s3-compatible",
+    "storage-provider",
+    "bucket-management",
+    "object-management",
+    "cdn",
+    "file-hosting",
+    "backup-storage"
+  ]
+}
