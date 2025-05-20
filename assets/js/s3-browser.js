@@ -21,7 +21,6 @@
             this.setupAjaxLoading();
             this.countInitialItems();
             this.initFavorites();
-            this.initCacheRefresh();
         },
 
         bindEvents: function () {
