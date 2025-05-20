@@ -197,10 +197,15 @@
 
                 // After all files are processed
                 queuecomplete: function() {
+                    // Get successful files by checking status
+                    const successfulFiles = this.files.filter(
+                        file => file.status === "success" || file.status === Dropzone.SUCCESS
+                    );
+
                     // Only reload if there were successful uploads
                     if (this.getUploadingFiles().length === 0 &&
                         this.getQueuedFiles().length === 0 &&
-                        this.getSuccessfulUploads().length > 0) {
+                        successfulFiles.length > 0) {
 
                         setTimeout(function() {
                             if (typeof S3Browser.showNotification === 'function') {
