@@ -211,14 +211,14 @@ class Signer implements SignerInterface {
 		$amz_date  = gmdate( 'Ymd\THis\Z', $time );
 		$datestamp = gmdate( 'Ymd', $time );
 
-		// Encode the object key using our special encoding for consistent handling
+		// Use our special encoding method to properly handle special characters
 		$encoded_key = $this->encode_object_key_for_url( $object_key );
 
 		// Get endpoint from provider
 		$host = $this->provider->get_endpoint();
 
-		// Format the canonical URI using the provider's method
-		$canonical_uri = $this->provider->format_canonical_uri( $bucket, $encoded_key );
+		// Format the canonical URI - this specific format is required for signing
+		$canonical_uri = '/' . $bucket . '/' . $encoded_key;
 
 		// Format the credential scope
 		$credential_scope = $datestamp . '/' . $this->provider->get_region() . '/s3/aws4_request';
@@ -229,7 +229,7 @@ class Signer implements SignerInterface {
 			'X-Amz-Algorithm'     => 'AWS4-HMAC-SHA256',
 			'X-Amz-Credential'    => $credential,
 			'X-Amz-Date'          => $amz_date,
-			'X-Amz-Expires'       => (string) $expires_seconds, // Cast to string to avoid TypeError
+			'X-Amz-Expires'       => (string) $expires_seconds,
 			'X-Amz-SignedHeaders' => 'host'
 		];
 
@@ -243,11 +243,10 @@ class Signer implements SignerInterface {
 			if ( $canonical_querystring !== '' ) {
 				$canonical_querystring .= '&';
 			}
-			// Ensure both key and value are strings before encoding
 			$canonical_querystring .= rawurlencode( (string) $key ) . '=' . rawurlencode( (string) $value );
 		}
 
-		// Build the canonical request - ensure proper line separations
+		// Build the canonical request
 		$canonical_request = "GET\n";
 		$canonical_request .= $canonical_uri . "\n";
 		$canonical_request .= $canonical_querystring . "\n";
@@ -256,7 +255,7 @@ class Signer implements SignerInterface {
 		$canonical_request .= "host\n";
 		$canonical_request .= "UNSIGNED-PAYLOAD";
 
-		// Debug the canonical request if callback is set
+		// Debug the canonical request
 		$this->debug( "Presigned URL Canonical Request", $canonical_request );
 
 		// Create the string to sign
@@ -265,17 +264,18 @@ class Signer implements SignerInterface {
 		$string_to_sign .= $credential_scope . "\n";
 		$string_to_sign .= hash( 'sha256', $canonical_request );
 
-		// Debug the string to sign if callback is set
-		$this->debug( "Presigned URL String to Sign", $string_to_sign );
-
 		// Calculate the signature
 		$signature = $this->calculate_signature( $string_to_sign, $datestamp );
 
-		// Build the final URL using the provider's URL formatting
-		$url           = $this->provider->format_url( $bucket, $encoded_key );
+		// Build the final URL based on the path style setting
+		if ( $this->provider->uses_path_style() ) {
+			$url = 'https://' . $host . '/' . $bucket . '/' . $encoded_key;
+		} else {
+			$url = 'https://' . $bucket . '.' . $host . '/' . $encoded_key;
+		}
+
 		$presigned_url = $url . '?' . $canonical_querystring . '&X-Amz-Signature=' . $signature;
 
-		// Return PresignedUrlResponse
 		return new PresignedUrlResponse(
 			$presigned_url,
 			time() + $expires_seconds
@@ -386,21 +386,27 @@ class Signer implements SignerInterface {
 			);
 		}
 
-		// Encode the object key consistently using our special encoding
+		// Use our special encoding method to properly handle special characters
 		$encoded_key = $this->encode_object_key_for_url( $object_key );
 
-		// Generate authorization headers with the encoded key for correct signing
+		// Generate authorization headers with the encoded key
 		$headers = $this->generate_auth_headers(
 			'DELETE',
 			$bucket,
-			$encoded_key  // Use encoded key for the signature
+			$encoded_key
 		);
 
 		// Add Content-Length header which is required for DELETE operations
 		$headers['Content-Length'] = '0';
 
-		// Use the provider's URL formatting with the encoded key
-		$url = $this->provider->format_url( $bucket, $encoded_key );
+		// Build the URL based on path style setting
+		$host = $this->provider->get_endpoint();
+
+		if ( $this->provider->uses_path_style() ) {
+			$url = 'https://' . $host . '/' . $bucket . '/' . $encoded_key;
+		} else {
+			$url = 'https://' . $bucket . '.' . $host . '/' . $encoded_key;
+		}
 
 		// Make the request
 		$response = wp_remote_request( $url, [
