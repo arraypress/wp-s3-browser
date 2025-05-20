@@ -17,6 +17,20 @@
 
         init: function () {
             this.bindEvents();
+            this.addStyles();
+        },
+
+        addStyles: function () {
+            // Add CSS styles for cancelled uploads
+            const style = $('<style>').text(`
+                .s3-upload-cancelled .s3-filename,
+                .s3-upload-cancelled .s3-filesize,
+                .s3-upload-cancelled .s3-progress-text,
+                .s3-upload-cancelled .s3-error-message {
+                    color: #e74c3c !important;
+                }
+            `);
+            $('head').append(style);
         },
 
         bindEvents: function () {
@@ -62,7 +76,7 @@
             });
 
             // Handle cancel button clicks (delegated event)
-            $('.s3-upload-list').on('click', '.s3-cancel-upload', function(e) {
+            $('.s3-upload-list').on('click', '.s3-cancel-upload', function (e) {
                 e.preventDefault();
                 const uploadId = $(this).data('upload-id');
                 self.cancelUpload(uploadId);
@@ -95,12 +109,12 @@
                         </div>
                         <div class="s3-progress-container">
                             <div class="s3-progress-bar">
-                                <div class="s3-progress" style="width: 0%"></div>
+                                <div class="s3-progress" style="width: 0"></div>
                             </div>
                             <span class="s3-progress-text">0%</span>
                         </div>
                         <div class="s3-upload-status">
-                            <button class="s3-cancel-upload" data-upload-id="${uploadId}">
+                            <button class="s3-cancel-upload" title="Cancel upload" data-upload-id="${uploadId}">
                                 <span class="dashicons dashicons-no"></span>
                             </button>
                         </div>
@@ -124,9 +138,17 @@
 
                         // Check if this was a cancellation
                         if (error.message === 'Upload cancelled') {
+                            $progress.addClass('s3-upload-cancelled');
                             $progress.find('.s3-upload-status').html(
                                 `<span class="dashicons dashicons-no"></span><span class="s3-error-message">Cancelled</span>`
                             );
+
+                            // Fade out and remove after 3 seconds
+                            setTimeout(function () {
+                                $progress.fadeOut(800, function () {
+                                    $(this).remove();
+                                });
+                            }, 3000);
                         } else {
                             // Other errors
                             const errorMsg = error.message || 'Upload failed';
@@ -234,14 +256,32 @@
             });
         },
 
-        cancelUpload: function(uploadId) {
-            // Check if this upload is active
-            if (this.activeUploads[uploadId]) {
-                // Abort the XHR request
-                this.activeUploads[uploadId].abort();
+        cancelUpload: function (uploadId) {
+            const self = this;
 
-                // Visual feedback can be handled in the catch block of the upload promise
-                console.log('Upload cancelled:', uploadId);
+            // Get the filename from the UI element
+            const $uploadItem = $('#' + uploadId);
+            const filename = $uploadItem.find('.s3-filename').text();
+
+            // Show confirmation dialog
+            if (confirm('Are you sure you want to cancel "' + filename + '"?')) {
+                // Check if this upload is active
+                if (self.activeUploads[uploadId]) {
+                    // Abort the XHR request
+                    self.activeUploads[uploadId].abort();
+
+                    // Add visual feedback immediately (red text)
+                    $uploadItem.addClass('s3-upload-cancelled');
+
+                    // Fade out and remove after 3 seconds
+                    setTimeout(function () {
+                        $uploadItem.fadeOut(800, function () {
+                            $(this).remove();
+                        });
+                    }, 3000);
+
+                    console.log('Upload cancelled:', uploadId);
+                }
             }
         },
 
