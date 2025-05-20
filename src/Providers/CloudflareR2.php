@@ -194,4 +194,25 @@ class CloudflareR2 extends Provider {
 		return 'https://' . $bucket . '.' . $account_id . '.r2.dev';
 	}
 
+	/**
+	 * Override URL encoding for R2
+	 *
+	 * @param string $object_key Object key
+	 *
+	 * @return string
+	 */
+	protected function encode_object_key( string $object_key ): string {
+		// Start with parent implementation
+		$encoded = parent::encode_object_key( $object_key );
+
+		// R2 sometimes has issues with spaces, even encoded ones
+		$encoded = str_replace( ' ', '%20', $encoded );
+
+		// Special handling for parentheses
+		$encoded = str_replace( '(', '%28', $encoded );
+		$encoded = str_replace( ')', '%29', $encoded );
+
+		return $encoded;
+	}
+
 }

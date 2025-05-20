@@ -376,14 +376,12 @@ class Signer implements SignerInterface {
 	 */
 	public function delete_object( string $bucket, string $object_key ): ResponseInterface {
 		if ( empty( $bucket ) || empty( $object_key ) ) {
-			return new ErrorResponse( __( 'Bucket and object key are required', 'arraypress' ), 'invalid_parameters', 400 );
+			return new ErrorResponse(
+				__( 'Bucket and object key are required', 'arraypress' ),
+				'invalid_parameters',
+				400
+			);
 		}
-
-		// Debug each component
-		$this->debug( "Delete Object Input", [
-			'bucket'     => $bucket,
-			'object_key' => $object_key,
-		] );
 
 		// Generate authorization headers for DELETE request
 		$headers = $this->generate_auth_headers(
@@ -392,76 +390,38 @@ class Signer implements SignerInterface {
 			$object_key
 		);
 
-		// Build the URL
-		$url = $this->provider->format_url( $bucket, $object_key );
-
-		$this->debug( "Delete Object Request URL", $url );
-		$this->debug( "Delete Object Request Headers", $headers );
-
-		// Add Content-Length header
+		// Add Content-Length header which is required by R2 for DELETE operations
 		$headers['Content-Length'] = '0';
 
-		// Make the request - with SUPER DETAILED error information
+		// Build the URL - the provider will handle URL encoding
+		$url = $this->provider->format_url( $bucket, $object_key );
+
+		// Make the request
 		$response = wp_remote_request( $url, [
-			'method'      => 'DELETE',
-			'headers'     => $headers,
-			'timeout'     => 15,
-			'body'        => '',
-			'sslverify'   => true, // Try with SSL verification
-			'decompress'  => false, // Don't decompress response
-			'redirection' => 0, // Don't follow redirects
+			'method'  => 'DELETE',
+			'headers' => $headers,
+			'timeout' => 15,
+			'body'    => ''
 		] );
 
-		// Handle errors with extreme detail
+		// Handle WP_Error responses
 		if ( is_wp_error( $response ) ) {
-			$this->debug( "Delete Object WP_Error", [
-				'message' => $response->get_error_message(),
-				'code'    => $response->get_error_code(),
-				'data'    => $response->get_error_data(),
-			] );
-
 			return ErrorResponse::from_wp_error( $response );
 		}
 
-		$status_code      = wp_remote_retrieve_response_code( $response );
-		$body             = wp_remote_retrieve_body( $response );
-		$headers_response = wp_remote_retrieve_headers( $response );
+		$status_code = wp_remote_retrieve_response_code( $response );
+		$body        = wp_remote_retrieve_body( $response );
 
-		// Debug the complete response
-		$this->debug( "Delete Object Response", [
-			'status_code'  => $status_code,
-			'body'         => $body,
-			'headers'      => $headers_response,
-			'raw_response' => $response,
-		] );
-
-		// Check for error status code
+		// Check for error status codes
 		if ( $status_code < 200 || $status_code >= 300 ) {
-			// Try to extract a detailed error message from the response
-			$error_message = $this->extract_error_message( $body, $status_code );
-
-			$this->debug( "Delete Object Error", [
-				'status_code'   => $status_code,
-				'error_message' => $error_message,
-				'body'          => $body
-			] );
-
-			return new ErrorResponse(
-				$error_message ?: __( 'Failed to delete object', 'arraypress' ),
-				'delete_operation_failed',
-				$status_code,
-				[
-					'response_body'    => $body,
-					'response_headers' => $headers_response
-				]
-			);
+			return $this->handle_error_response( $status_code, $body, __( 'Failed to delete object', 'arraypress' ) );
 		}
 
-		// Get filename for the message
+		// Success! Return a meaningful response
 		$filename = basename( $object_key );
 
-		// Create a success response with detailed message and data
 		return new SuccessResponse(
+		/* translators: %s: file name */
 			sprintf( __( 'File "%s" deleted successfully', 'arraypress' ), $filename ),
 			$status_code,
 			[
@@ -470,49 +430,6 @@ class Signer implements SignerInterface {
 				'filename' => $filename
 			]
 		);
-	}
-
-	/**
-	 * Extract error message from response body
-	 *
-	 * @param string $body        Response body
-	 * @param int    $status_code HTTP status code
-	 *
-	 * @return string Error message
-	 */
-	private function extract_error_message( string $body, int $status_code ): string {
-		// Try to parse XML error response
-		if ( ! empty( $body ) && strpos( $body, '<?xml' ) !== false ) {
-			libxml_use_internal_errors( true );
-			$xml = simplexml_load_string( $body );
-
-			if ( $xml !== false ) {
-				if ( isset( $xml->Message ) ) {
-					return (string) $xml->Message;
-				} elseif ( isset( $xml->message ) ) {
-					return (string) $xml->message;
-				} elseif ( isset( $xml->Error ) && isset( $xml->Error->Message ) ) {
-					return (string) $xml->Error->Message;
-				}
-			}
-
-			// If parsing fails, log the errors
-			$errors = libxml_get_errors();
-			if ( ! empty( $errors ) ) {
-				$this->debug( "XML Parse Errors", $errors );
-			}
-			libxml_clear_errors();
-		}
-
-		// Return status code-based message if can't extract from body
-		switch ( $status_code ) {
-			case 403:
-				return __( 'Access denied. Check your permissions and credentials.', 'arraypress' );
-			case 404:
-				return __( 'Object not found.', 'arraypress' );
-			default:
-				return sprintf( __( 'Operation failed with status code %d', 'arraypress' ), $status_code );
-		}
 	}
 
 	/**
