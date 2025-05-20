@@ -1,246 +1,167 @@
-(function($) {
+/**
+ * S3 Browser Upload Functionality
+ * This script handles direct browser uploads to S3 buckets using presigned URLs
+ * with added cancel functionality
+ */
+(function ($) {
     'use strict';
 
-    // Add upload functionality to S3Browser
+    // Extend the S3Browser object with upload functionality
     if (typeof window.S3Browser === 'undefined') {
         window.S3Browser = {};
     }
 
     window.S3Browser.uploads = {
-        dropzoneInstance: null,
-        initialized: false,
-        processingFile: false,
+        // Store active XHR requests for cancellation
+        activeUploads: {},
 
-        init: function() {
-            // Prevent multiple initializations
-            if (this.initialized) return;
-
-            this.initializeDropzone();
-            this.initialized = true;
+        init: function () {
+            this.bindEvents();
         },
 
-        initializeDropzone: function() {
+        bindEvents: function () {
             const self = this;
-            const $uploadZone = $('.s3-upload-zone');
+            const $dropzone = $('.s3-upload-zone');
+            const $fileInput = $('.s3-file-input');
 
-            if (!$uploadZone.length) return;
-
-            const bucket = $uploadZone.data('bucket');
-            const prefix = $uploadZone.data('prefix');
-
-            if (!bucket) return;
-
-            // Set Dropzone to not auto-discover
-            if (typeof Dropzone !== 'undefined') {
-                Dropzone.autoDiscover = false;
-            } else {
-                console.error('Dropzone.js is not loaded');
-                return;
-            }
-
-            // Create the preview template
-            const previewTemplate = `
-                <div class="s3-upload-item">
-                    <div class="s3-upload-item-info">
-                        <span class="s3-filename" data-dz-name></span>
-                        <span class="s3-filesize" data-dz-size></span>
-                    </div>
-                    <div class="s3-progress-container">
-                        <div class="s3-progress-bar">
-                            <div class="s3-progress" data-dz-uploadprogress></div>
-                        </div>
-                        <span class="s3-progress-text">0%</span>
-                    </div>
-                    <div class="s3-upload-status">
-                        <button type="button" class="button s3-cancel-button" data-dz-remove>
-                            <span class="dashicons dashicons-no-alt"></span>
-                        </button>
-                    </div>
-                    <div class="dz-error-message"><span data-dz-errormessage></span></div>
-                </div>
-            `;
-
-            // Detach and reattach the file input to break event loops
-            const $fileInput = $('#s3FileUpload');
-            const $parent = $fileInput.parent();
-            $fileInput.detach();
-
-            // Initialize Dropzone
-            this.dropzoneInstance = new Dropzone(".s3-upload-zone", {
-                url: "https://dummy-url.com/upload", // Will be overridden
-                method: "PUT",
-                paramName: "file",
-                maxFilesize: 500,
-                timeout: 0,
-                previewsContainer: ".s3-upload-list",
-                previewTemplate: previewTemplate,
-                clickable: false, // Important: don't make the zone clickable
-                autoProcessQueue: true,
-                chunking: true,
-                chunkSize: 5000000, // 5MB chunks
-                retryChunks: true,
-                retryChunksLimit: 3,
-                createImageThumbnails: false,
-
-                // This function is called when Dropzone is initialized
-                init: function() {
-                    // Handle added files
-                    this.on("addedfile", function(file) {
-                        // Set a flag to prevent duplicate file selector openings
-                        self.processingFile = true;
-
-                        // Get presigned URL
-                        const normalizedPrefix = prefix ? (prefix.endsWith('/') ? prefix : prefix + '/') : '';
-                        const objectKey = normalizedPrefix + file.name;
-
-                        file.s3Bucket = bucket;
-                        file.s3ObjectKey = objectKey;
-
-                        self.getPresignedUrl(bucket, objectKey)
-                            .then(url => {
-                                file.uploadUrl = url;
-                            })
-                            .catch(error => {
-                                this.emit("error", file, error.message);
-                                this.emit("complete", file);
-                            })
-                            .finally(() => {
-                                // Reset flag after processing
-                                setTimeout(() => {
-                                    self.processingFile = false;
-                                }, 500);
-                            });
-                    });
-
-                    // Additional events
-                    this.on("complete", function(file) {
-                        // Reset flag after each file completes
-                        setTimeout(() => {
-                            self.processingFile = false;
-                        }, 500);
-                    });
+            // Handle drag and drop events
+            $dropzone.on({
+                dragover: function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    $(this).addClass('s3-dragover');
                 },
-
-                // Called just before sending
-                accept: function(file, done) {
-                    // Always accept the file, we'll handle errors in the sending phase
-                    done();
+                dragleave: function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    $(this).removeClass('s3-dragover');
                 },
+                drop: function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    $(this).removeClass('s3-dragover');
 
-                // Transform file before upload to ensure presigned URL is ready
-                transformFile: function(file, done) {
-                    if (!file.uploadUrl) {
-                        // No URL yet, wait a moment and retry
-                        let attempts = 0;
-                        const checkUrl = () => {
-                            if (file.uploadUrl) {
-                                done(file);
-                            } else if (attempts < 10) {
-                                attempts++;
-                                setTimeout(checkUrl, 500);
-                            } else {
-                                this.emit("error", file, "Failed to get upload URL after multiple attempts");
-                                this.emit("complete", file);
-                            }
-                        };
-                        setTimeout(checkUrl, 500);
-                    } else {
-                        done(file);
-                    }
-                },
-
-                // Override the sending method to use our presigned URL
-                sending: function(file, xhr, formData) {
-                    if (file.uploadUrl) {
-                        // Cancel the automatic request
-                        xhr.abort();
-
-                        // Create a new request with the presigned URL
-                        xhr.open("PUT", file.uploadUrl, true);
-                        xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
-                    }
-                },
-
-                // Update progress display
-                uploadprogress: function(file, progress, bytesSent) {
-                    const percentComplete = Math.round(progress);
-                    const $progressBar = $(file.previewElement).find('.s3-progress');
-                    const $progressText = $(file.previewElement).find('.s3-progress-text');
-
-                    // Update progress bar width directly
-                    $progressBar.css('width', percentComplete + '%');
-                    $progressText.text(percentComplete + '%');
-                },
-
-                // Handle successful upload
-                success: function(file) {
-                    $(file.previewElement).addClass('s3-upload-success');
-                    $(file.previewElement).find('.s3-cancel-button')
-                        .replaceWith('<span class="dashicons dashicons-yes s3-success-icon"></span>');
-                },
-
-                // Handle errors
-                error: function(file, errorMessage) {
-                    $(file.previewElement).addClass('s3-upload-error');
-
-                    // Show error message
-                    if (typeof errorMessage === 'string') {
-                        $(file.previewElement).find('[data-dz-errormessage]').text(errorMessage);
-                    } else if (errorMessage && errorMessage.message) {
-                        $(file.previewElement).find('[data-dz-errormessage]').text(errorMessage.message);
-                    }
-
-                    // Change the cancel button to an error icon
-                    $(file.previewElement).find('.s3-cancel-button')
-                        .replaceWith('<span class="dashicons dashicons-no s3-error-icon"></span>');
-                },
-
-                // After all files are processed
-                queuecomplete: function() {
-                    // Get successful files by checking status
-                    const successfulFiles = this.files.filter(
-                        file => file.status === "success" || file.status === Dropzone.SUCCESS
-                    );
-
-                    // Only reload if there were successful uploads
-                    if (this.getUploadingFiles().length === 0 &&
-                        this.getQueuedFiles().length === 0 &&
-                        successfulFiles.length > 0) {
-
-                        setTimeout(function() {
-                            if (typeof S3Browser.showNotification === 'function') {
-                                S3Browser.showNotification('Uploads completed. Refreshing file listing...', 'success');
-                            }
-                            window.location.reload();
-                        }, 1500);
+                    const files = e.originalEvent.dataTransfer.files;
+                    if (files.length) {
+                        const bucket = $(this).data('bucket');
+                        const prefix = $(this).data('prefix') || '';
+                        self.uploadFiles(files, bucket, prefix);
                     }
                 }
             });
 
-            // Reattach the file input
-            $parent.append($fileInput);
-
-            // Handle the file input change event manually
-            $fileInput.on('change', function(e) {
-                if (self.processingFile) {
-                    // Skip if already processing a file
-                    return;
+            // Handle file input selection
+            $fileInput.on('change', function () {
+                if (this.files.length) {
+                    const bucket = $dropzone.data('bucket');
+                    const prefix = $dropzone.data('prefix') || '';
+                    self.uploadFiles(this.files, bucket, prefix);
+                    // Reset input to allow selecting the same file again
+                    this.value = '';
                 }
+            });
 
-                const files = e.target.files;
-                if (files && files.length) {
-                    // Add files to Dropzone
-                    for (let i = 0; i < files.length; i++) {
-                        self.dropzoneInstance.addFile(files[i]);
-                    }
-
-                    // Reset the input
-                    $(this).val('');
-                }
+            // Handle cancel button clicks (delegated event)
+            $('.s3-upload-list').on('click', '.s3-cancel-upload', function(e) {
+                e.preventDefault();
+                const uploadId = $(this).data('upload-id');
+                self.cancelUpload(uploadId);
             });
         },
 
-        getPresignedUrl: function(bucket, objectKey) {
+        uploadFiles: function (files, bucket, prefix) {
+            const self = this;
+            const $uploadList = $('.s3-upload-list');
+            const uploadPromises = [];
+
+            // Show the upload list container
+            $uploadList.show();
+
+            Array.from(files).forEach(file => {
+                // Create a unique key that preserves the file name
+                // Ensure prefix ends with a slash if not empty
+                const normalizedPrefix = prefix ? (prefix.endsWith('/') ? prefix : prefix + '/') : '';
+                const objectKey = normalizedPrefix + file.name;
+
+                // Create unique upload ID
+                const uploadId = 'upload_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+
+                // Create progress element with cancel button
+                const $progress = $(`
+                    <div class="s3-upload-item" id="${uploadId}">
+                        <div class="s3-upload-item-info">
+                            <span class="s3-filename">${file.name}</span>
+                            <span class="s3-filesize">${self.formatFileSize(file.size)}</span>
+                        </div>
+                        <div class="s3-progress-container">
+                            <div class="s3-progress-bar">
+                                <div class="s3-progress" style="width: 0%"></div>
+                            </div>
+                            <span class="s3-progress-text">0%</span>
+                        </div>
+                        <div class="s3-upload-status">
+                            <button class="s3-cancel-upload" data-upload-id="${uploadId}">
+                                <span class="dashicons dashicons-no"></span>
+                            </button>
+                        </div>
+                    </div>
+                `);
+
+                $uploadList.append($progress);
+
+                // Start upload process
+                const uploadPromise = self.getPresignedUrl(bucket, objectKey)
+                    .then(url => self.uploadToS3(file, url, $progress, uploadId))
+                    .then(() => {
+                        $progress.addClass('s3-upload-success');
+                        $progress.find('.s3-upload-status').html('<span class="dashicons dashicons-yes"></span>');
+                        // Remove from active uploads
+                        delete self.activeUploads[uploadId];
+                    })
+                    .catch(error => {
+                        console.error('Upload error:', error);
+                        $progress.addClass('s3-upload-error');
+
+                        // Check if this was a cancellation
+                        if (error.message === 'Upload cancelled') {
+                            $progress.find('.s3-upload-status').html(
+                                `<span class="dashicons dashicons-no"></span><span class="s3-error-message">Cancelled</span>`
+                            );
+                        } else {
+                            // Other errors
+                            const errorMsg = error.message || 'Upload failed';
+                            $progress.find('.s3-upload-status').html(
+                                `<span class="dashicons dashicons-no"></span><span class="s3-error-message" title="${errorMsg}">${errorMsg}</span>`
+                            );
+                        }
+
+                        // Remove from active uploads
+                        delete self.activeUploads[uploadId];
+                    });
+
+                uploadPromises.push(uploadPromise);
+            });
+
+            // When all uploads complete, refresh the file listing
+            Promise.allSettled(uploadPromises).then(() => {
+                setTimeout(() => {
+                    // Only reload if there are successful uploads
+                    const hasSuccessfulUploads = $('.s3-upload-success').length > 0;
+
+                    if (hasSuccessfulUploads) {
+                        // Show notification
+                        if (typeof S3Browser.showNotification === 'function') {
+                            S3Browser.showNotification('Uploads completed. Refreshing file listing...', 'success');
+                        }
+
+                        // Refresh the page to show new files
+                        window.location.reload();
+                    }
+                }, 3000);
+            });
+        },
+
+        getPresignedUrl: function (bucket, objectKey) {
             return new Promise((resolve, reject) => {
                 $.ajax({
                     url: S3BrowserGlobalConfig.ajaxUrl,
@@ -251,34 +172,91 @@
                         object_key: objectKey,
                         nonce: S3BrowserGlobalConfig.nonce
                     },
-                    success: function(response) {
+                    success: function (response) {
                         if (response.success && response.data && response.data.url) {
                             resolve(response.data.url);
                         } else {
                             reject(new Error(response.data?.message || 'Failed to get upload URL'));
                         }
                     },
-                    error: function(xhr, status, error) {
+                    error: function (xhr, status, error) {
                         reject(new Error(error || 'Network error'));
                     }
                 });
             });
+        },
+
+        uploadToS3: function (file, presignedUrl, $progress, uploadId) {
+            const self = this;
+
+            return new Promise((resolve, reject) => {
+                const xhr = new XMLHttpRequest();
+
+                // Store the XHR object for potential cancellation
+                self.activeUploads[uploadId] = xhr;
+
+                // Track upload progress
+                xhr.upload.addEventListener('progress', function (e) {
+                    if (e.lengthComputable) {
+                        const percentComplete = Math.round((e.loaded / e.total) * 100);
+                        $progress.find('.s3-progress').css('width', percentComplete + '%');
+                        $progress.find('.s3-progress-text').text(percentComplete + '%');
+                    }
+                });
+
+                // Handle completion
+                xhr.addEventListener('load', function () {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        resolve(xhr.response);
+                    } else {
+                        reject(new Error(`Upload failed with status ${xhr.status}`));
+                    }
+                });
+
+                // Better error handling
+                xhr.addEventListener('error', function (e) {
+                    // Check for CORS errors
+                    if (e.target.status === 0) {
+                        reject(new Error('CORS configuration error - bucket needs proper CORS settings'));
+                    } else {
+                        reject(new Error('Upload failed due to network error'));
+                    }
+                });
+
+                xhr.addEventListener('abort', function () {
+                    reject(new Error('Upload cancelled'));
+                });
+
+                // Start upload - PUT for pre-signed URLs
+                xhr.open('PUT', presignedUrl, true);
+                xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+                xhr.send(file);
+            });
+        },
+
+        cancelUpload: function(uploadId) {
+            // Check if this upload is active
+            if (this.activeUploads[uploadId]) {
+                // Abort the XHR request
+                this.activeUploads[uploadId].abort();
+
+                // Visual feedback can be handled in the catch block of the upload promise
+                console.log('Upload cancelled:', uploadId);
+            }
+        },
+
+        formatFileSize: function (bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
         }
     };
 
-    // Initialize when document is ready
-    $(document).ready(function() {
-        if (window.S3Browser) {
-            const originalInit = window.S3Browser.init;
-            window.S3Browser.init = function() {
-                originalInit.call(this);
-                window.S3Browser.uploads.init();
-            };
-
-            if (window.S3BrowserInitialized) {
-                window.S3Browser.uploads.init();
-            }
-        }
+    // Initialize uploads when the document is ready
+    $(document).ready(function () {
+        S3Browser.uploads.init();
     });
 
 })(jQuery);

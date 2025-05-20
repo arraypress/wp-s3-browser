@@ -267,38 +267,42 @@ class Browser {
 	 */
 	public function handle_ajax_get_upload_url() {
 		// Verify nonce and user capability
-		if (!check_ajax_referer('s3_browser_nonce_' . $this->provider_id, 'nonce', false)) {
-			wp_send_json_error(['message' => __('Security check failed', 'arraypress')]);
+		if ( ! check_ajax_referer( 's3_browser_nonce_' . $this->provider_id, 'nonce', false ) ) {
+			wp_send_json_error( [ 'message' => __( 'Security check failed', 'arraypress' ) ] );
+
 			return;
 		}
 
-		if (!current_user_can($this->capability)) {
-			wp_send_json_error(['message' => __('You do not have permission to perform this action', 'arraypress')]);
+		if ( ! current_user_can( $this->capability ) ) {
+			wp_send_json_error( [ 'message' => __( 'You do not have permission to perform this action', 'arraypress' ) ] );
+
 			return;
 		}
 
 		// Get parameters
-		$bucket = isset($_POST['bucket']) ? sanitize_text_field($_POST['bucket']) : '';
-		$object_key = isset($_POST['object_key']) ? sanitize_text_field($_POST['object_key']) : '';
+		$bucket     = isset( $_POST['bucket'] ) ? sanitize_text_field( $_POST['bucket'] ) : '';
+		$object_key = isset( $_POST['object_key'] ) ? sanitize_text_field( $_POST['object_key'] ) : '';
 
-		if (empty($bucket) || empty($object_key)) {
-			wp_send_json_error(['message' => __('Bucket and object key are required', 'arraypress')]);
+		if ( empty( $bucket ) || empty( $object_key ) ) {
+			wp_send_json_error( [ 'message' => __( 'Bucket and object key are required', 'arraypress' ) ] );
+
 			return;
 		}
 
 		// Generate a pre-signed PUT URL for uploading
-		$response = $this->client->get_presigned_upload_url($bucket, $object_key, 15); // 15 minute expiry
+		$response = $this->client->get_presigned_upload_url( $bucket, $object_key, 15 ); // 15 minute expiry
 
-		if (is_wp_error($response)) {
-			wp_send_json_error(['message' => $response->get_error_message()]);
+		if ( is_wp_error( $response ) ) {
+			wp_send_json_error( [ 'message' => $response->get_error_message() ] );
+
 			return;
 		}
 
 		// Send back the URL
-		wp_send_json_success([
-			'url' => $response->get_url(),
-			'expires' => time() + (15 * 60) // Expiry timestamp
-		]);
+		wp_send_json_success( [
+			'url'     => $response->get_url(),
+			'expires' => time() + ( 15 * 60 ) // Expiry timestamp
+		] );
 	}
 
 	/**
@@ -565,7 +569,7 @@ class Browser {
 			$script_handle = enqueue_library_script( 'js/s3-browser.js', [ 'jquery', $config_handle ] );
 
 			// Enqueue the uploader script and styles
-			enqueue_library_script( 'js/s3-upload-old.js', [ 'jquery', $config_handle, $script_handle ] );
+			enqueue_library_script( 'js/s3-upload.js', [ 'jquery', $config_handle, $script_handle ] );
 
 			// Localize script data - AssetLoader will prevent duplicate localization
 			if ( $script_handle ) {
@@ -1034,25 +1038,27 @@ class Browser {
 
 	public function render_upload_zone() {
 		// Only show upload zone on object views (not bucket listing)
-		if (empty($_GET['bucket'])) {
+		if ( empty( $_GET['bucket'] ) ) {
 			return;
 		}
 
-		$bucket = sanitize_text_field($_GET['bucket']);
-		$prefix = isset($_GET['prefix']) ? sanitize_text_field($_GET['prefix']) : '';
+		$bucket = sanitize_text_field( $_GET['bucket'] );
+		$prefix = isset( $_GET['prefix'] ) ? sanitize_text_field( $_GET['prefix'] ) : '';
 
 		?>
         <div class="s3-upload-container">
             <div class="s3-upload-header">
-                <h3 class="s3-upload-title"><?php esc_html_e('Upload Files', 'arraypress'); ?></h3>
+                <h3 class="s3-upload-title"><?php esc_html_e( 'Upload Files', 'arraypress' ); ?></h3>
             </div>
-            <div class="s3-upload-zone" data-bucket="<?php echo esc_attr($bucket); ?>" data-prefix="<?php echo esc_attr($prefix); ?>">
+            <div class="s3-upload-zone" data-bucket="<?php echo esc_attr( $bucket ); ?>"
+                 data-prefix="<?php echo esc_attr( $prefix ); ?>">
                 <div class="s3-upload-message">
                     <span class="dashicons dashicons-upload"></span>
-                    <p><?php esc_html_e('Drop files here to upload', 'arraypress'); ?></p>
-                    <p class="s3-upload-or"><?php esc_html_e('or', 'arraypress'); ?></p>
+                    <p><?php esc_html_e( 'Drop files here to upload', 'arraypress' ); ?></p>
+                    <p class="s3-upload-or"><?php esc_html_e( 'or', 'arraypress' ); ?></p>
                     <input type="file" multiple class="s3-file-input" id="s3FileUpload">
-                    <label for="s3FileUpload" class="button"><?php esc_html_e('Choose Files', 'arraypress'); ?></label>
+                    <label for="s3FileUpload"
+                           class="button"><?php esc_html_e( 'Choose Files', 'arraypress' ); ?></label>
                 </div>
             </div>
             <div class="s3-upload-list"></div>
