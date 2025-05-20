@@ -376,7 +376,11 @@ class Signer implements SignerInterface {
 	 */
 	public function delete_object( string $bucket, string $object_key ): ResponseInterface {
 		if ( empty( $bucket ) || empty( $object_key ) ) {
-			return new ErrorResponse( 'Bucket and object key are required', 'invalid_parameters', 400 );
+			return new ErrorResponse(
+				__( 'Bucket and object key are required', 'arraypress' ),
+				'invalid_parameters',
+				400
+			);
 		}
 
 		// Generate authorization headers for DELETE request
@@ -414,16 +418,25 @@ class Signer implements SignerInterface {
 
 		// Check for error status code
 		if ( $status_code < 200 || $status_code >= 300 ) {
-			return $this->handle_error_response( $status_code, $body, 'Failed to delete object' );
+			return $this->handle_error_response(
+				$status_code,
+				$body,
+				__( 'Failed to delete object', 'arraypress' )
+			);
 		}
 
-		// Create a simple success response
+		// Get filename for the message and response
+		$filename = basename( $object_key );
+
+		// Create a success response with detailed message and data
 		return new SuccessResponse(
-			'Object deleted successfully',
+		/* translators: %s: file name */
+			sprintf( __( 'File "%s" deleted successfully', 'arraypress' ), $filename ),
 			$status_code,
 			[
-				'bucket' => $bucket,
-				'key'    => $object_key
+				'bucket'   => $bucket,
+				'key'      => $object_key,
+				'filename' => $filename
 			]
 		);
 	}

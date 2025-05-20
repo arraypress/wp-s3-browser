@@ -173,7 +173,7 @@ class Browser {
 
 		add_action( 'wp_ajax_s3_get_upload_url_' . $this->provider_id, [ $this, 'handle_ajax_get_upload_url' ] );
 
-		add_action('wp_ajax_s3_delete_object_' . $this->provider_id, [$this, 'handle_ajax_delete_object']);
+		add_action( 'wp_ajax_s3_delete_object_' . $this->provider_id, [ $this, 'handle_ajax_delete_object' ] );
 
 		// Add plugin integrations
 		$this->add_edd_integration();
@@ -187,44 +187,60 @@ class Browser {
 	 */
 	public function handle_ajax_delete_object(): void {
 		// Verify nonce
-		if (!check_ajax_referer('s3_browser_nonce_' . $this->provider_id, 'nonce', false)) {
-			wp_send_json_error(['message' => __('Security check failed', 'arraypress')]);
+		if ( ! check_ajax_referer( 's3_browser_nonce_' . $this->provider_id, 'nonce', false ) ) {
+			wp_send_json_error( [ 'message' => __( 'Security check failed', 'arraypress' ) ] );
+
 			return;
 		}
 
 		// Check user capability
-		if (!current_user_can($this->capability)) {
-			wp_send_json_error(['message' => __('You do not have permission to perform this action', 'arraypress')]);
+		if ( ! current_user_can( $this->capability ) ) {
+			wp_send_json_error( [ 'message' => __( 'You do not have permission to perform this action', 'arraypress' ) ] );
+
 			return;
 		}
 
 		// Get parameters
-		$bucket = isset($_POST['bucket']) ? sanitize_text_field($_POST['bucket']) : '';
-		$object_key = isset($_POST['key']) ? sanitize_text_field($_POST['key']) : '';
+		$bucket     = isset( $_POST['bucket'] ) ? sanitize_text_field( $_POST['bucket'] ) : '';
+		$object_key = isset( $_POST['key'] ) ? sanitize_text_field( $_POST['key'] ) : '';
 
-		if (empty($bucket) || empty($object_key)) {
-			wp_send_json_error(['message' => __('Bucket and object key are required', 'arraypress')]);
+		if ( empty( $bucket ) || empty( $object_key ) ) {
+			wp_send_json_error( [ 'message' => __( 'Bucket and object key are required', 'arraypress' ) ] );
+
 			return;
 		}
 
 		// Delete the object
-		$result = $this->client->delete_object($bucket, $object_key);
+		$result = $this->client->delete_object( $bucket, $object_key );
 
-		if (is_wp_error($result)) {
-			wp_send_json_error(['message' => $result->get_error_message()]);
+		// Handle WP_Error case
+		if ( is_wp_error( $result ) ) {
+			wp_send_json_error( [ 'message' => $result->get_error_message() ] );
+
 			return;
 		}
 
-		if (!$result->is_successful()) {
-			wp_send_json_error(['message' => __('Failed to delete object', 'arraypress')]);
+		// Check if operation was successful using is_successful() method
+		// Should always return true for SuccessResponse objects
+		if ( $result instanceof \ArrayPress\S3\Interfaces\Response ) {
+			if ( ! $result->is_successful() ) {
+				wp_send_json_error( [ 'message' => __( 'Failed to delete object', 'arraypress' ) ] );
+
+				return;
+			}
+		} else {
+			// Not a Response object - this should never happen but adding as a fallback
+			wp_send_json_error( [ 'message' => __( 'Invalid response from S3 client', 'arraypress' ) ] );
+
 			return;
 		}
 
-		wp_send_json_success([
-			'message' => __('File successfully deleted', 'arraypress'),
-			'bucket' => $bucket,
-			'key' => $object_key
-		]);
+		// Send successful response
+		wp_send_json_success( [
+			'message' => __( 'File successfully deleted', 'arraypress' ),
+			'bucket'  => $bucket,
+			'key'     => $object_key
+		] );
 	}
 
 	/**
@@ -242,7 +258,6 @@ class Browser {
 		// Delegate to the table static method with the client
 		ObjectsTable::ajax_load_more( $this->client, $this->provider_id );
 	}
-
 
 
 	/**
@@ -483,43 +498,53 @@ class Browser {
 	 * @return string Script handle
 	 */
 	private function enqueue_global_config(): string {
-		// Create an empty script just for configuration
+		// Use a consistent handle
 		$handle = 's3-browser-global-config';
-		wp_register_script( $handle, false );
-		wp_enqueue_script( $handle, false, [ 'jquery' ], '1.0', true );
 
-		// Get current context
-		$user_id   = get_current_user_id();
-		$post_id   = $this->get_current_post_id();
-		$post_type = $post_id ? get_post_type( $post_id ) : 'default';
-
-		// Get favorite bucket info
-		$preferred_bucket = $this->get_preferred_bucket( $post_type );
-		$bucket_to_use    = $preferred_bucket['bucket'] ?: $this->default_bucket;
-		$prefix_to_use    = $preferred_bucket['prefix'] ?: $this->default_prefix;
-
-		// Create the minimal shared config
-		$shared_config = [
-			'providerId'    => $this->provider_id,
-			'providerName'  => $this->provider_name,
-			'baseUrl'       => admin_url( 'media-upload.php' ),
-			'ajaxUrl'       => admin_url( 'admin-ajax.php' ),
-			'defaultBucket' => $bucket_to_use,
-			'nonce'         => wp_create_nonce( 's3_browser_nonce_' . $this->provider_id ),
-			'ajaxAction'    => 's3_load_more_' . $this->provider_id,
-		];
-
-		// Only add favorite and prefix if relevant
-		if ( ! empty( $preferred_bucket['bucket'] ) ) {
-			$shared_config['favoriteBucket'] = $preferred_bucket['bucket'];
+		// Register empty script if not already registered
+		if ( ! wp_script_is( $handle, 'registered' ) ) {
+			wp_register_script( $handle, false );
 		}
 
-		if ( ! empty( $prefix_to_use ) ) {
-			$shared_config['defaultPrefix'] = $prefix_to_use;
+		// Enqueue if not already enqueued
+		if ( ! wp_script_is( $handle, 'enqueued' ) ) {
+			wp_enqueue_script( $handle, false, [ 'jquery' ], '1.0', true );
 		}
 
-		// Localize the script
-		wp_localize_script( $handle, 'S3BrowserGlobalConfig', $shared_config );
+		// Only localize if not already done
+		if ( ! wp_script_is( $handle, 'localized' ) ) {
+			// Get current context
+			$post_id   = $this->get_current_post_id();
+			$post_type = $post_id ? get_post_type( $post_id ) : 'default';
+
+			// Get favorite bucket info
+			$preferred_bucket = $this->get_preferred_bucket( $post_type );
+			$bucket_to_use    = $preferred_bucket['bucket'] ?: $this->default_bucket;
+			$prefix_to_use    = $preferred_bucket['prefix'] ?: $this->default_prefix;
+
+			// Create minimal shared config with only what's needed
+			$shared_config = [
+				'providerId'    => $this->provider_id,
+				'providerName'  => $this->provider_name,
+				'baseUrl'       => admin_url( 'media-upload.php' ),
+				'ajaxUrl'       => admin_url( 'admin-ajax.php' ),
+				'defaultBucket' => $bucket_to_use,
+				'nonce'         => wp_create_nonce( 's3_browser_nonce_' . $this->provider_id ),
+				'ajaxAction'    => 's3_load_more_' . $this->provider_id,
+			];
+
+			// Only add favorite and prefix if relevant
+			if ( ! empty( $preferred_bucket['bucket'] ) ) {
+				$shared_config['favoriteBucket'] = $preferred_bucket['bucket'];
+			}
+
+			if ( ! empty( $prefix_to_use ) ) {
+				$shared_config['defaultPrefix'] = $prefix_to_use;
+			}
+
+			// Localize the script
+			wp_localize_script( $handle, 'S3BrowserGlobalConfig', $shared_config );
+		}
 
 		return $handle;
 	}
@@ -543,47 +568,18 @@ class Browser {
 			$config_handle = $this->enqueue_global_config();
 
 			// Enqueue main styles and scripts with dependency on config
-			enqueue_library_style( 'css/s3-browser.css' );
+			// Let AssetLoader handle duplicate prevention
+			$css_handle    = enqueue_library_style( 'css/s3-browser.css' );
 			$script_handle = enqueue_library_script( 'js/s3-browser.js', [ 'jquery', $config_handle ] );
 
-			// Localize script data
+			// Localize script data - AssetLoader will prevent duplicate localization
 			if ( $script_handle ) {
 				$post_id = $this->get_current_post_id();
 
-				// For the main browser script, add additional config
+				// For the main browser script, add minimal required config
 				$browser_config = [
 					'postId'   => $post_id,
-					'autoLoad' => apply_filters( 's3_browser_auto_load', false, $this->provider_id ),
-					'i18n'     => [
-						// Existing translations
-						'setDefault'        => __( 'Set Default', 'arraypress' ),
-						'default'           => __( 'Default', 'arraypress' ),
-						'bucketAdded'       => __( 'Bucket set as default', 'arraypress' ),
-						'bucketRemoved'     => __( 'Default bucket removed', 'arraypress' ),
-
-						// Cache refresh translations
-						'refreshCache'      => __( 'Refresh Cache', 'arraypress' ),
-						'cacheError'        => __( 'Failed to clear cache', 'arraypress' ),
-						'networkError'      => __( 'Network error. Please try again.', 'arraypress' ),
-
-						// Loading and pagination
-						'loadingText'       => __( 'Loading...', 'arraypress' ),
-						'loadMoreItemsText' => __( 'Load More Items', 'arraypress' ),
-						'loadMoreError'     => __( 'Failed to load more items. Please try again.', 'arraypress' ),
-
-						// Search translations
-						'searchPlaceholder' => __( 'Search files and folders...', 'arraypress' ),
-						'clearSearch'       => __( 'Clear', 'arraypress' ),
-						'noMatchesFound'    => __( 'No matches found', 'arraypress' ),
-						'noFilesFound'      => __( 'No files or folders found matching', 'arraypress' ),
-						'itemsMatchText'    => __( 'of', 'arraypress' ),
-						'itemsMatchSuffix'  => __( 'items match', 'arraypress' ),
-
-						// Item count translations
-						'item'              => __( 'item', 'arraypress' ),
-						'items'             => __( 'items', 'arraypress' ),
-						'moreAvailable'     => __( '(more available)', 'arraypress' )
-					]
+					'autoLoad' => apply_filters( 's3_browser_auto_load', false, $this->provider_id )
 				];
 
 				// Localize the main browser script
