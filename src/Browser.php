@@ -566,7 +566,7 @@ class Browser {
 
 
 			$dropzone_handle = enqueue_library_script( 'js/dropzone.js', [ 'jquery', $config_handle ] );
-			enqueue_library_style( 'css/dropzone.css' );
+//			enqueue_library_style( 'css/dropzone.css' );
 
 			// Enqueue the uploader script and styles
 			enqueue_library_script( 'js/s3-upload.js', [ 'jquery', $dropzone_handle, $config_handle, $script_handle ] );
