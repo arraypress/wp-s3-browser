@@ -12,87 +12,195 @@
             this.setupJSSearch();
             this.setupAjaxLoading();
             this.countInitialItems();
+            this.initFavorites();
+            this.initCacheRefresh();
         },
 
         bindEvents: function () {
-            // Bucket clicks
+            var self = this;
+            var config = S3BrowserGlobalConfig;
+            var postId = s3BrowserConfig.postId || 0;
+
+            // Bucket navigation
             $(document).on('click', '.bucket-name, .browse-bucket-button', function (e) {
                 e.preventDefault();
-                var bucket = $(this).data('bucket');
-                var newUrl = window.location.href.split('?')[0] + '?' + $.param({
-                    chromeless: 1,
-                    post_id: s3BrowserConfig.postId,
-                    tab: 's3_' + s3BrowserConfig.providerId,
-                    bucket: bucket
+                self.navigateTo({
+                    bucket: $(this).data('bucket')
                 });
-                window.location.href = newUrl;
+            });
+
+            // Folder navigation
+            $(document).on('click', '.s3-folder-link', function (e) {
+                e.preventDefault();
+                self.navigateTo({
+                    bucket: $(this).data('bucket') || $('#s3-load-more').data('bucket') || config.defaultBucket,
+                    prefix: $(this).data('prefix')
+                });
             });
 
             // File selection
             $(document).on('click', '.s3-select-file', function (e) {
                 e.preventDefault();
-                var parent = window.parent;
-                var fileData = {
-                    fileName: $(this).data('filename'),
-                    bucket: $(this).data('bucket'),
-                    key: $(this).data('key')
-                };
-                fileData.url = fileData.bucket + '/' + fileData.key;
+                self.handleFileSelection($(this));
+            });
 
-                // EDD integration
-                if (parent.edd_fileurl && parent.edd_filename) {
+            // File downloads
+            $(document).on('click', '.s3-download-file', function (e) {
+                e.preventDefault();
+                window.open($(this).data('url'), '_blank');
+            });
+
+            // File deletion
+            $(document).on('click', '.s3-delete-file', function (e) {
+                e.preventDefault();
+                self.deleteFile($(this));
+            });
+        },
+
+        // Navigation helper
+        navigateTo: function (params) {
+            params.chromeless = 1;
+            params.post_id = s3BrowserConfig.postId || 0;
+            params.tab = 's3_' + S3BrowserGlobalConfig.providerId;
+
+            var url = window.location.href.split('?')[0] + '?' + $.param(params);
+            window.location.href = url;
+        },
+
+        // File selection handler
+        handleFileSelection: function ($button) {
+            var parent = window.parent;
+            var fileData = {
+                fileName: $button.data('filename'),
+                bucket: $button.data('bucket'),
+                key: $button.data('key'),
+                url: $button.data('bucket') + '/' + $button.data('key')
+            };
+
+            // Determine which context called the media browser
+            var callingContext = '';
+            if (parent.edd_fileurl && parent.edd_filename) {
+                callingContext = 'edd';
+            } else if (parent.wc_target_input && parent.wc_media_frame_context === 'product_file') {
+                callingContext = 'woocommerce_file';
+            } else if (parent.wp && parent.wp.media && parent.wp.media.editor) {
+                callingContext = 'wp_editor';
+            }
+
+            // Insert based on context
+            switch (callingContext) {
+                case 'edd':
+                    // EDD integration
                     parent.jQuery(parent.edd_filename).val(fileData.fileName);
                     parent.jQuery(parent.edd_fileurl).val(fileData.url);
                     parent.tb_remove();
-                }
-                // WooCommerce integration
-                else if (parent.wc_target_input) {
+                    break;
+
+                case 'woocommerce_file':
+                    // WooCommerce downloadable file integration
                     parent.jQuery(parent.wc_target_input).val(fileData.url);
                     var $filenameInput = parent.jQuery(parent.wc_target_input).closest('tr').find('input[name="_wc_file_names[]"]');
                     if ($filenameInput.length) {
                         $filenameInput.val(fileData.fileName);
                     }
                     parent.wp.media.frame.close();
-                }
-                // WordPress media
-                else if (parent.wp && parent.wp.media && parent.wp.media.editor) {
-                    parent.wp.media.editor.insert(fileData.url);
-                    if (parent.wp.media.frame) parent.wp.media.frame.close();
-                }
-                // Fallback
-                else {
+                    break;
+
+                case 'wp_editor':
+                    // WordPress editor integration
+                    try {
+                        // Check if there's an active editor instance
+                        if (parent.wp.media.editor.activeEditor) {
+                            parent.wp.media.editor.insert(fileData.url);
+                        } else {
+                            // Fallback for when activeEditor is not set
+                            var wpActiveEditor = parent.wpActiveEditor;
+                            if (wpActiveEditor) {
+                                parent.wp.media.editor.insert(fileData.url, parent.wpActiveEditor);
+                            } else {
+                                alert('File URL: ' + fileData.url);
+                            }
+                        }
+                        if (parent.wp.media.frame) parent.wp.media.frame.close();
+                    } catch (e) {
+                        console.log('Editor insertion error:', e);
+                        alert('File URL: ' + fileData.url);
+                    }
+                    break;
+
+                default:
+                    // Fallback
                     alert('File URL: ' + fileData.url);
-                }
-            });
+            }
+        },
 
-            // Downloads
-            $(document).on('click', '.s3-download-file', function (e) {
-                e.preventDefault();
-                window.open($(this).data('url'), '_blank');
-            });
+        // File deletion handler
+        deleteFile: function ($button) {
+            var self = this;
+            var filename = $button.data('filename');
+            var bucket = $button.data('bucket');
+            var key = $button.data('key');
+            var i18n = s3BrowserConfig.i18n || {};
 
-            // Folder navigation - handle both click and Open button
-            $(document).on('click', '.s3-folder-link', function (e) {
-                e.preventDefault();
-                var prefix = $(this).data('prefix');
-                var bucket = $(this).data('bucket') ||
-                    $('#s3-load-more').data('bucket') ||
-                    s3BrowserConfig.bucket;
+            // Use standard confirmation dialog
+            var confirmMsg = (i18n.deleteConfirmMessage || 'Are you sure you want to delete') + ' "' + filename + '"?';
+            if (!window.confirm(confirmMsg)) {
+                return; // User cancelled
+            }
 
-                var newUrl = window.location.href.split('?')[0] + '?' + $.param({
-                    chromeless: 1,
-                    post_id: s3BrowserConfig.postId,
-                    tab: 's3_' + s3BrowserConfig.providerId,
+            // User confirmed, proceed with deletion
+            $button.prop('disabled', true)
+                .find('.dashicons').addClass('spin');
+
+            $.ajax({
+                url: S3BrowserGlobalConfig.ajaxUrl,
+                type: 'POST',
+                data: {
+                    action: 's3_delete_object_' + S3BrowserGlobalConfig.providerId,
                     bucket: bucket,
-                    prefix: prefix
-                });
-                window.location.href = newUrl;
+                    key: key,
+                    nonce: S3BrowserGlobalConfig.nonce
+                },
+                success: function(response) {
+                    if (response.success) {
+                        // Show success notification
+                        self.showNotification(response.data.message || i18n.fileDeleted || 'File deleted successfully', 'success');
+
+                        // Remove the row from the table
+                        $button.closest('tr').fadeOut(300, function() {
+                            $(this).remove();
+
+                            // Update total count
+                            self.totalLoadedItems--;
+                            self.updateTotalCount(false);
+
+                            // Also update the search data
+                            self.refreshSearch();
+                        });
+                    } else {
+                        // Show error notification
+                        self.showNotification(response.data.message || i18n.deleteError || 'Failed to delete file', 'error');
+
+                        // Reset button state
+                        $button.prop('disabled', false)
+                            .find('.dashicons').removeClass('spin');
+                    }
+                },
+                error: function() {
+                    // Show network error notification
+                    self.showNotification(i18n.networkError || 'Network error. Please try again.', 'error');
+
+                    // Reset button state
+                    $button.prop('disabled', false)
+                        .find('.dashicons').removeClass('spin');
+                }
             });
         },
 
-        setupJSSearch: function() {
+        setupJSSearch: function () {
             var self = this;
             var $table = $('.wp-list-table tbody');
+            var i18n = s3BrowserConfig.i18n || {};
 
             if (!$table.length) return;
 
@@ -100,47 +208,44 @@
             this.originalTableData = $table.find('tr:not(.s3-no-results)').clone();
 
             // Search input events
-            $('#s3-js-search').on('input', function() {
+            $('#s3-js-search').on('input', function () {
                 var $this = $(this);
                 var $clearBtn = $('#s3-js-search-clear');
 
-                if ($this.val()) {
-                    $clearBtn.show();
-                } else {
-                    $clearBtn.hide();
-                }
+                $clearBtn.toggle(Boolean($this.val()));
 
                 clearTimeout(self.searchTimeout);
-                self.searchTimeout = setTimeout(function() {
+                self.searchTimeout = setTimeout(function () {
                     self.filterTable($this.val());
                 }, 200);
             });
 
-            $('#s3-js-search-clear').on('click', function() {
+            $('#s3-js-search-clear').on('click', function () {
                 $('#s3-js-search').val('').trigger('input');
             });
         },
 
-        setupAjaxLoading: function() {
+        setupAjaxLoading: function () {
             var self = this;
+            var config = S3BrowserGlobalConfig;
 
             // Load more button
-            $(document).on('click', '#s3-load-more', function(e) {
+            $(document).on('click', '#s3-load-more', function (e) {
                 e.preventDefault();
-
                 if (self.isLoading) return;
 
                 var $button = $(this);
-                var token = $button.data('token');
-                var bucket = $button.data('bucket');
-                var prefix = $button.data('prefix');
-
-                self.loadMoreItems(token, bucket, prefix, $button);
+                self.loadMoreItems(
+                    $button.data('token'),
+                    $button.data('bucket'),
+                    $button.data('prefix'),
+                    $button
+                );
             });
 
             // Optional auto-load
             if (s3BrowserConfig.autoLoad) {
-                $(window).on('scroll.s3browser', function() {
+                $(window).on('scroll.s3browser', function () {
                     if (self.isLoading) return;
 
                     var $loadMore = $('#s3-load-more');
@@ -156,31 +261,98 @@
             }
         },
 
-        loadMoreItems: function(token, bucket, prefix, $button) {
+        // Initialize cache refresh functionality
+        initCacheRefresh: function() {
             var self = this;
+            var i18n = s3BrowserConfig.i18n || {};
+
+            // Handle refresh button clicks
+            $(document).on('click', '.s3-refresh-button', function(e) {
+                e.preventDefault();
+
+                const $button = $(this);
+                const provider = $button.data('provider');
+                const type = $button.data('type');
+                const bucket = $button.data('bucket') || '';
+                const prefix = $button.data('prefix') || '';
+
+                // Prevent multiple clicks
+                if ($button.hasClass('refreshing')) {
+                    return;
+                }
+
+                // Update button state
+                $button.addClass('refreshing')
+                    .find('.dashicons').addClass('spin');
+
+                // AJAX request to clear cache
+                $.ajax({
+                    url: S3BrowserGlobalConfig.ajaxUrl,
+                    type: 'POST',
+                    data: {
+                        action: 's3_clear_cache_' + provider,
+                        type: type,
+                        bucket: bucket,
+                        prefix: prefix,
+                        nonce: S3BrowserGlobalConfig.nonce
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            // Show success notification
+                            self.showNotification(response.data.message || i18n.cacheCleared || 'Cache cleared successfully', 'success');
+
+                            // Wait 1.5 seconds to show the notification before reloading
+                            setTimeout(function() {
+                                window.location.reload();
+                            }, 1500);
+                        } else {
+                            // Show error notification
+                            self.showNotification(response.data.message || i18n.cacheError || 'Failed to clear cache', 'error');
+
+                            // Reset button state
+                            $button.removeClass('refreshing')
+                                .find('.dashicons').removeClass('spin');
+                        }
+                    },
+                    error: function() {
+                        // Show network error notification
+                        self.showNotification(i18n.networkError || 'Network error. Please try again.', 'error');
+
+                        // Reset button state
+                        $button.removeClass('refreshing')
+                            .find('.dashicons').removeClass('spin');
+                    }
+                });
+            });
+        },
+
+        loadMoreItems: function (token, bucket, prefix, $button) {
+            var self = this;
+            var config = S3BrowserGlobalConfig;
+            var i18n = s3BrowserConfig.i18n || {};
 
             if (self.isLoading || !token) return;
-
             self.isLoading = true;
 
             // Update button state
-            $button.prop('disabled', true);
-            $button.find('.s3-button-text').text('Loading...');
-            $button.find('.spinner').show();
+            $button.prop('disabled', true)
+                .find('.s3-button-text').text(i18n.loadingText || 'Loading...')
+                .end()
+                .find('.spinner').show();
 
             // AJAX request
             $.ajax({
-                url: s3BrowserConfig.ajaxUrl,
+                url: config.ajaxUrl,
                 type: 'POST',
                 data: {
-                    action: s3BrowserConfig.ajaxAction,
+                    action: config.ajaxAction,
                     bucket: bucket,
                     prefix: prefix || '',
                     continuation_token: token,
-                    nonce: s3BrowserConfig.nonce
+                    nonce: config.nonce
                 },
                 dataType: 'json',
-                success: function(response) {
+                success: function (response) {
                     if (response.success && response.data) {
                         // Append new rows
                         var $tbody = $('.wp-list-table tbody');
@@ -195,10 +367,12 @@
 
                         // Handle button state
                         if (response.data.has_more && response.data.continuation_token) {
-                            $button.data('token', response.data.continuation_token);
-                            $button.find('.s3-button-text').text('Load More Items');
-                            $button.find('.spinner').hide();
-                            $button.prop('disabled', false);
+                            $button.data('token', response.data.continuation_token)
+                                .find('.s3-button-text').text(i18n.loadMoreItemsText || 'Load More Items')
+                                .end()
+                                .find('.spinner').hide()
+                                .end()
+                                .prop('disabled', false);
                         } else {
                             // No more items
                             $button.closest('.s3-load-more-wrapper').fadeOut(300);
@@ -211,53 +385,55 @@
                             self.filterTable(currentSearch);
                         }
                     } else {
-                        self.showError('Failed to load more items. Please try again.');
+                        self.showError(i18n.loadMoreError || 'Failed to load more items. Please try again.');
                         self.resetButton($button);
                     }
                 },
-                error: function(xhr, status, error) {
+                error: function (xhr, status, error) {
                     console.error('AJAX Error:', error);
-                    self.showError('Network error. Please check your connection and try again.');
+                    self.showError(i18n.networkError || 'Network error. Please check your connection and try again.');
                     self.resetButton($button);
                 },
-                complete: function() {
+                complete: function () {
                     self.isLoading = false;
                 }
             });
         },
 
-        resetButton: function($button) {
-            $button.find('.s3-button-text').text('Load More Items');
-            $button.find('.spinner').hide();
-            $button.prop('disabled', false);
+        resetButton: function ($button) {
+            var i18n = s3BrowserConfig.i18n || {};
+
+            $button.find('.s3-button-text').text(i18n.loadMoreItemsText || 'Load More Items')
+                .end()
+                .find('.spinner').hide()
+                .end()
+                .prop('disabled', false);
         },
 
-        filterTable: function(searchTerm) {
+        filterTable: function (searchTerm) {
             var $tbody = $('.wp-list-table tbody');
             var $stats = $('.s3-search-stats');
             var $bottomNav = $('.tablenav.bottom');
+            var i18n = s3BrowserConfig.i18n || {};
 
             $tbody.find('.s3-no-results').remove();
 
             if (!searchTerm) {
                 $tbody.empty().append(this.originalTableData.clone());
                 $stats.text('');
-                // Show bottom navigation when search is cleared
                 $bottomNav.show();
                 return;
             }
 
-            // Hide entire bottom navigation during search
+            // Hide bottom navigation during search
             $bottomNav.hide();
 
             searchTerm = searchTerm.toLowerCase();
             var visibleRows = 0;
             var totalRows = 0;
 
-            var $filteredRows = this.originalTableData.clone();
             $tbody.empty();
-
-            $filteredRows.each(function() {
+            this.originalTableData.each(function () {
                 totalRows++;
                 var $row = $(this);
                 var fileName = $row.find('.column-name').text().toLowerCase();
@@ -269,53 +445,78 @@
             });
 
             if (visibleRows === 0) {
-                $stats.text('No matches found');
+                $stats.text(i18n.noMatchesFound || 'No matches found');
                 var colCount = $('.wp-list-table thead th').length;
                 $tbody.append(
                     '<tr class="s3-no-results"><td colspan="' + colCount + '">' +
-                    'No files or folders found matching "' + $('<div>').text(searchTerm).html() + '"' +
+                    (i18n.noFilesFound || 'No files or folders found matching') + ' "' + $('<div>').text(searchTerm).html() + '"' +
                     '</td></tr>'
                 );
             } else {
-                $stats.text(visibleRows + ' of ' + totalRows + ' items match');
+                $stats.text(visibleRows + ' ' + (i18n.itemsMatchText || 'of') + ' ' + totalRows + ' ' + (i18n.itemsMatchSuffix || 'items match'));
             }
         },
 
-        countInitialItems: function() {
+        countInitialItems: function () {
             this.totalLoadedItems = $('.wp-list-table tbody tr:not(.s3-no-results)').length;
             var hasMore = $('#s3-load-more').length && $('#s3-load-more').is(':visible');
             this.updateTotalCount(hasMore);
         },
 
-        updateTotalCount: function(hasMore) {
+        updateTotalCount: function (hasMore) {
             var $countSpan = $('#s3-total-count');
+            var i18n = s3BrowserConfig.i18n || {};
+
             if ($countSpan.length) {
-                var text = this.totalLoadedItems;
-                text += (this.totalLoadedItems === 1) ? ' item' : ' items';
-
-                if (hasMore) {
-                    text += ' (more available)';
-                }
-
+                var itemText = this.totalLoadedItems === 1 ? (i18n.item || 'item') : (i18n.items || 'items');
+                var text = this.totalLoadedItems + ' ' + itemText;
+                if (hasMore) text += ' ' + (i18n.moreAvailable || '(more available)');
                 $countSpan.text(text);
             }
         },
 
-        showError: function(message) {
+        showError: function (message) {
             var $notice = $('.s3-ajax-error');
             if (!$notice.length) {
                 $notice = $('<div class="notice notice-error s3-ajax-error"><p></p></div>');
                 $('.s3-load-more-wrapper').before($notice);
             }
-            $notice.find('p').text(message);
-            $notice.show();
+            $notice.find('p').text(message).end().show();
 
-            setTimeout(function() {
+            setTimeout(function () {
                 $notice.fadeOut();
             }, 5000);
         },
 
-        refreshSearch: function() {
+        showNotification: function(message, type) {
+            // First, remove any existing notifications
+            $('.s3-notification').remove();
+
+            // Create the notification with the message and type
+            var $notification = $('<div class="s3-notification s3-notification-' + type + '">' + message + '</div>');
+
+            // Add to the top of the container for maximum visibility
+            $('.s3-browser-container').prepend($notification);
+
+            // Ensure the notification is visible by scrolling to it
+            if ($notification.length) {
+                $('html, body').animate({
+                    scrollTop: $notification.offset().top - 50
+                }, 200);
+            }
+
+            // For success notifications that will be followed by reload, don't auto-hide
+            if (type !== 'success') {
+                // For other notifications, auto-hide after delay
+                setTimeout(function() {
+                    $notification.fadeOut(300, function() {
+                        $(this).remove();
+                    });
+                }, 5000);
+            }
+        },
+
+        refreshSearch: function () {
             var $table = $('.wp-list-table tbody');
             if ($table.length) {
                 this.originalTableData = $table.find('tr:not(.s3-no-results)').clone();
@@ -327,6 +528,81 @@
                     $('.s3-search-stats').text('');
                 }
             }
+        },
+
+        // Initialize favoriting system
+        initFavorites: function () {
+            var self = this;
+            var i18n = s3BrowserConfig.i18n || {};
+
+            $(document).on('click', '.s3-favorite-bucket', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                var $button = $(this);
+                var bucket = $button.data('bucket');
+                var provider = $button.data('provider');
+                var action = $button.data('action');
+                var postType = $button.data('post-type');
+
+                // Disable button temporarily
+                $button.addClass('s3-processing');
+
+                // Send AJAX request
+                $.ajax({
+                    url: S3BrowserGlobalConfig.ajaxUrl,
+                    type: 'POST',
+                    data: {
+                        action: 's3_toggle_favorite_' + provider,
+                        bucket: bucket,
+                        favorite_action: action,
+                        post_type: postType,
+                        nonce: S3BrowserGlobalConfig.nonce
+                    },
+                    dataType: 'json',
+                    success: function (response) {
+                        if (response.success) {
+                            // Reset all buttons
+                            $('.s3-favorite-bucket').each(function () {
+                                var $otherButton = $(this);
+                                var $otherIcon = $otherButton.find('.dashicons');
+
+                                $otherIcon.removeClass('dashicons-star-filled s3-favorite-active')
+                                    .addClass('dashicons-star-empty');
+                                $otherButton.data('action', 'add');
+
+                                // Update text to "Set Default"
+                                $otherButton.contents().filter(function () {
+                                    return this.nodeType === 3; // Text nodes only
+                                }).replaceWith(i18n.setDefault || 'Set Default');
+                            });
+
+                            // Update clicked button if necessary
+                            if (response.data.status === 'added') {
+                                var $icon = $button.find('.dashicons');
+                                $icon.removeClass('dashicons-star-empty')
+                                    .addClass('dashicons-star-filled s3-favorite-active');
+                                $button.data('action', 'remove');
+
+                                // Update text to "Default"
+                                $button.contents().filter(function () {
+                                    return this.nodeType === 3; // Text nodes only
+                                }).replaceWith(i18n.default || 'Default');
+                            }
+
+                            self.showNotification(response.data.message, 'success');
+                        } else {
+                            self.showNotification(response.data.message || i18n.bucketError || 'Error updating default bucket', 'error');
+                        }
+                    },
+                    error: function () {
+                        self.showNotification(i18n.networkError || 'Network error. Please try again.', 'error');
+                    },
+                    complete: function () {
+                        $button.removeClass('s3-processing');
+                    }
+                });
+            });
         }
     };
 
@@ -335,7 +611,7 @@
         S3Browser.init();
     });
 
-    $(window).on('load', function() {
+    $(window).on('load', function () {
         if (window.S3Browser) {
             S3Browser.refreshSearch();
         }

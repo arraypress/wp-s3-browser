@@ -1,8 +1,8 @@
 <?php
 /**
- * Caching Trait
+ * Caching Trait - Simplified
  *
- * Provides caching functionality for S3 operations.
+ * Provides essential caching functionality for S3 operations.
  *
  * @package     ArrayPress\S3\Traits
  * @copyright   Copyright (c) 2025, ArrayPress Limited
@@ -16,7 +16,7 @@ declare( strict_types=1 );
 namespace ArrayPress\S3\Traits;
 
 /**
- * Trait CachingTrait
+ * Trait Caching
  */
 trait Caching {
 
@@ -32,7 +32,7 @@ trait Caching {
 	 *
 	 * @var int
 	 */
-	private int $cache_ttl = 86400; // DAY_IN_SECONDS
+	private int $cache_ttl = 3600; // One hour default
 
 	/**
 	 * Cache prefix
@@ -42,34 +42,14 @@ trait Caching {
 	private string $cache_prefix = 's3_';
 
 	/**
-	 * Cache backend handler
-	 *
-	 * @var callable|null
-	 */
-	private $cache_handler = null;
-
-	/**
 	 * Initialize cache settings
 	 *
 	 * @param bool $enabled Whether cache is enabled
 	 * @param int  $ttl     Cache TTL in seconds
 	 */
-	protected function init_cache( bool $enabled = true, int $ttl = 86400 ): void {
+	protected function init_cache( bool $enabled = true, int $ttl = 3600 ): void {
 		$this->cache_enabled = $enabled;
 		$this->cache_ttl     = $ttl;
-	}
-
-	/**
-	 * Set custom cache handler
-	 *
-	 * @param callable $handler Custom cache handler with get/set/delete methods
-	 *
-	 * @return self
-	 */
-	public function set_cache_handler( callable $handler ): self {
-		$this->cache_handler = $handler;
-
-		return $this;
 	}
 
 	/**
@@ -95,41 +75,6 @@ trait Caching {
 	}
 
 	/**
-	 * Get cache TTL
-	 *
-	 * @return int
-	 */
-	public function get_cache_ttl(): int {
-		return $this->cache_ttl;
-	}
-
-	/**
-	 * Set cache TTL
-	 *
-	 * @param int $ttl TTL in seconds
-	 *
-	 * @return self
-	 */
-	public function set_cache_ttl( int $ttl ): self {
-		$this->cache_ttl = max( 0, $ttl );
-
-		return $this;
-	}
-
-	/**
-	 * Set cache prefix
-	 *
-	 * @param string $prefix Cache key prefix
-	 *
-	 * @return self
-	 */
-	public function set_cache_prefix( string $prefix ): self {
-		$this->cache_prefix = $prefix;
-
-		return $this;
-	}
-
-	/**
 	 * Generate cache key
 	 *
 	 * @param string $base   Base key
@@ -137,7 +82,7 @@ trait Caching {
 	 *
 	 * @return string Cache key
 	 */
-	protected function get_cache_key( string $base, array $params = [] ): string {
+	public function get_cache_key( string $base, array $params = [] ): string {
 		return $this->cache_prefix . md5( $base . '_' . serialize( $params ) );
 	}
 
@@ -149,18 +94,11 @@ trait Caching {
 	 * @return mixed|false Cached data or false if not found
 	 */
 	protected function get_from_cache( string $key ) {
-		// Use custom cache handler if set
-		if ( is_callable( $this->cache_handler ) ) {
-			return call_user_func( $this->cache_handler, 'get', $key );
+		if ( ! $this->cache_enabled ) {
+			return false;
 		}
 
-		// Default to WordPress transients if available
-		if ( function_exists( 'get_transient' ) ) {
-			return get_transient( $key );
-		}
-
-		// No caching available
-		return false;
+		return get_transient( $key );
 	}
 
 	/**
@@ -172,18 +110,11 @@ trait Caching {
 	 * @return bool Whether the data was saved
 	 */
 	protected function save_to_cache( string $key, $data ): bool {
-		// Use custom cache handler if set
-		if ( is_callable( $this->cache_handler ) ) {
-			return (bool) call_user_func( $this->cache_handler, 'set', $key, $data, $this->cache_ttl );
+		if ( ! $this->cache_enabled ) {
+			return false;
 		}
 
-		// Default to WordPress transients if available
-		if ( function_exists( 'set_transient' ) ) {
-			return set_transient( $key, $data, $this->cache_ttl );
-		}
-
-		// No caching available
-		return false;
+		return set_transient( $key, $data, $this->cache_ttl );
 	}
 
 	/**
@@ -194,57 +125,39 @@ trait Caching {
 	 * @return bool Whether the cache key was deleted
 	 */
 	public function clear_cache_item( string $key ): bool {
-		// Use custom cache handler if set
-		if ( is_callable( $this->cache_handler ) ) {
-			return (bool) call_user_func( $this->cache_handler, 'delete', $key );
-		}
-
-		// Default to WordPress transients if available
-		if ( function_exists( 'delete_transient' ) ) {
-			return delete_transient( $key );
-		}
-
-		// No caching available
-		return false;
+		return delete_transient( $key );
 	}
 
 	/**
-	 * Clear all cache for the client
+	 * Clear all cache for this S3 client
 	 *
 	 * @return bool Whether the operation was successful
 	 */
 	public function clear_all_cache(): bool {
-		// Use custom cache handler if set
-		if ( is_callable( $this->cache_handler ) ) {
-			return (bool) call_user_func( $this->cache_handler, 'flush', $this->cache_prefix );
+		global $wpdb;
+
+		if ( ! isset( $wpdb ) || ! $wpdb ) {
+			return false;
 		}
 
-		// Default to WordPress transients if available
-		if ( function_exists( 'delete_transient' ) && function_exists( '_get_using_prefix_where' ) ) {
-			global $wpdb;
+		$pattern = $wpdb->esc_like( '_transient_' . $this->cache_prefix ) . '%';
 
-			if ( isset( $wpdb ) && $wpdb ) {
-				$sql = $wpdb->prepare(
-					"DELETE FROM $wpdb->options WHERE option_name LIKE %s",
-					_get_using_prefix_where( $wpdb->esc_like( '_transient_' . $this->cache_prefix ) )
-				);
+		$sql = $wpdb->prepare(
+			"DELETE FROM $wpdb->options WHERE option_name LIKE %s",
+			$pattern
+		);
 
-				$result = $wpdb->query( $sql );
+		$result = $wpdb->query( $sql );
 
-				// Also clear timeout entries
-				$sql = $wpdb->prepare(
-					"DELETE FROM $wpdb->options WHERE option_name LIKE %s",
-					_get_using_prefix_where( $wpdb->esc_like( '_transient_timeout_' . $this->cache_prefix ) )
-				);
+		// Also clear timeout entries
+		$timeout_pattern = $wpdb->esc_like( '_transient_timeout_' . $this->cache_prefix ) . '%';
 
-				$wpdb->query( $sql );
+		$wpdb->query( $wpdb->prepare(
+			"DELETE FROM $wpdb->options WHERE option_name LIKE %s",
+			$timeout_pattern
+		) );
 
-				return $result !== false;
-			}
-		}
-
-		// No caching available
-		return false;
+		return $result !== false;
 	}
 
 	/**
@@ -255,77 +168,31 @@ trait Caching {
 	 * @return bool Whether the operation was successful
 	 */
 	public function clear_bucket_cache( string $bucket ): bool {
-		// Use custom cache handler if set
-		if ( is_callable( $this->cache_handler ) ) {
-			$prefix = $this->cache_prefix . md5( 'objects_' . $bucket );
+		global $wpdb;
 
-			return (bool) call_user_func( $this->cache_handler, 'flush', $prefix );
+		if ( ! isset( $wpdb ) || ! $wpdb ) {
+			return false;
 		}
 
-		// Default to WordPress transients if available
-		if ( function_exists( 'delete_transient' ) && function_exists( '_get_using_prefix_where' ) ) {
-			global $wpdb;
+		$prefix  = $this->cache_prefix . md5( 'objects_' . $bucket );
+		$pattern = $wpdb->esc_like( '_transient_' . $prefix ) . '%';
 
-			if ( isset( $wpdb ) && $wpdb ) {
-				$bucket_prefix = $wpdb->esc_like( '_transient_' . $this->cache_prefix . md5( 'objects_' . $bucket ) );
+		$sql = $wpdb->prepare(
+			"DELETE FROM $wpdb->options WHERE option_name LIKE %s",
+			$pattern
+		);
 
-				$sql = $wpdb->prepare(
-					"DELETE FROM $wpdb->options WHERE option_name LIKE %s",
-					$bucket_prefix . '%'
-				);
+		$result = $wpdb->query( $sql );
 
-				$result = $wpdb->query( $sql );
+		// Also clear timeout entries
+		$timeout_pattern = $wpdb->esc_like( '_transient_timeout_' . $prefix ) . '%';
 
-				// Also clear timeout entries
-				$sql = $wpdb->prepare(
-					"DELETE FROM $wpdb->options WHERE option_name LIKE %s",
-					$wpdb->esc_like( '_transient_timeout_' . $this->cache_prefix . md5( 'objects_' . $bucket ) ) . '%'
-				);
+		$wpdb->query( $wpdb->prepare(
+			"DELETE FROM $wpdb->options WHERE option_name LIKE %s",
+			$timeout_pattern
+		) );
 
-				$wpdb->query( $sql );
-
-				return $result !== false;
-			}
-		}
-
-		// No caching available
-		return false;
-	}
-
-	/**
-	 * Check if the item exists in cache
-	 *
-	 * @param string $key Cache key
-	 *
-	 * @return bool Whether the cache key exists
-	 */
-	protected function cache_has( string $key ): bool {
-		// Use custom cache handler if set
-		if ( is_callable( $this->cache_handler ) ) {
-			return (bool) call_user_func( $this->cache_handler, 'has', $key );
-		}
-
-		// For WordPress, get_transient returns false if not found
-		// so we need to do a direct check in the database
-		if ( function_exists( 'get_transient' ) && function_exists( '_get_using_prefix_where' ) ) {
-			global $wpdb;
-
-			if ( isset( $wpdb ) && $wpdb ) {
-				$option_name = '_transient_' . $key;
-
-				$result = $wpdb->get_var(
-					$wpdb->prepare(
-						"SELECT option_name FROM $wpdb->options WHERE option_name = %s LIMIT 1",
-						$option_name
-					)
-				);
-
-				return ! empty( $result );
-			}
-		}
-
-		// No caching available or no way to check existence
-		return false;
+		return $result !== false;
 	}
 
 }

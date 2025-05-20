@@ -90,10 +90,10 @@ class ObjectsTable extends WP_List_Table {
 	 */
 	public function get_columns() {
 		return [
-			'name'     => __( 'Name', 'arraypress-s3' ),
-			'size'     => __( 'Size', 'arraypress-s3' ),
-			'modified' => __( 'Last Modified', 'arraypress-s3' ),
-			'actions'  => __( 'Actions', 'arraypress-s3' ),
+			'name'     => __( 'Name', 'arraypress' ),
+			'size'     => __( 'Size', 'arraypress' ),
+			'modified' => __( 'Last Modified', 'arraypress' ),
+			'actions'  => __( 'Actions', 'arraypress' ),
 		];
 	}
 
@@ -155,30 +155,24 @@ class ObjectsTable extends WP_List_Table {
 		// Add folders first
 		foreach ( $prefixes as $folder ) {
 			$items[] = [
-				'type'      => 'folder',
-				'name'      => $folder->get_folder_name(),
-				'prefix'    => $folder->get_prefix(),
-				'size'      => '-',
-				'modified'  => '-',
-				'sort_name' => $folder->get_folder_name(),
-				'sort_size' => 0, // Folders have 0 size for sorting
-				'sort_date' => 0, // Folders have no date for sorting
+				'type'     => 'folder',
+				'name'     => $folder->get_folder_name(),
+				'prefix'   => $folder->get_prefix(),
+				'size'     => '-',
+				'modified' => '-',
 			];
 		}
 
 		// Add files - no filtering needed since it's done in response
 		foreach ( $objects as $object ) {
 			$items[] = [
-				'type'      => 'file',
-				'name'      => $object->get_filename(),
-				'key'       => $object->get_key(),
-				'size'      => $object->get_formatted_size(),
-				'modified'  => $object->get_formatted_date(),
-				'mime'      => $object->get_mime_type(),
-				'object'    => $object,
-				'sort_name' => $object->get_filename(),
-				'sort_size' => $object->get_size(), // Size in bytes
-				'sort_date' => strtotime( $object->get_last_modified() ), // Timestamp
+				'type'     => 'file',
+				'name'     => $object->get_filename(),
+				'key'      => $object->get_key(),
+				'size'     => $object->get_formatted_size(),
+				'modified' => $object->get_formatted_date(),
+				'mime'     => $object->get_mime_type(),
+				'object'   => $object,
 			];
 		}
 
@@ -198,7 +192,7 @@ class ObjectsTable extends WP_List_Table {
 	}
 
 	/**
-	 * Display table navigation
+	 * Display table navigation for ObjectsTable.php
 	 *
 	 * @param string $which Whether this is being called for the top or bottom of the table
 	 *
@@ -209,10 +203,24 @@ class ObjectsTable extends WP_List_Table {
         <div class="tablenav <?php echo esc_attr( $which ); ?>">
 			<?php if ( $which === 'top' ): ?>
                 <div class="s3-top-nav">
+                    <div class="s3-actions-container">
+						<?php
+						// Add refresh button with s3-icon-button class
+						printf(
+							'<button type="button" class="button s3-icon-button s3-refresh-button" data-type="objects" data-bucket="%s" data-prefix="%s" data-provider="%s">
+                            <span class="dashicons dashicons-update"></span> %s
+                        </button>',
+							esc_attr( $this->bucket ),
+							esc_attr( $this->prefix ),
+							esc_attr( $this->provider_id ),
+							esc_html__( 'Refresh Cache', 'arraypress' )
+						);
+						?>
+                    </div>
                     <div class="s3-search-container">
-                        <input type="search" id="s3-js-search" placeholder="Search files and folders..."
-                               autocomplete="off"/>
-                        <button type="button" id="s3-js-search-clear" class="button" style="display: none;">Clear
+                        <input type="search" id="s3-js-search" placeholder="<?php esc_attr_e( 'Search files and folders...', 'arraypress' ); ?>" autocomplete="off"/>
+                        <button type="button" id="s3-js-search-clear" class="button" style="display: none;">
+							<?php esc_html_e( 'Clear', 'arraypress' ); ?>
                         </button>
                         <span class="s3-search-stats"></span>
                     </div>
@@ -220,28 +228,32 @@ class ObjectsTable extends WP_List_Table {
 			<?php elseif ( $which === 'bottom' ): ?>
                 <div class="s3-bottom-nav">
                     <div class="s3-count-display">
-                        <span class="displaying-num" id="s3-total-count">
-                            <?php
-                            $count    = count( $this->items );
-                            $has_more = isset( $this->_pagination_args['continuation_token'] ) && $this->_pagination_args['continuation_token'];
-                            echo esc_html( sprintf(
-	                            _n( '%s item', '%s items', $count, 'arraypress-s3' ),
-	                            number_format_i18n( $count )
-                            ) );
-                            if ( $has_more ) {
-	                            echo esc_html__( ' (more available)', 'arraypress-s3' );
-                            }
-                            ?>
-                        </span>
+                    <span class="displaying-num" id="s3-total-count">
+                        <?php
+                        $count    = count( $this->items );
+                        $has_more = isset( $this->_pagination_args['continuation_token'] ) && $this->_pagination_args['continuation_token'];
+
+                        // Translatable item count text
+                        echo esc_html( sprintf(
+	                        _n( '%s item', '%s items', $count, 'arraypress' ),
+	                        number_format_i18n( $count )
+                        ) );
+
+                        // Translatable "more available" text
+                        if ( $has_more ) {
+	                        echo esc_html__( ' (more available)', 'arraypress' );
+                        }
+                        ?>
+                    </span>
                     </div>
 					<?php if ( isset( $this->_pagination_args['continuation_token'] ) && $this->_pagination_args['continuation_token'] ): ?>
                         <div class="s3-load-more-wrapper">
-                            <button type="button" id="s3-load-more" class="button button-secondary"
+                            <button type="button" id="s3-load-more" class="button button-secondary s3-icon-button"
                                     data-token="<?php echo esc_attr( $this->_pagination_args['continuation_token'] ); ?>"
                                     data-bucket="<?php echo esc_attr( $this->bucket ); ?>"
                                     data-prefix="<?php echo esc_attr( $this->prefix ); ?>"
                                     data-provider="<?php echo esc_attr( $this->provider_id ); ?>">
-                                <span class="s3-button-text"><?php esc_html_e( 'Load More Items', 'arraypress-s3' ); ?></span>
+                                <span class="s3-button-text"><?php esc_html_e( 'Load More Items', 'arraypress' ); ?></span>
                                 <span class="spinner" style="display: none;"></span>
                             </button>
                             <span class="s3-load-status"></span>
@@ -375,43 +387,52 @@ class ObjectsTable extends WP_List_Table {
 	 *
 	 * @return string
 	 */
-	public function column_actions( $item ) {
-		if ( $item['type'] === 'folder' ) {
+	public function column_actions($item) {
+		if ($item['type'] === 'folder') {
 			// Generate the full URL for the Open button with folder icon
-			$url = add_query_arg( [
+			$url = add_query_arg([
 				'chromeless' => 1,
-				'post_id'    => isset( $_REQUEST['post_id'] ) ? intval( $_REQUEST['post_id'] ) : 0,
+				'post_id'    => isset($_REQUEST['post_id']) ? intval($_REQUEST['post_id']) : 0,
 				'tab'        => 's3_' . $this->provider_id,
 				'bucket'     => $this->bucket,
 				'prefix'     => $item['prefix']
-			], remove_query_arg( [ 'continuation_token' ] ) );
+			], remove_query_arg(['continuation_token']));
 
 			return sprintf(
-				'<a href="%s" class="button"><span class="dashicons dashicons-external"></span>%s</a>',
-				esc_url( $url ),
-				esc_html__( 'Open', 'arraypress-s3' )
+				'<a href="%s" class="button s3-icon-button"><span class="dashicons dashicons-external"></span>%s</a>',
+				esc_url($url),
+				esc_html__('Open', 'arraypress')
 			);
 		} else {
-			// Select button with check icon
+			// Actions for files
 			$actions = sprintf(
-				'<a href="#" class="button s3-select-file" data-filename="%s" data-bucket="%s" data-key="%s"><span class="dashicons dashicons-insert"></span>%s</a>',
-				esc_attr( $item['name'] ),
-				esc_attr( $this->bucket ),
-				esc_attr( $item['key'] ),
-				esc_html__( 'Select', 'arraypress-s3' )
+				'<a href="#" class="button s3-icon-button s3-select-file" data-filename="%s" data-bucket="%s" data-key="%s"><span class="dashicons dashicons-insert"></span>%s</a>',
+				esc_attr($item['name']),
+				esc_attr($this->bucket),
+				esc_attr($item['key']),
+				esc_html__('Select', 'arraypress')
 			);
 
-			// Add download link with download icon if available
-			if ( isset( $item['object'] ) ) {
-				$presigned_url = $item['object']->get_presigned_url( $this->client, $this->bucket, 60 );
-				if ( ! is_wp_error( $presigned_url ) ) {
+			// Add download link
+			if (isset($item['object'])) {
+				$presigned_url = $item['object']->get_presigned_url($this->client, $this->bucket, 60);
+				if (!is_wp_error($presigned_url)) {
 					$actions .= sprintf(
-						' <a href="#" class="button s3-download-file" data-url="%s"><span class="dashicons dashicons-download"></span>%s</a>',
-						esc_attr( $presigned_url ),
-						esc_html__( 'Download', 'arraypress-s3' )
+						' <a href="#" class="button s3-icon-button s3-download-file" data-url="%s"><span class="dashicons dashicons-download"></span>%s</a>',
+						esc_attr($presigned_url),
+						esc_html__('Download', 'arraypress')
 					);
 				}
 			}
+
+			// Add delete button
+			$actions .= sprintf(
+				' <a href="#" class="button s3-icon-button s3-delete-file" data-filename="%s" data-bucket="%s" data-key="%s"><span class="dashicons dashicons-trash"></span>%s</a>',
+				esc_attr($item['name']),
+				esc_attr($this->bucket),
+				esc_attr($item['key']),
+				esc_html__('Delete', 'arraypress')
+			);
 
 			return $actions;
 		}
@@ -423,7 +444,7 @@ class ObjectsTable extends WP_List_Table {
 	 * @return void
 	 */
 	public function no_items() {
-		echo esc_html__( 'No files or folders found.', 'arraypress-s3' );
+		echo esc_html__( 'No files or folders found.', 'arraypress' );
 	}
 
 }

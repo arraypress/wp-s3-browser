@@ -51,9 +51,9 @@ class BucketsTable extends WP_List_Table {
 	 */
 	public function get_columns() {
 		return [
-			'name'    => __( 'Bucket Name', 'arraypress-s3' ),
-			'created' => __( 'Creation Date', 'arraypress-s3' ),
-			'actions' => __( 'Actions', 'arraypress-s3' ),
+			'name'    => __( 'Bucket Name', 'arraypress' ),
+			'created' => __( 'Creation Date', 'arraypress' ),
+			'actions' => __( 'Actions', 'arraypress' ),
 		];
 	}
 
@@ -82,7 +82,7 @@ class BucketsTable extends WP_List_Table {
 			$items[] = [
 				'name'    => $bucket->get_name(),
 				'created' => $bucket->get_formatted_date(),
-				'raw'     => $bucket, // Store the raw bucket object for access later
+				'raw'     => $bucket,
 			];
 		}
 
@@ -112,8 +112,6 @@ class BucketsTable extends WP_List_Table {
 	 * Column name - Now clickable with proper attributes
 	 */
 	public function column_name( $item ) {
-		// Create a link that opens the bucket
-		// Note: We're using # for href and relying on JS to handle the click
 		return sprintf(
 			'<span class="dashicons dashicons-database"></span> <a href="#" class="bucket-name" data-bucket="%s">%s</a>',
 			esc_attr( $item['name'] ),
@@ -125,12 +123,42 @@ class BucketsTable extends WP_List_Table {
 	 * Column actions - Fixed to use JS navigation
 	 */
 	public function column_actions( $item ) {
-		// Add a dashicon to the browse button
-		return sprintf(
-			'<a href="#" class="button browse-bucket-button" data-bucket="%s"><span class="dashicons dashicons-search"></span>%s</a>',
-			esc_attr( $item['name'] ),
-			esc_html__( 'Browse', 'arraypress-s3' )
+		$bucket    = $item['name'];
+		$post_id   = isset( $_REQUEST['post_id'] ) ? intval( $_REQUEST['post_id'] ) : 0;
+		$post_type = $post_id ? get_post_type( $post_id ) : 'default';
+
+		// Get current user ID
+		$user_id = get_current_user_id();
+
+		// Create browse button instance
+		$output = sprintf(
+			'<a href="#" class="button s3-icon-button browse-bucket-button" data-bucket="%s"><span class="dashicons dashicons-visibility"></span>%s</a>',
+			esc_attr( $bucket ),
+			esc_html__( 'Browse', 'arraypress' )
 		);
+
+		// Check if this bucket is a favorite using straightforward meta check
+		$meta_key        = "s3_favorite_{$this->provider_id}_{$post_type}";
+		$favorite_bucket = get_user_meta( $user_id, $meta_key, true );
+		$is_favorite     = ( $favorite_bucket === $bucket );
+
+		// Create favorite button with appropriate star icon and text
+		$favorite_class  = $is_favorite ? 'dashicons-star-filled s3-favorite-active' : 'dashicons-star-empty';
+		$favorite_text   = $is_favorite ? __( 'Default', 'arraypress' ) : __( 'Set Default', 'arraypress' );
+		$favorite_action = $is_favorite ? 'remove' : 'add';
+
+		$output .= sprintf(
+			' <a href="#" class="button s3-icon-button s3-favorite-bucket" data-bucket="%s" data-provider="%s" data-action="%s" data-post-type="%s">' .
+			'<span class="dashicons %s"></span>%s</a>',
+			esc_attr( $bucket ),
+			esc_attr( $this->provider_id ),
+			esc_attr( $favorite_action ),
+			esc_attr( $post_type ),
+			esc_attr( $favorite_class ),
+			esc_html( $favorite_text )
+		);
+
+		return $output;
 	}
 
 	/**
@@ -152,19 +180,19 @@ class BucketsTable extends WP_List_Table {
 
 			echo '<div class="tablenav-pages">';
 			echo '<span class="displaying-num">' . esc_html( sprintf(
-					_n( '%s bucket', '%s buckets', count( $this->items ), 'arraypress-s3' ),
+					_n( '%s bucket', '%s buckets', count( $this->items ), 'arraypress' ),
 					number_format_i18n( count( $this->items ) )
 				) ) . '</span>';
 
 			echo '<span class="pagination-links">';
-			echo '<a class="next-page button" href="' . esc_url( $url ) . '">' .
-			     esc_html__( 'Next Page', 'arraypress-s3' ) . ' &raquo;</a>';
+			echo '<a class="next-page button s3-icon-button" href="' . esc_url( $url ) . '">' .
+			     esc_html__( 'Next Page', 'arraypress' ) . ' &raquo;</a>';
 			echo '</span>';
 			echo '</div>';
 		} else {
 			echo '<div class="tablenav-pages one-page">';
 			echo '<span class="displaying-num">' . esc_html( sprintf(
-					_n( '%s bucket', '%s buckets', count( $this->items ), 'arraypress-s3' ),
+					_n( '%s bucket', '%s buckets', count( $this->items ), 'arraypress' ),
 					number_format_i18n( count( $this->items ) )
 				) ) . '</span>';
 			echo '</div>';
@@ -172,10 +200,41 @@ class BucketsTable extends WP_List_Table {
 	}
 
 	/**
+	 * Display table navigation for BucketsTable.php
+	 *
+	 * @param string $which Which tablenav ('top' or 'bottom')
+	 */
+	public function display_tablenav( $which ) {
+		if ( $which === 'top' ) {
+			?>
+            <div class="tablenav <?php echo esc_attr( $which ); ?>">
+                <div class="s3-top-nav">
+                    <div class="s3-actions-container">
+						<?php
+						// Add refresh button for buckets with s3-icon-button class
+						printf(
+							'<button type="button" class="button s3-icon-button s3-refresh-button" data-type="buckets" data-provider="%s">
+                            <span class="dashicons dashicons-update"></span> %s
+                        </button>',
+							esc_attr( $this->provider_id ),
+							esc_html__( 'Refresh Cache', 'arraypress' )
+						);
+						?>
+                    </div>
+                </div>
+                <br class="clear"/>
+            </div>
+			<?php
+		} else {
+			$this->pagination( $which );
+		}
+	}
+
+	/**
 	 * No items found text
 	 */
 	public function no_items() {
-		echo esc_html__( 'No buckets found.', 'arraypress-s3' );
+		echo esc_html__( 'No buckets found.', 'arraypress' );
 	}
 
 }

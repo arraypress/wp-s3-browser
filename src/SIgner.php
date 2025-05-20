@@ -24,6 +24,7 @@ use ArrayPress\S3\Responses\ObjectsResponse;
 use ArrayPress\S3\Responses\ObjectResponse;
 use ArrayPress\S3\Responses\PresignedUrlResponse;
 use ArrayPress\S3\Responses\ErrorResponse;
+use ArrayPress\S3\Responses\SuccessResponse;
 use ArrayPress\S3\Traits\XmlParser;
 use ArrayPress\S3\Utils\File;
 use WP_Error;
@@ -66,8 +67,8 @@ class Signer implements SignerInterface {
 	 * Constructor
 	 *
 	 * @param Provider $provider   Provider instance
-	 * @param string            $access_key Access key ID
-	 * @param string            $secret_key Secret access key
+	 * @param string   $access_key Access key ID
+	 * @param string   $secret_key Secret access key
 	 */
 	public function __construct(
 		Provider $provider,
@@ -275,6 +276,155 @@ class Signer implements SignerInterface {
 		return new PresignedUrlResponse(
 			$presigned_url,
 			time() + $expires_seconds
+		);
+	}
+
+	/**
+	 * Generate a pre-signed URL for uploading (PUT) an object
+	 *
+	 * @param string $bucket     Bucket name
+	 * @param string $object_key Object key
+	 * @param int    $expires    Expiration time in minutes
+	 *
+	 * @return ResponseInterface Presigned URL response
+	 */
+	public function get_presigned_upload_url( string $bucket, string $object_key, int $expires = 15 ): ResponseInterface {
+		if ( empty( $bucket ) || empty( $object_key ) ) {
+			return new ErrorResponse( 'Bucket and object key are required', 'invalid_parameters', 400 );
+		}
+
+		// Convert minutes to seconds
+		$expires_seconds = $expires * 60;
+
+		$time      = time();
+		$amz_date  = gmdate( 'Ymd\THis\Z', $time );
+		$datestamp = gmdate( 'Ymd', $time );
+
+		// Format the canonical URI
+		$encoded_key   = $this->encode_object_key_for_url( $object_key );
+		$canonical_uri = '/' . $bucket . '/' . ltrim( $encoded_key, '/' );
+
+		// Format the credential scope
+		$credential_scope = $datestamp . '/' . $this->provider->get_region() . '/s3/aws4_request';
+		$credential       = $this->access_key . '/' . $credential_scope;
+
+		// Create the query parameters - specify PUT method for upload
+		$query_params = [
+			'X-Amz-Algorithm'     => 'AWS4-HMAC-SHA256',
+			'X-Amz-Credential'    => $credential,
+			'X-Amz-Date'          => $amz_date,
+			'X-Amz-Expires'       => (string) $expires_seconds,
+			'X-Amz-SignedHeaders' => 'host'
+		];
+
+		// Build the canonical query string
+		$canonical_querystring = '';
+		ksort( $query_params );
+
+		foreach ( $query_params as $key => $value ) {
+			if ( $canonical_querystring !== '' ) {
+				$canonical_querystring .= '&';
+			}
+			$canonical_querystring .= rawurlencode( (string) $key ) . '=' . rawurlencode( (string) $value );
+		}
+
+		// Get endpoint
+		$host = $this->provider->get_endpoint();
+
+		// Build the canonical request - note PUT method for upload
+		$canonical_request = "PUT\n";
+		$canonical_request .= $canonical_uri . "\n";
+		$canonical_request .= $canonical_querystring . "\n";
+		$canonical_request .= "host:" . $host . "\n";
+		$canonical_request .= "\n";
+		$canonical_request .= "host\n";
+		$canonical_request .= "UNSIGNED-PAYLOAD";
+
+		// Debug the canonical request if callback is set
+		$this->debug( "Presigned Upload URL Canonical Request", $canonical_request );
+
+		// Create the string to sign
+		$string_to_sign = "AWS4-HMAC-SHA256\n";
+		$string_to_sign .= $amz_date . "\n";
+		$string_to_sign .= $credential_scope . "\n";
+		$string_to_sign .= hash( 'sha256', $canonical_request );
+
+		// Debug the string to sign if callback is set
+		$this->debug( "Presigned Upload URL String to Sign", $string_to_sign );
+
+		// Calculate the signature
+		$signature = $this->calculate_signature( $string_to_sign, $datestamp );
+
+		// Build the final URL
+		$url           = 'https://' . $host . $canonical_uri;
+		$presigned_url = $url . '?' . $canonical_querystring . '&X-Amz-Signature=' . $signature;
+
+		// Return PresignedUrlResponse
+		return new PresignedUrlResponse(
+			$presigned_url,
+			time() + $expires_seconds
+		);
+	}
+
+	/**
+	 * Delete an object from a bucket
+	 *
+	 * @param string $bucket     Bucket name
+	 * @param string $object_key Object key
+	 *
+	 * @return ResponseInterface Operation result
+	 */
+	public function delete_object( string $bucket, string $object_key ): ResponseInterface {
+		if ( empty( $bucket ) || empty( $object_key ) ) {
+			return new ErrorResponse( 'Bucket and object key are required', 'invalid_parameters', 400 );
+		}
+
+		// Generate authorization headers for DELETE request
+		$headers = $this->generate_auth_headers(
+			'DELETE',
+			$bucket,
+			$object_key
+		);
+
+		// Build the URL
+		$url = $this->provider->format_url( $bucket, $object_key );
+
+		// Debug the request if callback is set
+		$this->debug( "Delete Object Request URL", $url );
+		$this->debug( "Delete Object Request Headers", $headers );
+
+		// Make the request
+		$response = wp_remote_request( $url, [
+			'method'  => 'DELETE',
+			'headers' => $headers,
+			'timeout' => 15
+		] );
+
+		// Handle errors
+		if ( is_wp_error( $response ) ) {
+			return ErrorResponse::from_wp_error( $response );
+		}
+
+		$status_code = wp_remote_retrieve_response_code( $response );
+		$body        = wp_remote_retrieve_body( $response );
+
+		// Debug the response if callback is set
+		$this->debug( "Delete Object Response Status", $status_code );
+		$this->debug( "Delete Object Response Body", $body );
+
+		// Check for error status code
+		if ( $status_code < 200 || $status_code >= 300 ) {
+			return $this->handle_error_response( $status_code, $body, 'Failed to delete object' );
+		}
+
+		// Create a simple success response
+		return new SuccessResponse(
+			'Object deleted successfully',
+			$status_code,
+			[
+				'bucket' => $bucket,
+				'key'    => $object_key
+			]
 		);
 	}
 

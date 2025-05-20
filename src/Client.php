@@ -85,19 +85,12 @@ class Client {
 	}
 
 	/**
-	 * Set a custom debug logger callback
+	 * Get the provider instance
 	 *
-	 * @param callable $callback Function to call for debug logging
-	 *
-	 * @return self
+	 * @return Provider
 	 */
-	public function set_debug_logger( callable $callback ): self {
-		$this->debug_logger = $callback;
-
-		// Also set the debug callback for the signer
-		$this->signer->set_debug_callback( $callback );
-
-		return $this;
+	public function get_provider(): Provider {
+		return $this->provider;
 	}
 
 	/**
@@ -114,7 +107,7 @@ class Client {
 		int $max_keys = 1000,
 		string $prefix = '',
 		string $marker = '',
-		bool $use_cache = false
+		bool $use_cache = true
 	) {
 		// Check cache if enabled
 		if ( $use_cache && $this->is_cache_enabled() ) {
@@ -165,7 +158,7 @@ class Client {
 		int $max_keys = 1000,
 		string $prefix = '',
 		string $marker = '',
-		bool $use_cache = false
+		bool $use_cache = true
 	) {
 		// Get buckets response
 		$response = $this->get_buckets(
@@ -215,7 +208,7 @@ class Client {
 		string $prefix = '',
 		string $delimiter = '/',
 		string $continuation_token = '',
-		bool $use_cache = false
+		bool $use_cache = true
 	) {
 		// Check cache if enabled
 		if ( $use_cache && $this->is_cache_enabled() ) {
@@ -277,7 +270,7 @@ class Client {
 		string $prefix = '',
 		string $delimiter = '/',
 		string $continuation_token = '',
-		bool $use_cache = false
+		bool $use_cache = true
 	) {
 		// Get regular object response
 		$response = $this->get_objects(
@@ -371,6 +364,50 @@ class Client {
 	}
 
 	/**
+	 * Delete an object from a bucket
+	 *
+	 * @param string $bucket     Bucket name
+	 * @param string $object_key Object key
+	 *
+	 * @return ResponseInterface|WP_Error Response or error
+	 */
+	public function delete_object( string $bucket, string $object_key ) {
+		// Use signer to delete object
+		$result = $this->signer->delete_object( $bucket, $object_key );
+
+		// Handle errors
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		// Debug logging if enabled
+		if ( $this->debug ) {
+			$this->log_debug( 'Client: Raw result from signer for delete operation:', $result );
+		}
+
+		// If we're caching, we need to bust the cache for this bucket/prefix
+		if ( $this->is_cache_enabled() ) {
+			// Extract the prefix from the object key (everything up to the last slash)
+			$prefix_parts = explode( '/', $object_key );
+			array_pop( $prefix_parts );
+			$prefix = implode( '/', $prefix_parts );
+			if ( ! empty( $prefix ) ) {
+				$prefix .= '/';
+			}
+
+			// Clear cache for this specific prefix
+			$cache_key = $this->get_cache_key( 'objects_' . $bucket, [
+				'max_keys'  => 1000,
+				'prefix'    => $prefix,
+				'delimiter' => '/'
+			] );
+			$this->clear_cache_item( $cache_key );
+		}
+
+		return $result;
+	}
+
+	/**
 	 * Generate a pre-signed URL for an object
 	 *
 	 * @param string $bucket     Bucket name
@@ -384,12 +421,32 @@ class Client {
 	}
 
 	/**
-	 * Get the provider instance
+	 * Generate a pre-signed URL for uploading an object
 	 *
-	 * @return Provider
+	 * @param string $bucket     Bucket name
+	 * @param string $object_key Object key
+	 * @param int    $expires    Expiration time in minutes
+	 *
+	 * @return ResponseInterface|WP_Error Pre-signed URL response or error
 	 */
-	public function get_provider(): Provider {
-		return $this->provider;
+	public function get_presigned_upload_url( string $bucket, string $object_key, int $expires = 15 ) {
+		return $this->signer->get_presigned_upload_url( $bucket, $object_key, $expires );
+	}
+
+	/**
+	 * Set a custom debug logger callback
+	 *
+	 * @param callable $callback Function to call for debug logging
+	 *
+	 * @return self
+	 */
+	public function set_debug_logger( callable $callback ): self {
+		$this->debug_logger = $callback;
+
+		// Also set the debug callback for the signer
+		$this->signer->set_debug_callback( $callback );
+
+		return $this;
 	}
 
 	/**

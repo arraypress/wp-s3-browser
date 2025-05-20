@@ -6,18 +6,27 @@
         mediaFrame: null,
 
         init: function () {
-            if (typeof s3BrowserWooCommerce === 'undefined') {
-                console.error('s3BrowserWooCommerce is not defined!');
+            // Check if global config exists
+            if (typeof S3BrowserGlobalConfig === 'undefined') {
+                console.error('S3BrowserGlobalConfig is not defined!');
                 return;
             }
+
             this.bindEvents();
             this.extendMediaFrame();
-            this.addCustomStyles();
         },
 
         bindEvents: function () {
             // Track file upload buttons
             $(document).on('click', '.upload_file_button', this.trackFileButton);
+
+            // Monitor classic editor media button clicks to reset WooCommerce context
+            $(document).on('click', '.wp-media-buttons .button', function() {
+                // Clear WooCommerce file context when using general media buttons
+                if (window.wc_media_frame_context === 'product_file') {
+                    delete window.wc_media_frame_context;
+                }
+            });
         },
 
         trackFileButton: function (e) {
@@ -27,41 +36,10 @@
 
             if ($input.length) {
                 window.wc_target_input = $input[0];
+                window.wc_media_frame_context = 'product_file';
             }
 
             window.wc_gallery_frame = false;
-        },
-
-        // Add custom CSS to ensure toolbar is hidden
-        addCustomStyles: function () {
-            var css = `
-                <style id="s3-browser-toolbar-removal">
-                    /* Hide toolbar for S3 Browser tabs */
-                    .media-frame.mode-s3_${s3BrowserWooCommerce.providerId} .media-frame-toolbar {
-                        display: none !important;
-                    }
-                    
-                    /* Adjust content area to fill the space */
-                    .media-frame.mode-s3_${s3BrowserWooCommerce.providerId} .media-frame-content {
-                        bottom: 0 !important;
-                    }
-                    
-                    /* General fallback for S3 browser frames */
-                    .s3-browser-frame-wrapper {
-                        height: 100% !important;
-                    }
-                    
-                    /* Hide any stray toolbars that might appear */
-                    .media-frame-toolbar:has(.s3-browser-frame),
-                    .media-frame:has(.s3-browser-frame) .media-frame-toolbar {
-                        display: none !important;
-                    }
-                </style>
-            `;
-
-            if (!$('#s3-browser-toolbar-removal').length) {
-                $('head').append(css);
-            }
         },
 
         extendMediaFrame: function () {
@@ -70,8 +48,9 @@
             }
 
             var self = this;
-            var providerId = s3BrowserWooCommerce.providerId;
-            var providerName = s3BrowserWooCommerce.providerName || 'S3 Files';
+            var config = S3BrowserGlobalConfig;
+            var providerId = config.providerId;
+            var providerName = config.providerName || 'S3 Files';
 
             // Extend the media frame
             var originalWpMedia = wp.media.view.MediaFrame.Select;
@@ -89,7 +68,6 @@
                             id: 's3_' + providerId,
                             title: providerName,
                             priority: 60,
-                            toolbar: false, // Primary method: disable toolbar in state
                             content: 's3-content',
                             menu: 'default'
                         })
@@ -114,6 +92,11 @@
                 // Cleanup when leaving S3 tab
                 cleanupOnDeactivate: function () {
                     this.$el.removeClass('s3-browser-active');
+
+                    // Clear the context when leaving S3 tab
+                    if (window.wc_media_frame_context === 'product_file') {
+                        delete window.wc_media_frame_context;
+                    }
                 },
 
                 s3ContentRender: function () {
@@ -135,13 +118,17 @@
                         tab: 's3_' + providerId
                     };
 
-                    // Handle default bucket
-                    if (s3BrowserWooCommerce.defaultBucket) {
-                        params.bucket = s3BrowserWooCommerce.defaultBucket;
+                    // Check for a favorite or default bucket
+                    var bucketToUse = config.favoriteBucket || config.defaultBucket;
+
+                    // Handle bucket selection
+                    if (bucketToUse) {
+                        params.bucket = bucketToUse;
                         params.view = 'objects';
 
-                        if (s3BrowserWooCommerce.defaultPrefix) {
-                            params.prefix = s3BrowserWooCommerce.defaultPrefix;
+                        // Handle prefix (only if we have a bucket)
+                        if (config.defaultPrefix) {
+                            params.prefix = config.defaultPrefix;
                         }
                     } else {
                         params.view = 'buckets';
@@ -152,7 +139,7 @@
                     }
 
                     // Build complete iframe URL
-                    var iframeUrl = s3BrowserWooCommerce.adminUrl + '?' + $.param(params);
+                    var iframeUrl = config.baseUrl + '?' + $.param(params);
 
                     // Create the iframe
                     var $iframe = $('<iframe>', {

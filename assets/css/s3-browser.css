@@ -68,7 +68,25 @@
    Button Styling with Icons
    ============================ */
 
-/* Button icon spacing */
+/* Single class for icon button alignment */
+.s3-icon-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    vertical-align: middle;
+}
+
+.s3-icon-button .dashicons {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    margin-right: 4px;
+    line-height: 1.4;
+    position: relative;
+    top: -4px;
+}
+
+/* Legacy button styling - maintained for compatibility */
 .s3-select-file .dashicons,
 .s3-download-file .dashicons,
 .button .dashicons {
@@ -146,13 +164,19 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    margin-bottom: 10px;
+}
+
+.s3-actions-container {
+    margin-right: 15px;
 }
 
 .s3-search-container {
     display: flex;
     align-items: center;
     gap: 10px;
-    margin-bottom: 10px;
+    flex-grow: 1;
+    max-width: 70%;
 }
 
 .s3-search-stats {
@@ -220,6 +244,24 @@
     font-size: 12px;
     font-style: italic;
     white-space: nowrap;
+}
+
+/* ============================
+   Refresh Button
+   ============================ */
+
+.s3-refresh-button.refreshing {
+    cursor: not-allowed;
+    opacity: 0.8;
+}
+
+.s3-refresh-button .dashicons.spin {
+    animation: s3-spin 1.5s linear infinite;
+}
+
+@keyframes s3-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
 
 /* ============================
@@ -300,6 +342,215 @@
 }
 
 /* ============================
+   Favorite Button Styles
+   ============================ */
+
+.s3-favorite-bucket {
+    padding: 0 6px !important;
+    margin-left: 4px !important;
+}
+
+.s3-favorite-bucket .dashicons {
+    font-size: 18px;
+}
+
+.s3-favorite-bucket .dashicons-star-filled.s3-favorite-active {
+    color: #ffb900;
+}
+
+.s3-favorite-bucket.s3-processing {
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+/* ============================
+   Notification Styles
+   ============================ */
+
+.s3-notification {
+    padding: 12px 15px;
+    margin: 10px 0 15px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    position: relative;
+    text-align: center;
+    animation: s3-notification-fadeIn 0.3s ease-in-out;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+    z-index: 100;
+}
+
+.s3-notification-success {
+    background-color: #ecf7ed;
+    border-left: 4px solid #46b450;
+    color: #1e8a27;
+}
+
+.s3-notification-error {
+    background-color: #fbeaea;
+    border-left: 4px solid #dc3232;
+    color: #b32d2d;
+}
+
+.s3-notification-info {
+    background-color: #e5f5fa;
+    border-left: 4px solid #00a0d2;
+    color: #0073aa;
+}
+
+@keyframes s3-notification-fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Upload Zone Styles */
+.s3-upload-container {
+    margin: 15px 0;
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    box-shadow: 0 1px 1px rgba(0,0,0,.04);
+}
+
+.s3-upload-header {
+    padding: 8px 12px;
+    border-bottom: 1px solid #ccd0d4;
+    background: #f5f5f5;
+}
+
+.s3-upload-title {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.s3-upload-zone {
+    padding: 25px;
+    border: 2px dashed #b4b9be;
+    margin: 15px;
+    background: #f9f9f9;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.s3-upload-zone.s3-dragover {
+    background: #f0f6fc;
+    border-color: #007cba;
+}
+
+.s3-upload-message {
+    color: #555;
+}
+
+.s3-upload-message .dashicons {
+    font-size: 48px;
+    width: 48px;
+    height: 48px;
+    margin-bottom: 10px;
+    color: #82878c;
+}
+
+.s3-upload-or {
+    margin: 5px 0;
+    font-style: italic;
+}
+
+.s3-file-input {
+    width: 0.1px;
+    height: 0.1px;
+    opacity: 0;
+    overflow: hidden;
+    position: absolute;
+    z-index: -1;
+}
+
+.s3-file-input + label {
+    display: inline-block;
+    cursor: pointer;
+    margin-top: 10px;
+}
+
+/* Upload List Styles */
+.s3-upload-list {
+    margin: 15px;
+}
+
+.s3-upload-item {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    margin-bottom: 8px;
+    background: #f9f9f9;
+    border: 1px solid #eee;
+    border-radius: 3px;
+}
+
+.s3-upload-item-info {
+    width: 30%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding-right: 15px;
+}
+
+.s3-filename {
+    display: block;
+    font-weight: 500;
+}
+
+.s3-filesize {
+    color: #82878c;
+    font-size: 12px;
+}
+
+.s3-progress-container {
+    flex-grow: 1;
+    display: flex;
+    align-items: center;
+    padding-right: 15px;
+}
+
+.s3-progress-bar {
+    height: 10px;
+    background-color: #eee;
+    border-radius: 5px;
+    flex-grow: 1;
+    margin-right: 10px;
+    overflow: hidden;
+}
+
+.s3-progress {
+    height: 100%;
+    background-color: #007cba;
+    width: 0%;
+    transition: width 0.2s ease;
+}
+
+.s3-progress-text {
+    min-width: 40px;
+    text-align: right;
+    font-size: 12px;
+}
+
+.s3-upload-status {
+    width: 40px;
+    text-align: center;
+}
+
+.s3-upload-success .s3-upload-status .dashicons-yes {
+    color: #46b450;
+}
+
+.s3-upload-error .s3-upload-status .dashicons-no {
+    color: #dc3232;
+}
+
+.s3-error-message {
+    color: #dc3232;
+    font-size: 12px;
+    margin-left: 5px;
+}
+
+/* ============================
    Mobile Responsiveness
    ============================ */
 
@@ -328,4 +579,12 @@
         text-align: left;
     }
 
+    #s3-js-search {
+        min-width: auto;
+        width: 100%;
+    }
+
+    .s3-search-container {
+        max-width: 100%;
+    }
 }
