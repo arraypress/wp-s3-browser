@@ -9,6 +9,7 @@
     window.S3Browser.uploads = {
         dropzoneInstance: null,
         initialized: false,
+        processingFile: false,
 
         init: function() {
             // Prevent multiple initializations
@@ -59,17 +60,21 @@
                 </div>
             `;
 
+            // Detach and reattach the file input to break event loops
+            const $fileInput = $('#s3FileUpload');
+            const $parent = $fileInput.parent();
+            $fileInput.detach();
+
             // Initialize Dropzone
             this.dropzoneInstance = new Dropzone(".s3-upload-zone", {
-                url: "dummy-url", // Will be overridden
+                url: "https://dummy-url.com/upload", // Will be overridden
                 method: "PUT",
                 paramName: "file",
                 maxFilesize: 500,
                 timeout: 0,
                 previewsContainer: ".s3-upload-list",
                 previewTemplate: previewTemplate,
-                // Important: Use only #s3FileUpload, not the label
-                clickable: "#s3FileUpload",
+                clickable: false, // Important: don't make the zone clickable
                 autoProcessQueue: true,
                 chunking: true,
                 chunkSize: 5000000, // 5MB chunks
@@ -77,10 +82,14 @@
                 retryChunksLimit: 3,
                 createImageThumbnails: false,
 
-                // This function is called when a file is added
+                // This function is called when Dropzone is initialized
                 init: function() {
+                    // Handle added files
                     this.on("addedfile", function(file) {
-                        // Get presigned URL when file is added
+                        // Set a flag to prevent duplicate file selector openings
+                        self.processingFile = true;
+
+                        // Get presigned URL
                         const normalizedPrefix = prefix ? (prefix.endsWith('/') ? prefix : prefix + '/') : '';
                         const objectKey = normalizedPrefix + file.name;
 
@@ -90,41 +99,63 @@
                         self.getPresignedUrl(bucket, objectKey)
                             .then(url => {
                                 file.uploadUrl = url;
-                                // No need to call processQueue, it happens automatically
                             })
                             .catch(error => {
-                                // Handle error getting presigned URL
                                 this.emit("error", file, error.message);
                                 this.emit("complete", file);
+                            })
+                            .finally(() => {
+                                // Reset flag after processing
+                                setTimeout(() => {
+                                    self.processingFile = false;
+                                }, 500);
                             });
+                    });
+
+                    // Additional events
+                    this.on("complete", function(file) {
+                        // Reset flag after each file completes
+                        setTimeout(() => {
+                            self.processingFile = false;
+                        }, 500);
                     });
                 },
 
                 // Called just before sending
+                accept: function(file, done) {
+                    // Always accept the file, we'll handle errors in the sending phase
+                    done();
+                },
+
+                // Transform file before upload to ensure presigned URL is ready
                 transformFile: function(file, done) {
                     if (!file.uploadUrl) {
                         // No URL yet, wait a moment and retry
-                        setTimeout(() => {
+                        let attempts = 0;
+                        const checkUrl = () => {
                             if (file.uploadUrl) {
                                 done(file);
+                            } else if (attempts < 10) {
+                                attempts++;
+                                setTimeout(checkUrl, 500);
                             } else {
-                                this.emit("error", file, "Failed to get upload URL");
+                                this.emit("error", file, "Failed to get upload URL after multiple attempts");
                                 this.emit("complete", file);
                             }
-                        }, 500);
+                        };
+                        setTimeout(checkUrl, 500);
                     } else {
                         done(file);
                     }
                 },
 
-                // Override the default send method
-                accept: function(file, done) {
-                    done();
-                },
-
                 // Override the sending method to use our presigned URL
                 sending: function(file, xhr, formData) {
                     if (file.uploadUrl) {
+                        // Cancel the automatic request
+                        xhr.abort();
+
+                        // Create a new request with the presigned URL
                         xhr.open("PUT", file.uploadUrl, true);
                         xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
                     }
@@ -132,8 +163,13 @@
 
                 // Update progress display
                 uploadprogress: function(file, progress, bytesSent) {
-                    const progressText = Math.round(progress) + '%';
-                    $(file.previewElement).find('.s3-progress-text').text(progressText);
+                    const percentComplete = Math.round(progress);
+                    const $progressBar = $(file.previewElement).find('.s3-progress');
+                    const $progressText = $(file.previewElement).find('.s3-progress-text');
+
+                    // Update progress bar width directly
+                    $progressBar.css('width', percentComplete + '%');
+                    $progressText.text(percentComplete + '%');
                 },
 
                 // Handle successful upload
@@ -173,6 +209,28 @@
                             window.location.reload();
                         }, 1500);
                     }
+                }
+            });
+
+            // Reattach the file input
+            $parent.append($fileInput);
+
+            // Handle the file input change event manually
+            $fileInput.on('change', function(e) {
+                if (self.processingFile) {
+                    // Skip if already processing a file
+                    return;
+                }
+
+                const files = e.target.files;
+                if (files && files.length) {
+                    // Add files to Dropzone
+                    for (let i = 0; i < files.length; i++) {
+                        self.dropzoneInstance.addFile(files[i]);
+                    }
+
+                    // Reset the input
+                    $(this).val('');
                 }
             });
         },

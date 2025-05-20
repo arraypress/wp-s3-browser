@@ -805,7 +805,7 @@
 
 
 
-/* Upload Container */
+/* S3 Upload Container */
 .s3-upload-container {
     margin: 15px 0 25px;
     background: #fff;
@@ -950,7 +950,7 @@
     height: 100%;
     background-color: #007cba;
     width: 0%;
-    transition: width 0.2s ease;
+    transition: width 0.3s ease;
     border-radius: 10px;
 }
 
@@ -987,6 +987,10 @@
     color: #dc3232;
 }
 
+.s3-cancel-button .dashicons {
+    font-size: 18px;
+}
+
 .s3-success-icon {
     color: #46b450;
     font-size: 18px;
@@ -1006,6 +1010,11 @@
 
 .s3-upload-error .dz-error-message {
     display: block;
+}
+
+/* Hide default Dropzone styles */
+.dz-default.dz-message {
+    display: none;
 }
 
 /* Mobile Responsiveness */
