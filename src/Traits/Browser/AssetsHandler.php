@@ -13,7 +13,7 @@
 
 declare( strict_types=1 );
 
-namespace ArrayPress\S3\Traits;
+namespace ArrayPress\S3\Traits\Browser;
 
 /**
  * Trait AssetsHandler
@@ -82,7 +82,7 @@ trait AssetsHandler {
 		$this->capability = $capability;
 
 		// Register assets for this browser
-		register_library_assets( __NAMESPACE__ );
+//		register_library_assets( __NAMESPACE__ );
 
 		// Initialize WordPress hooks
 		$this->init_asset_hooks();

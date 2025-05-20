@@ -13,7 +13,7 @@
 
 declare( strict_types=1 );
 
-namespace ArrayPress\S3\Traits;
+namespace ArrayPress\S3\Traits\Browser;
 
 use WP_Error;
 
@@ -48,7 +48,7 @@ trait AjaxHandler {
 	 */
 	protected function init_ajax_handlers( string $provider_id, string $capability = 'upload_files' ): void {
 		$this->provider_id = $provider_id;
-		$this->capability = $capability;
+		$this->capability  = $capability;
 
 		// Register AJAX handler for loading more objects
 		add_action( 'wp_ajax_s3_load_more_' . $this->provider_id, [ $this, 'handle_ajax_load_more' ] );
@@ -93,12 +93,14 @@ trait AjaxHandler {
 		$bucket = isset( $_POST['bucket'] ) ? sanitize_text_field( $_POST['bucket'] ) : '';
 		if ( empty( $bucket ) ) {
 			$this->send_error_response( __( 'Bucket name is required', 'arraypress' ) );
+
 			return;
 		}
 
 		$user_id = get_current_user_id();
 		if ( ! $user_id ) {
 			$this->send_error_response( __( 'User not logged in', 'arraypress' ) );
+
 			return;
 		}
 
@@ -185,6 +187,7 @@ trait AjaxHandler {
 
 		if ( empty( $bucket ) || empty( $object_key ) ) {
 			$this->send_error_response( __( 'Bucket and object key are required', 'arraypress' ) );
+
 			return;
 		}
 
@@ -193,6 +196,7 @@ trait AjaxHandler {
 
 		if ( is_wp_error( $response ) ) {
 			$this->send_error_response( $response->get_error_message() );
+
 			return;
 		}
 
@@ -220,6 +224,7 @@ trait AjaxHandler {
 
 		if ( empty( $bucket ) || empty( $object_key ) ) {
 			$this->send_error_response( __( 'Bucket and object key are required', 'arraypress' ) );
+
 			return;
 		}
 
@@ -229,6 +234,7 @@ trait AjaxHandler {
 		// Handle WP_Error case
 		if ( is_wp_error( $result ) ) {
 			$this->send_error_response( $result->get_error_message() );
+
 			return;
 		}
 
@@ -236,11 +242,13 @@ trait AjaxHandler {
 		if ( $result instanceof \ArrayPress\S3\Interfaces\Response ) {
 			if ( ! $result->is_successful() ) {
 				$this->send_error_response( __( 'Failed to delete object', 'arraypress' ) );
+
 				return;
 			}
 		} else {
 			// Not a Response object - this should never happen but adding as a fallback
 			$this->send_error_response( __( 'Invalid response from S3 client', 'arraypress' ) );
+
 			return;
 		}
 
@@ -263,12 +271,14 @@ trait AjaxHandler {
 		// Verify nonce
 		if ( ! check_ajax_referer( $nonce_action, 'nonce', false ) ) {
 			$this->send_error_response( __( 'Security check failed', 'arraypress' ), 'security_check_failed' );
+
 			return false;
 		}
 
 		// Check user capability
 		if ( ! $this->user_has_capability( $this->capability ) ) {
 			$this->send_error_response( __( 'You do not have permission to perform this action', 'arraypress' ), 'permission_denied' );
+
 			return false;
 		}
 
