@@ -390,11 +390,13 @@ class Signer implements SignerInterface {
 			$object_key
 		);
 
-		// Add Content-Length header which is required by R2 for DELETE operations
+		// Add a Content-Length header which is required by S3 for DELETE operations
 		$headers['Content-Length'] = '0';
 
 		// Build the URL - the provider will handle URL encoding
 		$url = $this->provider->format_url( $bucket, $object_key );
+
+		error_log( $url );
 
 		// Make the request
 		$response = wp_remote_request( $url, [
