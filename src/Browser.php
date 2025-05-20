@@ -569,8 +569,8 @@ class Browser {
 			enqueue_library_style( 'css/dropzone.css' );
 
 			// Enqueue the uploader script and styles
-			enqueue_library_script( 'js/s3-uploader.js', [ 'jquery', $dropzone_handle, $config_handle, $script_handle ] );
-			enqueue_library_style( 'css/s3-uploader.css' );
+			enqueue_library_script( 'js/s3-upload.js', [ 'jquery', $dropzone_handle, $config_handle, $script_handle ] );
+//			enqueue_library_style( 'css/s3-upload.css' );
 
 			// Localize script data - AssetLoader will prevent duplicate localization
 			if ( $script_handle ) {
