@@ -564,8 +564,12 @@ class Browser {
 			$css_handle    = enqueue_library_style( 'css/s3-browser.css' );
 			$script_handle = enqueue_library_script( 'js/s3-browser.js', [ 'jquery', $config_handle ] );
 
+
+			$dropzone_handle = enqueue_library_script( 'js/dropzone.js', [ 'jquery', $config_handle ] );
+			enqueue_library_style( 'css/dropzone.css' );
+
 			// Enqueue the uploader script and styles
-			$uploader_handle = enqueue_library_script( 'js/s3-uploader.js', [ 'jquery', $config_handle, $script_handle ] );
+			enqueue_library_script( 'js/s3-uploader.js', [ 'jquery', $dropzone_handle, $config_handle, $script_handle ] );
 			enqueue_library_style( 'css/s3-uploader.css' );
 
 			// Localize script data - AssetLoader will prevent duplicate localization
@@ -576,12 +580,23 @@ class Browser {
 				$browser_config = [
 					'postId'   => $post_id,
 					'autoLoad' => apply_filters( 's3_browser_auto_load', false, $this->provider_id ),
+
 					'i18n'     => [
 						'uploadFiles'   => __( 'Upload Files', 'arraypress' ),
 						'dropFilesHere' => __( 'Drop files here to upload', 'arraypress' ),
 						'or'            => __( 'or', 'arraypress' ),
-						'chooseFiles'   => __( 'Choose Files', 'arraypress' )
+						'chooseFiles'   => __( 'Choose Files', 'arraypress' ),
+						'cancel'        => __( 'Cancel', 'arraypress' ),
+						'remove'        => __( 'Remove', 'arraypress' ),
+						'error'         => __( 'Error', 'arraypress' ),
+						'maxFilesize'   => __( 'Maximum file size is %sMB', 'arraypress' ),
 					]
+//					'i18n'     => [
+//						'uploadFiles'   => __( 'Upload Files', 'arraypress' ),
+//						'dropFilesHere' => __( 'Drop files here to upload', 'arraypress' ),
+//						'or'            => __( 'or', 'arraypress' ),
+//						'chooseFiles'   => __( 'Choose Files', 'arraypress' )
+//					]
 				];
 
 				// Localize the main browser script
