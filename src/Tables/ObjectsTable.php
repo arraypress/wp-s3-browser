@@ -80,7 +80,7 @@ class ObjectsTable extends WP_List_Table {
 		$this->bucket      = $args['bucket'];
 		$this->prefix      = $args['prefix'] ?? '';
 		$this->provider_id = $args['provider_id'];
-		$this->per_page    = $args['per_page'] ?? 1000;
+		$this->per_page    = $args['per_page'] ?? 10;
 	}
 
 	/**
@@ -218,7 +218,9 @@ class ObjectsTable extends WP_List_Table {
 						?>
                     </div>
                     <div class="s3-search-container">
-                        <input type="search" id="s3-js-search" placeholder="<?php esc_attr_e( 'Search files and folders...', 'arraypress' ); ?>" autocomplete="off"/>
+                        <input type="search" id="s3-js-search"
+                               placeholder="<?php esc_attr_e( 'Search files and folders...', 'arraypress' ); ?>"
+                               autocomplete="off"/>
                         <button type="button" id="s3-js-search-clear" class="button" style="display: none;">
 							<?php esc_html_e( 'Clear', 'arraypress' ); ?>
                         </button>
@@ -387,40 +389,40 @@ class ObjectsTable extends WP_List_Table {
 	 *
 	 * @return string
 	 */
-	public function column_actions($item) {
-		if ($item['type'] === 'folder') {
+	public function column_actions( $item ) {
+		if ( $item['type'] === 'folder' ) {
 			// Generate the full URL for the Open button with folder icon
-			$url = add_query_arg([
+			$url = add_query_arg( [
 				'chromeless' => 1,
-				'post_id'    => isset($_REQUEST['post_id']) ? intval($_REQUEST['post_id']) : 0,
+				'post_id'    => isset( $_REQUEST['post_id'] ) ? intval( $_REQUEST['post_id'] ) : 0,
 				'tab'        => 's3_' . $this->provider_id,
 				'bucket'     => $this->bucket,
 				'prefix'     => $item['prefix']
-			], remove_query_arg(['continuation_token']));
+			], remove_query_arg( [ 'continuation_token' ] ) );
 
 			return sprintf(
 				'<a href="%s" class="button s3-icon-button"><span class="dashicons dashicons-external"></span>%s</a>',
-				esc_url($url),
-				esc_html__('Open', 'arraypress')
+				esc_url( $url ),
+				esc_html__( 'Open', 'arraypress' )
 			);
 		} else {
 			// Actions for files
 			$actions = sprintf(
 				'<a href="#" class="button s3-icon-button s3-select-file" data-filename="%s" data-bucket="%s" data-key="%s"><span class="dashicons dashicons-insert"></span>%s</a>',
-				esc_attr($item['name']),
-				esc_attr($this->bucket),
-				esc_attr($item['key']),
-				esc_html__('Select', 'arraypress')
+				esc_attr( $item['name'] ),
+				esc_attr( $this->bucket ),
+				esc_attr( $item['key'] ),
+				esc_html__( 'Select', 'arraypress' )
 			);
 
 			// Add download link
-			if (isset($item['object'])) {
-				$presigned_url = $item['object']->get_presigned_url($this->client, $this->bucket, 60);
-				if (!is_wp_error($presigned_url)) {
+			if ( isset( $item['object'] ) ) {
+				$presigned_url = $item['object']->get_presigned_url( $this->client, $this->bucket, 60 );
+				if ( ! is_wp_error( $presigned_url ) ) {
 					$actions .= sprintf(
 						' <a href="#" class="button s3-icon-button s3-download-file" data-url="%s"><span class="dashicons dashicons-download"></span>%s</a>',
-						esc_attr($presigned_url),
-						esc_html__('Download', 'arraypress')
+						esc_attr( $presigned_url ),
+						esc_html__( 'Download', 'arraypress' )
 					);
 				}
 			}
@@ -428,10 +430,10 @@ class ObjectsTable extends WP_List_Table {
 			// Add delete button
 			$actions .= sprintf(
 				' <a href="#" class="button s3-icon-button s3-delete-file" data-filename="%s" data-bucket="%s" data-key="%s"><span class="dashicons dashicons-trash"></span>%s</a>',
-				esc_attr($item['name']),
-				esc_attr($this->bucket),
-				esc_attr($item['key']),
-				esc_html__('Delete', 'arraypress')
+				esc_attr( $item['name'] ),
+				esc_attr( $this->bucket ),
+				esc_attr( $item['key'] ),
+				esc_html__( 'Delete', 'arraypress' )
 			);
 
 			return $actions;

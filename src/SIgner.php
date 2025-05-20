@@ -197,7 +197,11 @@ class Signer implements SignerInterface {
 	 */
 	public function get_presigned_url( string $bucket, string $object_key, int $expires = 60 ): ResponseInterface {
 		if ( empty( $bucket ) || empty( $object_key ) ) {
-			return new ErrorResponse( 'Bucket and object key are required', 'invalid_parameters', 400 );
+			return new ErrorResponse(
+				__( 'Bucket and object key are required', 'arraypress' ),
+				'invalid_parameters',
+				400
+			);
 		}
 
 		// Convert minutes to seconds
@@ -207,12 +211,14 @@ class Signer implements SignerInterface {
 		$amz_date  = gmdate( 'Ymd\THis\Z', $time );
 		$datestamp = gmdate( 'Ymd', $time );
 
-		// IMPORTANT: Only encode once - don't double-encode special characters
-		// For URLs we want to preserve the original structure but make it URL-safe
+		// Encode the object key using our special encoding for consistent handling
 		$encoded_key = $this->encode_object_key_for_url( $object_key );
 
-		// Format the canonical URI
-		$canonical_uri = '/' . $bucket . '/' . ltrim( $encoded_key, '/' );
+		// Get endpoint from provider
+		$host = $this->provider->get_endpoint();
+
+		// Format the canonical URI using the provider's method
+		$canonical_uri = $this->provider->format_canonical_uri( $bucket, $encoded_key );
 
 		// Format the credential scope
 		$credential_scope = $datestamp . '/' . $this->provider->get_region() . '/s3/aws4_request';
@@ -227,7 +233,7 @@ class Signer implements SignerInterface {
 			'X-Amz-SignedHeaders' => 'host'
 		];
 
-		// Build the canonical query string - preserve original values without double encoding
+		// Build the canonical query string
 		$canonical_querystring = '';
 
 		// Sort query parameters by key
@@ -240,9 +246,6 @@ class Signer implements SignerInterface {
 			// Ensure both key and value are strings before encoding
 			$canonical_querystring .= rawurlencode( (string) $key ) . '=' . rawurlencode( (string) $value );
 		}
-
-		// Get endpoint
-		$host = $this->provider->get_endpoint();
 
 		// Build the canonical request - ensure proper line separations
 		$canonical_request = "GET\n";
@@ -268,8 +271,8 @@ class Signer implements SignerInterface {
 		// Calculate the signature
 		$signature = $this->calculate_signature( $string_to_sign, $datestamp );
 
-		// Build the final URL
-		$url           = 'https://' . $host . $canonical_uri;
+		// Build the final URL using the provider's URL formatting
+		$url           = $this->provider->format_url( $bucket, $encoded_key );
 		$presigned_url = $url . '?' . $canonical_querystring . '&X-Amz-Signature=' . $signature;
 
 		// Return PresignedUrlResponse
@@ -383,22 +386,21 @@ class Signer implements SignerInterface {
 			);
 		}
 
-		// Use the existing special encoding for object keys
+		// Encode the object key consistently using our special encoding
 		$encoded_key = $this->encode_object_key_for_url( $object_key );
 
-		// Generate authorization headers using the encoded key for consistent signing
+		// Generate authorization headers with the encoded key for correct signing
 		$headers = $this->generate_auth_headers(
 			'DELETE',
 			$bucket,
-			$encoded_key
+			$encoded_key  // Use encoded key for the signature
 		);
 
 		// Add Content-Length header which is required for DELETE operations
 		$headers['Content-Length'] = '0';
 
-		// Build the URL - use provider's format_url with original key
-		// as format_url should call encode_object_key_for_url internally
-		$url = $this->provider->format_url( $bucket, $object_key );
+		// Use the provider's URL formatting with the encoded key
+		$url = $this->provider->format_url( $bucket, $encoded_key );
 
 		// Make the request
 		$response = wp_remote_request( $url, [
@@ -511,12 +513,6 @@ class Signer implements SignerInterface {
 
 		// Debug the parsed XML structure
 		$this->debug( "Parsed XML Structure", $xml );
-
-		// Extract data (compatible with multiple providers)
-		$buckets     = [];
-		$owner       = null;
-		$truncated   = false;
-		$next_marker = '';
 
 		// Extract owner - search recursively through the XML structure
 		$owner = $this->extract_owner_from_xml( $xml );
@@ -925,7 +921,7 @@ class Signer implements SignerInterface {
 
 		// Check for error status code
 		if ( $status_code < 200 || $status_code >= 300 ) {
-			// Try to parse error message from XML if available
+			// Try to parse an error message from XML if available
 			if ( strpos( $body, '<?xml' ) !== false ) {
 				$error_xml = $this->parse_xml_response( $body, false );
 				if ( ! is_wp_error( $error_xml ) && isset( $error_xml['Error'] ) ) {

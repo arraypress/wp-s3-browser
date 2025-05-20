@@ -19,7 +19,7 @@ namespace ArrayPress\S3\Utils;
  * Class PathUtils
  */
 class Path {
-	
+
 	/**
 	 * Get folder name from prefix
 	 *
@@ -89,6 +89,28 @@ class Path {
 		}
 
 		return $result;
+	}
+
+	/**
+	 * Extract directory prefix from a file path
+	 *
+	 * @param string $object_key          Object key/path
+	 * @param bool   $with_trailing_slash Whether to include trailing slash
+	 *
+	 * @return string Directory prefix
+	 */
+	public static function extract_directory_prefix( string $object_key, bool $with_trailing_slash = true ): string {
+		$prefix_parts = explode( '/', $object_key );
+		// Remove the filename (last part)
+		array_pop( $prefix_parts );
+		$prefix = implode( '/', $prefix_parts );
+
+		// Add trailing slash if requested and if the prefix is not empty
+		if ( $with_trailing_slash && ! empty( $prefix ) ) {
+			$prefix .= '/';
+		}
+
+		return $prefix;
 	}
 
 }

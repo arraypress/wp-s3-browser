@@ -22,6 +22,7 @@ use ArrayPress\S3\Responses\ErrorResponse;
 use ArrayPress\S3\Responses\ObjectsResponse;
 use ArrayPress\S3\Traits\ResponseFormatter;
 use ArrayPress\S3\Traits\Caching;
+use ArrayPress\S3\Utils\Path;
 use Generator;
 use WP_Error;
 
@@ -387,13 +388,8 @@ class Client {
 
 		// If we're caching, we need to bust the cache for this bucket/prefix
 		if ( $this->is_cache_enabled() ) {
-			// Extract the prefix from the object key (everything up to the last slash)
-			$prefix_parts = explode( '/', $object_key );
-			array_pop( $prefix_parts );
-			$prefix = implode( '/', $prefix_parts );
-			if ( ! empty( $prefix ) ) {
-				$prefix .= '/';
-			}
+			// Extract the directory prefix from the object key
+			$prefix = Path::extract_directory_prefix( $object_key );
 
 			// Clear cache for this specific prefix
 			$cache_key = $this->get_cache_key( 'objects_' . $bucket, [
@@ -489,12 +485,10 @@ class Client {
 			return;
 		}
 
-		// Default to error_log if available
-		if ( function_exists( 'error_log' ) ) {
-			error_log( $message );
-			if ( $data !== null ) {
-				error_log( print_r( $data, true ) );
-			}
+		// Default to error_log
+		error_log( $message );
+		if ( $data !== null ) {
+			error_log( print_r( $data, true ) );
 		}
 	}
 
