@@ -325,10 +325,6 @@ class Browser {
 			return;
 		}
 
-		// Get parameters
-		$type   = isset( $_POST['type'] ) ? sanitize_text_field( $_POST['type'] ) : '';
-		$bucket = isset( $_POST['bucket'] ) ? sanitize_text_field( $_POST['bucket'] ) : '';
-
 		// For simplicity, always clear all cache regardless of type
 		$success = $this->client->clear_all_cache();
 
@@ -379,7 +375,7 @@ class Browser {
 			return;
 		}
 
-		// Get action and post type
+		// Get action and post-type
 		$action           = isset( $_POST['favorite_action'] ) ? sanitize_text_field( $_POST['favorite_action'] ) : '';
 		$post_type        = isset( $_POST['post_type'] ) ? sanitize_text_field( $_POST['post_type'] ) : 'default';
 		$meta_key         = "s3_favorite_{$this->provider_id}_{$post_type}";
@@ -507,7 +503,7 @@ class Browser {
 		}
 
 		// Enqueue if not already enqueued
-		if ( ! wp_script_is( $handle, 'enqueued' ) ) {
+		if ( ! wp_script_is( $handle ) ) {
 			wp_enqueue_script( $handle, false, [ 'jquery' ], '1.0', true );
 		}
 

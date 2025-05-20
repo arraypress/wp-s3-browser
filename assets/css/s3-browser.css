@@ -24,7 +24,7 @@
 /* Name column - give it most of the space */
 .wp-list-table th.column-name,
 .wp-list-table td.column-name {
-    width: 50%;
+    width: 20%;
     min-width: 200px; /* Ensure minimum width to prevent vertical text */
     word-wrap: break-word;
     overflow-wrap: break-word;
