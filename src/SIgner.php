@@ -267,7 +267,7 @@ class Signer implements SignerInterface {
 		// Calculate the signature
 		$signature = $this->calculate_signature( $string_to_sign, $datestamp );
 
-		// Build the final URL based on the path style setting
+		// Build the final URL based on path style setting
 		if ( $this->provider->uses_path_style() ) {
 			$url = 'https://' . $host . '/' . $bucket . '/' . $encoded_key;
 		} else {
@@ -293,7 +293,11 @@ class Signer implements SignerInterface {
 	 */
 	public function get_presigned_upload_url( string $bucket, string $object_key, int $expires = 15 ): ResponseInterface {
 		if ( empty( $bucket ) || empty( $object_key ) ) {
-			return new ErrorResponse( 'Bucket and object key are required', 'invalid_parameters', 400 );
+			return new ErrorResponse(
+				__( 'Bucket and object key are required', 'arraypress' ),
+				'invalid_parameters',
+				400
+			);
 		}
 
 		// Convert minutes to seconds
@@ -303,9 +307,11 @@ class Signer implements SignerInterface {
 		$amz_date  = gmdate( 'Ymd\THis\Z', $time );
 		$datestamp = gmdate( 'Ymd', $time );
 
+		// Use our special encoding method to properly handle special characters
+		$encoded_key = $this->encode_object_key_for_url( $object_key );
+
 		// Format the canonical URI
-		$encoded_key   = $this->encode_object_key_for_url( $object_key );
-		$canonical_uri = '/' . $bucket . '/' . ltrim( $encoded_key, '/' );
+		$canonical_uri = '/' . $bucket . '/' . $encoded_key;
 
 		// Format the credential scope
 		$credential_scope = $datestamp . '/' . $this->provider->get_region() . '/s3/aws4_request';
@@ -343,7 +349,7 @@ class Signer implements SignerInterface {
 		$canonical_request .= "host\n";
 		$canonical_request .= "UNSIGNED-PAYLOAD";
 
-		// Debug the canonical request if callback is set
+		// Debug the canonical request
 		$this->debug( "Presigned Upload URL Canonical Request", $canonical_request );
 
 		// Create the string to sign
@@ -352,14 +358,16 @@ class Signer implements SignerInterface {
 		$string_to_sign .= $credential_scope . "\n";
 		$string_to_sign .= hash( 'sha256', $canonical_request );
 
-		// Debug the string to sign if callback is set
-		$this->debug( "Presigned Upload URL String to Sign", $string_to_sign );
-
 		// Calculate the signature
 		$signature = $this->calculate_signature( $string_to_sign, $datestamp );
 
-		// Build the final URL
-		$url           = 'https://' . $host . $canonical_uri;
+		// Build the final URL based on path style setting
+		if ( $this->provider->uses_path_style() ) {
+			$url = 'https://' . $host . '/' . $bucket . '/' . $encoded_key;
+		} else {
+			$url = 'https://' . $bucket . '.' . $host . '/' . $encoded_key;
+		}
+
 		$presigned_url = $url . '?' . $canonical_querystring . '&X-Amz-Signature=' . $signature;
 
 		// Return PresignedUrlResponse
