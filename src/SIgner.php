@@ -375,7 +375,15 @@ class Signer implements SignerInterface {
 	 * @return ResponseInterface Operation result
 	 */
 	public function delete_object( string $bucket, string $object_key ): ResponseInterface {
+		// Add debug information at the start
+		$this->debug( "Delete Object Operation Started", [
+			'bucket'     => $bucket,
+			'object_key' => $object_key
+		] );
+
 		if ( empty( $bucket ) || empty( $object_key ) ) {
+			$this->debug( "Delete Object Error", "Empty bucket or object key parameters" );
+
 			return new ErrorResponse(
 				__( 'Bucket and object key are required', 'arraypress' ),
 				'invalid_parameters',
@@ -383,62 +391,137 @@ class Signer implements SignerInterface {
 			);
 		}
 
-		// Generate authorization headers for DELETE request
-		$headers = $this->generate_auth_headers(
-			'DELETE',
-			$bucket,
-			$object_key
-		);
+		try {
+			// Generate authorization headers for DELETE request
+			$headers = $this->generate_auth_headers(
+				'DELETE',
+				$bucket,
+				$object_key
+			);
 
-		// Build the URL
-		$url = $this->provider->format_url( $bucket, $object_key );
+			// Build the URL
+			$url = $this->provider->format_url( $bucket, $object_key );
 
-		// Debug the request if callback is set
-		$this->debug( "Delete Object Request URL", $url );
-		$this->debug( "Delete Object Request Headers", $headers );
+			// Debug the request details
+			$this->debug( "Delete Object Request URL", $url );
+			$this->debug( "Delete Object Request Headers", $headers );
 
-		// Make the request
-		$response = wp_remote_request( $url, [
-			'method'  => 'DELETE',
-			'headers' => $headers,
-			'timeout' => 15
-		] );
+			// Make the request
+			$response = wp_remote_request( $url, [
+				'method'  => 'DELETE',
+				'headers' => $headers,
+				'timeout' => 15
+			] );
 
-		// Handle errors
-		if ( is_wp_error( $response ) ) {
-			return ErrorResponse::from_wp_error( $response );
-		}
+			// Handle WP_Error cases
+			if ( is_wp_error( $response ) ) {
+				$error_message = $response->get_error_message();
+				$error_code    = $response->get_error_code();
 
-		$status_code = wp_remote_retrieve_response_code( $response );
-		$body        = wp_remote_retrieve_body( $response );
+				$this->debug( "Delete Object WP_Error", [
+					'message' => $error_message,
+					'code'    => $error_code
+				] );
 
-		// Debug the response if callback is set
-		$this->debug( "Delete Object Response Status", $status_code );
-		$this->debug( "Delete Object Response Body", $body );
+				return ErrorResponse::from_wp_error( $response );
+			}
 
-		// Check for error status code
-		if ( $status_code < 200 || $status_code >= 300 ) {
-			return $this->handle_error_response(
+			$status_code = wp_remote_retrieve_response_code( $response );
+			$body        = wp_remote_retrieve_body( $response );
+
+			// Debug the full response
+			$this->debug( "Delete Object Response", [
+				'status_code' => $status_code,
+				'body'        => $body,
+				'headers'     => wp_remote_retrieve_headers( $response )
+			] );
+
+			// Check for error status code
+			if ( $status_code < 200 || $status_code >= 300 ) {
+				$this->debug( "Delete Object Error Status", [
+					'status_code'   => $status_code,
+					'response_body' => $body
+				] );
+
+				// Try to parse any error message from the response body
+				$error_message = $this->extract_error_message_from_response( $body ) ?:
+					__( 'Failed to delete object', 'arraypress' );
+
+				return $this->handle_error_response(
+					$status_code,
+					$body,
+					$error_message
+				);
+			}
+
+			// Get filename for the message and response
+			$filename = basename( $object_key );
+
+			$this->debug( "Delete Object Success", [
+				'bucket'      => $bucket,
+				'key'         => $object_key,
+				'filename'    => $filename,
+				'status_code' => $status_code
+			] );
+
+			// Create a success response with detailed message and data
+			return new SuccessResponse(
+			/* translators: %s: file name */
+				sprintf( __( 'File "%s" deleted successfully', 'arraypress' ), $filename ),
 				$status_code,
-				$body,
-				__( 'Failed to delete object', 'arraypress' )
+				[
+					'bucket'   => $bucket,
+					'key'      => $object_key,
+					'filename' => $filename
+				]
+			);
+		} catch ( \Exception $e ) {
+			// Catch any unexpected exceptions
+			$this->debug( "Delete Object Exception", [
+				'message' => $e->getMessage(),
+				'trace'   => $e->getTraceAsString()
+			] );
+
+			return new ErrorResponse(
+				sprintf( __( 'Exception during object deletion: %s', 'arraypress' ), $e->getMessage() ),
+				'delete_exception',
+				500
 			);
 		}
+	}
 
-		// Get filename for the message and response
-		$filename = basename( $object_key );
+	/**
+	 * Extract error message from XML response body
+	 *
+	 * @param string $body Response body
+	 *
+	 * @return string|null Error message or null if not found
+	 */
+	private function extract_error_message_from_response( string $body ): ?string {
+		// Only try to parse XML if it looks like XML
+		if ( empty( $body ) || strpos( $body, '<?xml' ) === false ) {
+			return null;
+		}
 
-		// Create a success response with detailed message and data
-		return new SuccessResponse(
-		/* translators: %s: file name */
-			sprintf( __( 'File "%s" deleted successfully', 'arraypress' ), $filename ),
-			$status_code,
-			[
-				'bucket'   => $bucket,
-				'key'      => $object_key,
-				'filename' => $filename
-			]
-		);
+		try {
+			$xml = simplexml_load_string( $body );
+			if ( $xml === false ) {
+				return null;
+			}
+
+			// Try to extract error message - different providers might have different XML formats
+			if ( isset( $xml->Message ) ) {
+				return (string) $xml->Message;
+			} elseif ( isset( $xml->Error ) && isset( $xml->Error->Message ) ) {
+				return (string) $xml->Error->Message;
+			} elseif ( isset( $xml->message ) ) {
+				return (string) $xml->message;
+			}
+		} catch ( \Exception $e ) {
+			$this->debug( "Error parsing XML response", $e->getMessage() );
+		}
+
+		return null;
 	}
 
 	/**
