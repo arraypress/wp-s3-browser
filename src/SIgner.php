@@ -383,91 +383,56 @@ class Signer implements SignerInterface {
 			);
 		}
 
-		// Debug the original key
-		$this->debug( "Original Object Key", $object_key );
+		// Use the existing special encoding for object keys
+		$encoded_key = $this->encode_object_key_for_url( $object_key );
 
-		// Properly encode the object key for consistent handling
-		// This is specifically for handling spaces, parentheses, and other special characters
-		$encoded_object_key = rawurlencode( $object_key );
-		$this->debug( "Encoded Object Key", $encoded_object_key );
+		// Generate authorization headers using the encoded key for consistent signing
+		$headers = $this->generate_auth_headers(
+			'DELETE',
+			$bucket,
+			$encoded_key
+		);
 
-		try {
-			// Generate authorization headers with the ENCODED key
-			// This ensures the signature matches the URL
-			$headers = $this->generate_auth_headers(
-				'DELETE',
-				$bucket,
-				$encoded_object_key  // Use encoded key for signing
-			);
+		// Add Content-Length header which is required for DELETE operations
+		$headers['Content-Length'] = '0';
 
-			// Add Content-Length header which is required by R2 for DELETE operations
-			$headers['Content-Length'] = '0';
+		// Build the URL - use provider's format_url with original key
+		// as format_url should call encode_object_key_for_url internally
+		$url = $this->provider->format_url( $bucket, $object_key );
 
-			// Build the URL using the same encoding
-			$endpoint = $this->provider->get_endpoint();
-			$url      = 'https://' . $endpoint . '/' . $bucket . '/' . $encoded_object_key;
+		// Make the request
+		$response = wp_remote_request( $url, [
+			'method'  => 'DELETE',
+			'headers' => $headers,
+			'timeout' => 15,
+			'body'    => ''
+		] );
 
-			$this->debug( "Delete URL", $url );
-			$this->debug( "Delete Headers", $headers );
-
-			// Make the request
-			$response = wp_remote_request( $url, [
-				'method'    => 'DELETE',
-				'headers'   => $headers,
-				'timeout'   => 30,  // Increase timeout for problematic files
-				'body'      => '',
-				'sslverify' => true,
-			] );
-
-			// Handle WP_Error responses
-			if ( is_wp_error( $response ) ) {
-				$this->debug( "WP Error", [
-					'message' => $response->get_error_message(),
-					'code'    => $response->get_error_code()
-				] );
-
-				return ErrorResponse::from_wp_error( $response );
-			}
-
-			$status_code      = wp_remote_retrieve_response_code( $response );
-			$body             = wp_remote_retrieve_body( $response );
-			$response_headers = wp_remote_retrieve_headers( $response );
-
-			$this->debug( "Delete Response", [
-				'status'  => $status_code,
-				'body'    => $body,
-				'headers' => $response_headers
-			] );
-
-			// Check for error status codes
-			if ( $status_code < 200 || $status_code >= 300 ) {
-				return $this->handle_error_response( $status_code, $body, __( 'Failed to delete object', 'arraypress' ) );
-			}
-
-			// Success! Return a meaningful response
-			$filename = basename( $object_key );
-
-			return new SuccessResponse(
-				sprintf( __( 'File "%s" deleted successfully', 'arraypress' ), $filename ),
-				$status_code,
-				[
-					'bucket'   => $bucket,
-					'key'      => $object_key,
-					'filename' => $filename
-				]
-			);
-		} catch ( \Exception $e ) {
-			$this->debug( "Exception in delete_object", [
-				'message' => $e->getMessage(),
-				'trace'   => $e->getTraceAsString()
-			] );
-
-			return new ErrorResponse(
-				$e->getMessage(),
-				'delete_exception',
-				500
-			);
+		// Handle WP_Error responses
+		if ( is_wp_error( $response ) ) {
+			return ErrorResponse::from_wp_error( $response );
 		}
+
+		$status_code = wp_remote_retrieve_response_code( $response );
+		$body        = wp_remote_retrieve_body( $response );
+
+		// Check for error status codes
+		if ( $status_code < 200 || $status_code >= 300 ) {
+			return $this->handle_error_response( $status_code, $body, __( 'Failed to delete object', 'arraypress' ) );
+		}
+
+		// Success! Return a meaningful response
+		$filename = basename( $object_key );
+
+		return new SuccessResponse(
+			sprintf( __( 'File "%s" deleted successfully', 'arraypress' ), $filename ),
+			$status_code,
+			[
+				'bucket'   => $bucket,
+				'key'      => $object_key,
+				'filename' => $filename
+			]
+		);
 	}
 
 	/**
