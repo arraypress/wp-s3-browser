@@ -31,6 +31,19 @@
                 .s3-upload-cancelled .s3-error-message {
                     color: #e74c3c !important;
                 }
+                .s3-upload-notice {
+                    margin: 10px 15px;
+                    padding: 8px 12px;
+                    background: #f8d7da;
+                    border: 1px solid #f5c6cb;
+                    border-radius: 4px;
+                    color: #721c24;
+                }
+                .s3-transfer-data {
+                    color: #666;
+                    font-size: 11px;
+                    margin-left: 8px;
+                }
             `);
             $('head').append(style);
         },
@@ -85,6 +98,22 @@
             });
         },
 
+        showUploadError: function(message) {
+            // Remove any existing error notices
+            $('.s3-upload-notice').remove();
+
+            // Create and insert the error notice
+            const $notice = $(`<div class="s3-upload-notice">${message}</div>`);
+            $('.s3-upload-list').before($notice);
+
+            // Auto-remove after 8 seconds
+            setTimeout(() => {
+                $notice.fadeOut(500, function() {
+                    $(this).remove();
+                });
+            }, 8000);
+        },
+
         uploadFiles: function (files, bucket, prefix) {
             const self = this;
             const $uploadList = $('.s3-upload-list');
@@ -117,6 +146,7 @@
                                 <div class="s3-progress" style="width: 0"></div>
                             </div>
                             <span class="s3-progress-text">0%</span>
+                            <span class="s3-transfer-data"></span>
                         </div>
                         <div class="s3-upload-status">
                             <button class="s3-cancel-upload" title="Cancel upload" data-upload-id="${uploadId}">
@@ -173,6 +203,15 @@
                             $progress.find('.s3-upload-status').html(
                                 `<span class="dashicons dashicons-no"></span><span class="s3-error-message" title="${errorMsg}">${errorMsg}</span>`
                             );
+
+                            // Show error notice for specific errors
+                            if (error.message.includes('CORS')) {
+                                self.showUploadError('CORS configuration error - Your bucket needs proper CORS settings to allow uploads from this domain.');
+                            } else if (error.message.includes('network error')) {
+                                self.showUploadError('Network error detected. Please check your internet connection and try again.');
+                            } else {
+                                self.showUploadError('Upload failed: ' + errorMsg);
+                            }
                         }
 
                         // Remove from active uploads
@@ -203,10 +242,46 @@
                             S3Browser.showNotification('Uploads completed. Refreshing file listing...', 'success');
                         }
 
-                        // Refresh the page to show new files
-                        window.location.reload();
+                        // First try to clear cache through the API
+                        self.clearCache(() => {
+                            // Then reload the page to show new files
+                            window.location.reload();
+                        });
                     }
                 }, 3000);
+            });
+        },
+
+        clearCache: function(callback) {
+            // Get current bucket and prefix from URL or data attributes
+            const urlParams = new URLSearchParams(window.location.search);
+            const bucket = urlParams.get('bucket') || $('.s3-upload-zone').data('bucket');
+            const prefix = urlParams.get('prefix') || $('.s3-upload-zone').data('prefix') || '';
+
+            // Only proceed if we have a bucket
+            if (!bucket) {
+                if (callback) callback();
+                return;
+            }
+
+            $.ajax({
+                url: S3BrowserGlobalConfig.ajaxUrl,
+                type: 'POST',
+                data: {
+                    action: 's3_clear_cache_' + S3BrowserGlobalConfig.providerId,
+                    type: 'objects',
+                    bucket: bucket,
+                    prefix: prefix,
+                    nonce: S3BrowserGlobalConfig.nonce
+                },
+                success: function(response) {
+                    console.log('Cache cleared successfully');
+                    if (callback) callback();
+                },
+                error: function() {
+                    console.error('Failed to clear cache');
+                    if (callback) callback();
+                }
             });
         },
 
@@ -240,6 +315,9 @@
 
             return new Promise((resolve, reject) => {
                 const xhr = new XMLHttpRequest();
+                let lastLoaded = 0;
+                let lastTime = Date.now();
+                let uploadSpeed = 0;
 
                 // Store the XHR object for potential cancellation
                 self.activeUploads[uploadId] = xhr;
@@ -247,9 +325,29 @@
                 // Track upload progress
                 xhr.upload.addEventListener('progress', function (e) {
                     if (e.lengthComputable) {
+                        // Calculate percentage
                         const percentComplete = Math.round((e.loaded / e.total) * 100);
                         $progress.find('.s3-progress').css('width', percentComplete + '%');
                         $progress.find('.s3-progress-text').text(percentComplete + '%');
+
+                        // Calculate upload speed
+                        const currentTime = Date.now();
+                        const timeDiff = (currentTime - lastTime) / 1000; // in seconds
+
+                        if (timeDiff > 0.5) { // Update every half second
+                            const loadedDiff = e.loaded - lastLoaded; // bytes transferred since last update
+                            uploadSpeed = loadedDiff / timeDiff; // bytes per second
+
+                            // Display transferred data and speed
+                            const transferred = self.formatFileSize(e.loaded) + ' / ' + self.formatFileSize(e.total);
+                            const speed = self.formatFileSize(uploadSpeed) + '/s';
+
+                            $progress.find('.s3-transfer-data').text(transferred + ' • ' + speed);
+
+                            // Update for next calculation
+                            lastLoaded = e.loaded;
+                            lastTime = currentTime;
+                        }
                     }
                 });
 
