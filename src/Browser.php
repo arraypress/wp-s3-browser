@@ -1063,10 +1063,10 @@ class Browser {
                      data-prefix="<?php echo esc_attr( $prefix ); ?>">
                     <div class="s3-upload-message">
                         <span class="dashicons dashicons-upload"></span>
-                        <p><?php esc_html_e( 'Drop files here to upload', 'arraypress' ); ?></p>
+                        <p><?php esc_html_e( 'Drop files to upload', 'arraypress' ); ?></p>
                         <p class="s3-upload-or"><?php esc_html_e( 'or', 'arraypress' ); ?></p>
                         <input type="file" multiple class="s3-file-input" id="s3FileUpload">
-                        <label for="s3FileUpload" class="button"><?php esc_html_e( 'Choose Files', 'arraypress' ); ?></label>
+                        <label for="s3FileUpload" class="button"><?php esc_html_e( 'Select Files', 'arraypress' ); ?></label>
                     </div>
                 </div>
                 <div class="s3-upload-list"></div>

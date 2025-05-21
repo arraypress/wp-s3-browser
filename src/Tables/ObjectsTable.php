@@ -429,7 +429,7 @@ class ObjectsTable extends WP_List_Table {
 
 			// Add delete button
 			$actions .= sprintf(
-				' <a href="#" class="button s3-icon-button s3-delete-file" data-filename="%s" data-bucket="%s" data-key="%s"><span class="dashicons dashicons-trash"></span>%s</a>',
+				' <a href="#" class="button s3-icon-button s3-delete-file button-delete" data-filename="%s" data-bucket="%s" data-key="%s"><span class="dashicons dashicons-trash"></span>%s</a>',
 				esc_attr( $item['name'] ),
 				esc_attr( $this->bucket ),
 				esc_attr( $item['key'] ),

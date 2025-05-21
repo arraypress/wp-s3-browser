@@ -129,11 +129,11 @@
         },
 
         // Initialize upload toggle functionality
-        initUploadToggle: function() {
+        initUploadToggle: function () {
             var self = this;
 
             // Toggle upload container visibility
-            $('#s3-toggle-upload').on('click', function() {
+            $('#s3-toggle-upload').on('click', function () {
                 $('#s3-upload-container').slideToggle(300);
 
                 // Track if it's being opened or closed
@@ -142,20 +142,20 @@
 
                 // If closing and no active uploads, clear the list
                 if (!isVisible && !self.hasActiveUploads) {
-                    setTimeout(function() {
+                    setTimeout(function () {
                         $('.s3-upload-list').empty();
                     }, 300);
                 }
             });
 
             // Close button functionality
-            $('.s3-close-upload').on('click', function() {
+            $('.s3-close-upload').on('click', function () {
                 if (!self.hasActiveUploads) {
                     $('#s3-upload-container').slideUp(300);
                     $('#s3-toggle-upload').removeClass('active');
 
                     // Clear the list after animation
-                    setTimeout(function() {
+                    setTimeout(function () {
                         $('.s3-upload-list').empty();
                     }, 300);
                 } else {
@@ -165,34 +165,19 @@
             });
 
             // Listen for upload start/complete events from the upload module
-            $(document).on('s3UploadStarted', function() {
+            $(document).on('s3UploadStarted', function () {
                 self.hasActiveUploads = true;
                 // Make sure upload container is visible when upload starts
                 $('#s3-upload-container').slideDown(300);
                 $('#s3-toggle-upload').addClass('active');
             });
 
-            $(document).on('s3UploadComplete', function() {
+            $(document).on('s3UploadComplete', function () {
                 self.hasActiveUploads = false;
             });
 
-            $(document).on('s3AllUploadsComplete', function() {
+            $(document).on('s3AllUploadsComplete', function () {
                 self.hasActiveUploads = false;
-            });
-        },
-
-        // Add special styling to buttons
-        improveButtonStyles: function() {
-            // Make delete buttons red with trash icon
-            $('.s3-delete-file').addClass('button-delete');
-
-            // Change refresh cache button text
-            $('.s3-refresh-button').each(function() {
-                var $button = $(this);
-                var buttonText = $button.text().trim();
-                if (buttonText === 'Refresh Cache') {
-                    $button.html('<span class="dashicons dashicons-update"></span> Refresh');
-                }
             });
         },
 
@@ -472,7 +457,7 @@
                         }
 
                         // Update button styles for new elements
-                        self.improveButtonStyles();
+                        // self.improveButtonStyles();
                     } else {
                         self.showError('Failed to load more items. Please try again.');
                         self.resetButton($button);
@@ -510,7 +495,7 @@
                 $bottomNav.show();
 
                 // Update button styles for restored elements
-                this.improveButtonStyles();
+                // this.improveButtonStyles();
                 return;
             }
 
