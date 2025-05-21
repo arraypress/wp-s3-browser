@@ -147,57 +147,57 @@
    Upload Container
    ============================ */
 
-.s3-upload-container {
-    margin: 0 0 20px;
-    background: #fff;
-    border: 1px solid #ccd0d4;
-    box-shadow: 0 1px 1px rgba(0, 0, 0, .04);
-    border-radius: 4px;
-    overflow: hidden;
-}
+/*.s3-upload-container {*/
+/*    margin: 0 0 20px;*/
+/*    background: #fff;*/
+/*    border: 1px solid #ccd0d4;*/
+/*    box-shadow: 0 1px 1px rgba(0, 0, 0, .04);*/
+/*    border-radius: 4px;*/
+/*    overflow: hidden;*/
+/*}*/
 
-.s3-upload-header {
-    padding: 10px 15px;
-    border-bottom: 1px solid #ccd0d4;
-    background: #f5f5f5;
-    border-radius: 4px 4px 0 0;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
+/*.s3-upload-header {*/
+/*    padding: 10px 15px;*/
+/*    border-bottom: 1px solid #ccd0d4;*/
+/*    background: #f5f5f5;*/
+/*    border-radius: 4px 4px 0 0;*/
+/*    display: flex;*/
+/*    justify-content: space-between;*/
+/*    align-items: center;*/
+/*}*/
 
-.s3-upload-title {
-    margin: 0;
-    font-size: 14px;
-    line-height: 1.4;
-    font-weight: 600;
-}
+/*.s3-upload-title {*/
+/*    margin: 0;*/
+/*    font-size: 14px;*/
+/*    line-height: 1.4;*/
+/*    font-weight: 600;*/
+/*}*/
 
-.s3-close-upload {
-    border: none;
-    background: transparent;
-    cursor: pointer;
-    padding: 0;
-    color: #666;
-    width: 24px;
-    height: 24px;
-}
+/*.s3-close-upload {*/
+/*    border: none;*/
+/*    background: transparent;*/
+/*    cursor: pointer;*/
+/*    padding: 0;*/
+/*    color: #666;*/
+/*    width: 24px;*/
+/*    height: 24px;*/
+/*}*/
 
-.s3-close-upload:hover {
-    color: #d63638;
-}
+/*.s3-close-upload:hover {*/
+/*    color: #d63638;*/
+/*}*/
 
-.s3-close-upload .dashicons {
-    width: 20px;
-    height: 20px;
-    font-size: 20px;
-}
+/*.s3-close-upload .dashicons {*/
+/*    width: 20px;*/
+/*    height: 20px;*/
+/*    font-size: 20px;*/
+/*}*/
 
-.s3-actions-container {
-    text-align: right;
-    width: 100%;
-    display: block;
-}
+/*.s3-actions-container {*/
+/*    text-align: right;*/
+/*    width: 100%;*/
+/*    display: block;*/
+/*}*/
 
 /* ============================
    Breadcrumbs
