@@ -9,6 +9,10 @@
     transition: all 0.3s ease;
 }
 
+.s3-upload-wrapper {
+    margin-bottom: 15px;
+}
+
 .s3-upload-header {
     padding: 10px 15px;
     border-bottom: 1px solid #ccd0d4;

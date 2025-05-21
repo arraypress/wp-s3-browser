@@ -23,7 +23,6 @@
             this.countInitialItems();
             this.initFavorites();
             this.initUploadToggle();
-            this.improveButtonStyles();
         },
 
         bindEvents: function () {
@@ -455,9 +454,6 @@
                         if (currentSearch) {
                             self.filterTable(currentSearch);
                         }
-
-                        // Update button styles for new elements
-                        // self.improveButtonStyles();
                     } else {
                         self.showError('Failed to load more items. Please try again.');
                         self.resetButton($button);
@@ -493,9 +489,6 @@
                 $tbody.empty().append(this.originalTableData.clone());
                 $stats.text('');
                 $bottomNav.show();
-
-                // Update button styles for restored elements
-                // this.improveButtonStyles();
                 return;
             }
 
@@ -528,9 +521,6 @@
                 );
             } else {
                 $stats.text(visibleRows + ' of ' + totalRows + ' items match');
-
-                // Update button styles for filtered elements
-                this.improveButtonStyles();
             }
         },
 

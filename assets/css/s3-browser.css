@@ -193,6 +193,12 @@
     font-size: 20px;
 }
 
+.s3-actions-container {
+    text-align: right;
+    width: 100%;
+    display: block;
+}
+
 /* ============================
    Breadcrumbs
    ============================ */
