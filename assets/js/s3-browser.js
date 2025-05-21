@@ -845,6 +845,8 @@
          * @param {jQuery} $button The clicked button
          */
         updateFavoriteButtons: function(response, $button) {
+            var self = this;
+
             // Reset all buttons
             $('.s3-favorite-bucket').each(function () {
                 var $otherButton = $(this);
@@ -857,8 +859,8 @@
                 // Update text to translated "Set Default"
                 $otherButton.contents().filter(function () {
                     return this.nodeType === 3; // Text nodes only
-                }).replaceWith(this.i18n.setDefault);
-            }, this); // Pass 'this' as context for the each function
+                }).replaceWith(self.i18n.setDefault);
+            });
 
             // Update clicked button if it was added as favorite
             if (response.data.status === 'added') {
@@ -870,7 +872,7 @@
                 // Update text to translated "Default"
                 $button.contents().filter(function () {
                     return this.nodeType === 3; // Text nodes only
-                }).replaceWith(this.i18n.defaultText);
+                }).replaceWith(self.i18n.defaultText);
             }
         }
     };
