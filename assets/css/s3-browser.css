@@ -4,6 +4,10 @@
 }
 
 /* Table Layout */
+.s3-browser-container .wp-list-table {
+    margin-top: 15px;
+}
+
 .wp-list-table th {
     position: relative;
     white-space: nowrap;
@@ -53,6 +57,7 @@
 
 .s3-icon-button .dashicons {
     margin-right: 4px;
+    margin-bottom: 3px;
     font-size: 16px;
     width: 16px;
     height: 16px;
