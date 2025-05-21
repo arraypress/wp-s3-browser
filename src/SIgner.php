@@ -1039,6 +1039,135 @@ class Signer implements SignerInterface {
 	}
 
 	/**
+	 * Copy an object within or between buckets
+	 *
+	 * @param string $source_bucket Source bucket name
+	 * @param string $source_key    Source object key
+	 * @param string $target_bucket Target bucket name
+	 * @param string $target_key    Target object key
+	 *
+	 * @return ResponseInterface|WP_Error Response or error
+	 */
+	public function copy_object(
+		string $source_bucket,
+		string $source_key,
+		string $target_bucket,
+		string $target_key
+	): ResponseInterface {
+		if ( empty( $source_bucket ) || empty( $source_key ) || empty( $target_bucket ) || empty( $target_key ) ) {
+			return new ErrorResponse(
+				__( 'Source bucket, source key, target bucket, and target key are required', 'arraypress' ),
+				'invalid_parameters',
+				400
+			);
+		}
+
+		// Encode the source key and target key for URL
+		$encoded_source_key = $this->encode_object_key_for_url( $source_key );
+		$encoded_target_key = $this->encode_object_key_for_url( $target_key );
+
+		// Create the source path in the format required by the S3 CopyObject operation
+		// Note: The x-amz-copy-source header must be URL-encoded
+		$source_path = rawurlencode( "{$source_bucket}/{$encoded_source_key}" );
+
+		// Generate authorization headers for PUT request to the target
+		$headers = $this->generate_auth_headers(
+			'PUT',
+			$target_bucket,
+			$encoded_target_key
+		);
+
+		// Add the source header - this tells S3 to copy from the source object
+		$headers['x-amz-copy-source'] = $source_path;
+
+		// Build the URL
+		$url = $this->provider->format_url( $target_bucket, $encoded_target_key );
+
+		// Debug the request if a callback is set
+		$this->debug( "Copy Object Request URL", $url );
+		$this->debug( "Copy Object Request Headers", $headers );
+
+		// Make the request
+		$response = wp_remote_request( $url, [
+			'method'  => 'PUT',
+			'headers' => $headers,
+			'timeout' => 30,
+			'body'    => '' // Empty body for copy operation
+		] );
+
+		// Handle WP_Error responses
+		if ( is_wp_error( $response ) ) {
+			return ErrorResponse::from_wp_error( $response );
+		}
+
+		// Get response data
+		$status_code = wp_remote_retrieve_response_code( $response );
+		$body        = wp_remote_retrieve_body( $response );
+
+		// Debug the response if callback is set
+		$this->debug( "Copy Object Response Status", $status_code );
+		$this->debug( "Copy Object Response Body", $body );
+
+		// Check for error status codes
+		if ( $status_code < 200 || $status_code >= 300 ) {
+			return $this->handle_error_response(
+				$status_code,
+				$body,
+				sprintf(
+					__( 'Failed to copy object from %s to %s', 'arraypress' ),
+					"{$source_bucket}/{$source_key}",
+					"{$target_bucket}/{$target_key}"
+				)
+			);
+		}
+
+		// Parse XML response for metadata
+		$xml_data = $this->parse_xml_response( $body );
+		if ( is_wp_error( $xml_data ) ) {
+			// Even if we can't parse the XML, the operation was successful
+			return new SuccessResponse(
+				sprintf(
+					__( 'Object copied from %s to %s', 'arraypress' ),
+					"{$source_bucket}/{$source_key}",
+					"{$target_bucket}/{$target_key}"
+				),
+				$status_code,
+				[
+					'source_bucket' => $source_bucket,
+					'source_key'    => $source_key,
+					'target_bucket' => $target_bucket,
+					'target_key'    => $target_key
+				]
+			);
+		}
+
+		// Extract ETag if available
+		$etag = '';
+		if ( isset( $xml_data['CopyObjectResult']['ETag']['value'] ) ) {
+			$etag = trim( $xml_data['CopyObjectResult']['ETag']['value'], '"' );
+		}
+
+		// Return success response with metadata
+		return new SuccessResponse(
+			sprintf(
+				__( 'Object copied from %s to %s', 'arraypress' ),
+				"{$source_bucket}/{$source_key}",
+				"{$target_bucket}/{$target_key}"
+			),
+			$status_code,
+			[
+				'source_bucket' => $source_bucket,
+				'source_key'    => $source_key,
+				'target_bucket' => $target_bucket,
+				'target_key'    => $target_key,
+				'etag'          => $etag,
+				'last_modified' => $xml_data['CopyObjectResult']['LastModified']['value'] ?? ''
+			],
+			$xml_data
+		);
+	}
+
+	/**
 	 * URL encode S3 object key specially for URLs, avoiding double encoding
 	 *
 	 * @param string $object_key S3 object key to encode

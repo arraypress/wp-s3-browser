@@ -1083,7 +1083,7 @@ class Browser {
 	}
 
 	public function render_upload_zone() {
-		// Only show upload zone on object views (not bucket listing)
+		// Only show the upload zone on object views (not bucket listing)
 		if ( empty( $_GET['bucket'] ) ) {
 			return;
 		}
