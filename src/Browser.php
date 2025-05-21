@@ -826,15 +826,15 @@ class Browser {
 
 		// Output content
 		echo '<div class="s3-browser-container">';
+        
+		// Add upload zone here, after breadcrumbs/navigation
+		$this->render_upload_zone();
 
 		if ( $view === 'buckets' ) {
 			$this->display_buckets_list();
 		} else {
 			$this->display_objects_view( $bucket, $prefix );
 		}
-
-		// Add upload zone here, after breadcrumbs/navigation
-		$this->render_upload_zone();
 
 		echo '</div>';
 	}
@@ -1058,8 +1058,7 @@ class Browser {
                     <p><?php esc_html_e( 'Drop files here to upload', 'arraypress' ); ?></p>
                     <p class="s3-upload-or"><?php esc_html_e( 'or', 'arraypress' ); ?></p>
                     <input type="file" multiple class="s3-file-input" id="s3FileUpload">
-                    <label for="s3FileUpload"
-                           class="button"><?php esc_html_e( 'Choose Files', 'arraypress' ); ?></label>
+                    <label for="s3FileUpload" class="button"><?php esc_html_e( 'Choose Files', 'arraypress' ); ?></label>
                 </div>
             </div>
             <div class="s3-upload-list"></div>

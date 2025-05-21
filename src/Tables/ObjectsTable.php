@@ -80,7 +80,7 @@ class ObjectsTable extends WP_List_Table {
 		$this->bucket      = $args['bucket'];
 		$this->prefix      = $args['prefix'] ?? '';
 		$this->provider_id = $args['provider_id'];
-		$this->per_page    = $args['per_page'] ?? 10;
+		$this->per_page    = $args['per_page'] ?? 1000;
 	}
 
 	/**
@@ -116,7 +116,7 @@ class ObjectsTable extends WP_List_Table {
 			$this->per_page,
 			$this->prefix,
 			'/',
-			$continuation_token // Don't use cache to ensure fresh results
+			$continuation_token
 		);
 
 		$this->api_result = $result;
