@@ -1,38 +1,40 @@
-/* ============================
-   S3 Browser - Essential Styles
-   ============================ */
-
-/* Browser Container */
+/* Core Container */
 .s3-browser-container {
     padding: 16px;
 }
 
-/* ============================
-   Table Column Sizing
-   ============================ */
-
+/* Table Layout */
 .wp-list-table th {
     position: relative;
     white-space: nowrap;
 }
-
 .wp-list-table td {
     word-wrap: break-word;
     vertical-align: top;
 }
 
-/* Name column - give it most of the space */
-.wp-list-table th.column-name,
-.wp-list-table td.column-name {
+/* Column Widths */
+.wp-list-table th.column-name, .wp-list-table td.column-name {
     width: 20%;
-    min-width: 200px; /* Ensure minimum width to prevent vertical text */
-    word-wrap: break-word;
+    min-width: 200px;
     overflow-wrap: break-word;
 }
+.wp-list-table th.column-size, .wp-list-table td.column-size {
+    width: 15%;
+    text-align: right;
+    white-space: nowrap;
+}
+.wp-list-table th.column-modified, .wp-list-table td.column-modified {
+    width: 20%;
+    white-space: nowrap;
+}
+.wp-list-table th.column-actions, .wp-list-table td.column-actions {
+    width: 15%;
+    white-space: nowrap;
+}
 
-/* Prevent vertical text display */
-.bucket-name,
-.s3-folder-link {
+/* Text Overflow Prevention */
+.bucket-name, .s3-folder-link {
     display: inline-block;
     white-space: nowrap;
     overflow: hidden;
@@ -40,446 +42,163 @@
     max-width: 100%;
 }
 
-/* Size column - compact */
-.wp-list-table th.column-size,
-.wp-list-table td.column-size {
-    width: 15%;
-    text-align: right;
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-}
-
-/* Modified column - compact */
-.wp-list-table th.column-modified,
-.wp-list-table td.column-modified {
-    width: 20%;
-    white-space: nowrap;
-    font-variant-numeric: tabular-nums;
-}
-
-/* Actions column - minimal space needed */
-.wp-list-table th.column-actions,
-.wp-list-table td.column-actions {
-    width: 15%;
-    white-space: nowrap;
-}
-
-/* ============================
-   Button Styling with Icons
-   ============================ */
-
-/* Single class for icon button alignment */
-.s3-icon-button {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
+/* Button Styling */
+.s3-icon-button, .button .dashicons, .s3-select-file .dashicons, .s3-download-file .dashicons {
     vertical-align: middle;
 }
-
 .s3-icon-button .dashicons {
-    font-size: 16px;
-    width: 16px;
-    height: 16px;
-    margin-right: 4px;
-    line-height: 1.4;
-    position: relative;
-    top: -4px;
-}
-
-/* Legacy button styling - maintained for compatibility */
-.s3-select-file .dashicons,
-.s3-download-file .dashicons,
-.button .dashicons {
     margin-right: 4px;
     font-size: 16px;
     width: 16px;
     height: 16px;
-    vertical-align: middle;
 }
-
-/* Action buttons with tighter spacing */
-.wp-list-table td.column-actions .button {
-    margin-right: 4px;
-}
-
-.wp-list-table td.column-actions .button:last-child {
-    margin-right: 0;
-}
-
-/* New delete button styling */
 .button-delete {
     background-color: #d63638 !important;
     border-color: #d63638 !important;
     color: white !important;
 }
-
-.button-delete:hover,
-.button-delete:focus {
+.button-delete:hover {
     background-color: #b32d2e !important;
-    border-color: #b32d2e !important;
-    color: white !important;
 }
-
 .button-delete .dashicons {
     color: white;
 }
 
-/* ============================
-   Upload Toggle Button
-   ============================ */
-
+/* Upload Toggle */
 #s3-toggle-upload {
-    position: relative;
     font-weight: 500;
     margin-bottom: 10px;
 }
-
 #s3-toggle-upload.active {
     background-color: #135e96;
     border-color: #135e96;
 }
 
-#s3-toggle-upload .dashicons {
-    margin-right: 5px;
-}
-
-/* ============================
-   Breadcrumbs
-   ============================ */
-
+/* Breadcrumbs */
 .breadcrumb-container {
     margin-bottom: 15px;
     padding: 8px 12px;
     background-color: #f5f5f5;
     border-radius: 4px;
     border: 1px solid #e5e5e5;
-    font-size: 13px;
     display: flex;
     align-items: center;
     flex-wrap: wrap;
 }
-
-.breadcrumb-link,
-.breadcrumb-current {
+.breadcrumb-link, .breadcrumb-current {
     display: inline-flex;
     align-items: center;
-    text-decoration: none;
 }
-
 .breadcrumb-link {
     color: #0073aa;
+    text-decoration: none;
 }
-
 .breadcrumb-link:hover {
     text-decoration: underline;
-    color: #00a0d2;
 }
-
 .breadcrumb-current {
     font-weight: bold;
-    color: #23282d;
 }
-
 .breadcrumb-separator {
     margin: 0 8px;
     color: #999;
 }
 
-.breadcrumb-link .dashicons,
-.breadcrumb-current .dashicons {
-    margin-right: 5px;
-    font-size: 16px;
-    height: 16px;
-    width: 16px;
-}
-
-/* ============================
-   Search and Navigation
-   ============================ */
-
+/* Search and Navigation */
 .s3-top-nav {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 10px;
 }
-
 .s3-search-container {
     display: flex;
     align-items: center;
     gap: 10px;
     flex-grow: 1;
-    max-width: 70%;
 }
-
-.s3-search-stats {
-    color: #666;
-    font-style: italic;
-    font-size: 13px;
-    white-space: nowrap;
-}
-
 #s3-js-search {
     min-width: 500px;
 }
-
-.s3-browser-container .tablenav.top {
-    margin-bottom: 12px;
-}
-
-/* Bottom Navigation */
 .s3-bottom-nav {
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
 
-.s3-count-display {
-    flex: 1;
-}
-
-.s3-count-display .displaying-num {
-    margin: 0;
-    font-size: 13px;
-    color: #646970;
-    font-style: italic;
-}
-
-/* ============================
-   Load More Button
-   ============================ */
-
+/* Load More */
 .s3-load-more-wrapper {
     display: flex;
     align-items: center;
-    gap: 10px;
 }
-
-#s3-load-more {
-    padding: 6px 12px;
-}
-
-#s3-load-more .spinner {
-    float: none;
-    margin: 0;
-    width: 16px;
-    height: 16px;
-    background-size: 16px 16px;
-}
-
 #s3-load-more:disabled {
     opacity: 0.6;
     cursor: not-allowed;
 }
 
-.s3-load-status {
-    color: #666;
-    font-size: 12px;
-    font-style: italic;
-    white-space: nowrap;
-}
-
-/* ============================
-   Refresh Button
-   ============================ */
-
-.s3-refresh-button.refreshing {
-    cursor: not-allowed;
-    opacity: 0.8;
-}
-
-.s3-refresh-button .dashicons.spin {
+/* Refresh Button */
+.s3-refresh-button.refreshing .dashicons {
     animation: s3-spin 1.5s linear infinite;
 }
-
 @keyframes s3-spin {
-    0% {
-        transform: rotate(0deg);
-    }
-    100% {
-        transform: rotate(360deg);
-    }
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
 }
 
-/* ============================
-   Icons and Colors
-   ============================ */
+/* Icon Colors */
+.dashicons-category, .s3-folder-icon { color: #dba617; }
+.dashicons-format-image { color: #218838; }
+.dashicons-media-document { color: #2271b1; }
+.dashicons-media-archive { color: #7b68ee; }
+.dashicons-media-audio { color: #1e90ff; }
+.dashicons-media-video { color: #dc3545; }
 
-.dashicons-database {
-    color: #666;
-}
-
-.dashicons-category,
-.dashicons-category.s3-folder-icon {
-    color: #dba617;
-}
-
-.dashicons-format-image {
-    color: #218838;
-}
-
-.dashicons-media-document {
-    color: #2271b1;
-}
-
-.dashicons-media-archive {
-    color: #7b68ee;
-}
-
-.dashicons-media-audio {
-    color: #1e90ff;
-}
-
-.dashicons-media-video {
-    color: #dc3545;
-}
-
-.dashicons-media-default {
-    color: #555;
-}
-
-/* ============================
-   Interactive Elements
-   ============================ */
-
-.bucket-name {
-    cursor: pointer;
-    color: #0073aa;
-    text-decoration: none;
-}
-
-.bucket-name:hover {
-    color: #00a0d2;
-    text-decoration: underline;
-}
-
-.browse-bucket-button {
-    margin-left: 10px;
-    font-size: 12px;
-    line-height: 1;
-    padding: 4px 8px;
-    vertical-align: middle;
-}
-
-/* ============================
-   Error States
-   ============================ */
-
-.s3-ajax-error {
-    margin: 10px 0 !important;
-    padding: 8px 12px !important;
-    background: #ffeaa7;
-    border: 1px solid #f0c040;
-    border-radius: 4px;
-}
-
-.s3-loading {
-    opacity: 0.6;
-    pointer-events: none;
-}
-
-/* ============================
-   Favorite Button Styles
-   ============================ */
-
-.s3-favorite-bucket {
-    padding: 0 6px !important;
-    margin-left: 4px !important;
-}
-
-.s3-favorite-bucket .dashicons {
-    font-size: 18px;
-}
-
+/* Favorites */
 .s3-favorite-bucket .dashicons-star-filled.s3-favorite-active {
     color: #ffb900;
 }
 
-.s3-favorite-bucket.s3-processing {
-    opacity: 0.7;
-    pointer-events: none;
-}
-
-/* ============================
-   Notification Styles
-   ============================ */
-
+/* Notifications */
 .s3-notification {
     padding: 12px 15px;
     margin: 10px 0 15px;
     border-radius: 4px;
-    font-size: 14px;
-    font-weight: 500;
-    position: relative;
     text-align: center;
     animation: s3-notification-fadeIn 0.3s ease-in-out;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
-    z-index: 100;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12);
 }
-
 .s3-notification-success {
     background-color: #ecf7ed;
     border-left: 4px solid #46b450;
     color: #1e8a27;
 }
-
 .s3-notification-error {
     background-color: #fbeaea;
     border-left: 4px solid #dc3232;
     color: #b32d2d;
 }
-
 .s3-notification-info {
     background-color: #e5f5fa;
     border-left: 4px solid #00a0d2;
     color: #0073aa;
 }
-
 @keyframes s3-notification-fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
-/* ============================
-   Mobile Responsiveness
-   ============================ */
-
+/* Mobile Responsiveness */
 @media screen and (max-width: 782px) {
-    .s3-browser-container {
-        padding: 8px;
-    }
-
-    .s3-top-nav,
-    .s3-bottom-nav {
+    .s3-browser-container { padding: 8px; }
+    .s3-top-nav, .s3-bottom-nav {
         flex-direction: column;
         align-items: stretch;
         gap: 10px;
     }
-
-    .s3-load-more-wrapper {
-        justify-content: flex-start;
-    }
-
-    .breadcrumb-container {
-        font-size: 12px;
-        padding: 6px 10px;
-    }
-
-    .wp-list-table th.column-size, .wp-list-table td.column-size {
-        text-align: left;
-    }
-
     #s3-js-search {
         min-width: auto;
         width: 100%;
     }
-
     .s3-search-container {
         max-width: 100%;
     }
