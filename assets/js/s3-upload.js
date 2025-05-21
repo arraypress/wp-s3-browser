@@ -27,8 +27,7 @@
             const style = $('<style>').text(`
                 .s3-upload-cancelled .s3-filename,
                 .s3-upload-cancelled .s3-filesize,
-                .s3-upload-cancelled .s3-progress-text,
-                .s3-upload-cancelled .s3-error-message {
+                .s3-upload-cancelled .s3-progress-text {
                     color: #e74c3c !important;
                 }
                 .s3-upload-notice {
@@ -182,14 +181,11 @@
                     })
                     .catch(error => {
                         console.error('Upload error:', error);
-                        $progress.addClass('s3-upload-error');
 
                         // Check if this was a cancellation
                         if (error.message === 'Upload cancelled') {
                             $progress.addClass('s3-upload-cancelled');
-                            $progress.find('.s3-upload-status').html(
-                                `<span class="dashicons dashicons-no"></span><span class="s3-error-message">Cancelled</span>`
-                            );
+                            $progress.find('.s3-upload-status').html('<span class="dashicons dashicons-no"></span>');
 
                             // Fade out and remove after 3 seconds
                             setTimeout(function () {
@@ -198,13 +194,13 @@
                                 });
                             }, 3000);
                         } else {
-                            // Other errors
-                            const errorMsg = error.message || 'Upload failed';
-                            $progress.find('.s3-upload-status').html(
-                                `<span class="dashicons dashicons-no"></span><span class="s3-error-message" title="${errorMsg}">${errorMsg}</span>`
-                            );
+                            // For other errors, just show a simple error indicator in the row
+                            $progress.addClass('s3-upload-error');
+                            $progress.find('.s3-upload-status').html('<span class="dashicons dashicons-warning"></span>');
 
-                            // Show error notice for specific errors
+                            // Show error notice at the top (only place with detailed message)
+                            const errorMsg = error.message || 'Upload failed';
+
                             if (error.message.includes('CORS')) {
                                 self.showUploadError('CORS configuration error - Your bucket needs proper CORS settings to allow uploads from this domain.');
                             } else if (error.message.includes('network error')) {
