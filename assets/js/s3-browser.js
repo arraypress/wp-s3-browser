@@ -14,6 +14,7 @@
         searchTimeout: null,
         totalLoadedItems: 0,
         isLoading: false,
+        hasActiveUploads: false,
 
         init: function () {
             this.bindEvents();
@@ -21,6 +22,8 @@
             this.setupAjaxLoading();
             this.countInitialItems();
             this.initFavorites();
+            this.initUploadToggle();
+            this.improveButtonStyles();
         },
 
         bindEvents: function () {
@@ -125,6 +128,74 @@
             window.location.href = url;
         },
 
+        // Initialize upload toggle functionality
+        initUploadToggle: function() {
+            var self = this;
+
+            // Toggle upload container visibility
+            $('#s3-toggle-upload').on('click', function() {
+                $('#s3-upload-container').slideToggle(300);
+
+                // Track if it's being opened or closed
+                var isVisible = $('#s3-upload-container').is(':visible');
+                $(this).toggleClass('active', isVisible);
+
+                // If closing and no active uploads, clear the list
+                if (!isVisible && !self.hasActiveUploads) {
+                    setTimeout(function() {
+                        $('.s3-upload-list').empty();
+                    }, 300);
+                }
+            });
+
+            // Close button functionality
+            $('.s3-close-upload').on('click', function() {
+                if (!self.hasActiveUploads) {
+                    $('#s3-upload-container').slideUp(300);
+                    $('#s3-toggle-upload').removeClass('active');
+
+                    // Clear the list after animation
+                    setTimeout(function() {
+                        $('.s3-upload-list').empty();
+                    }, 300);
+                } else {
+                    // If uploads are active, just show a message
+                    self.showNotification('Please wait for uploads to complete before closing', 'info');
+                }
+            });
+
+            // Listen for upload start/complete events from the upload module
+            $(document).on('s3UploadStarted', function() {
+                self.hasActiveUploads = true;
+                // Make sure upload container is visible when upload starts
+                $('#s3-upload-container').slideDown(300);
+                $('#s3-toggle-upload').addClass('active');
+            });
+
+            $(document).on('s3UploadComplete', function() {
+                self.hasActiveUploads = false;
+            });
+
+            $(document).on('s3AllUploadsComplete', function() {
+                self.hasActiveUploads = false;
+            });
+        },
+
+        // Add special styling to buttons
+        improveButtonStyles: function() {
+            // Make delete buttons red with trash icon
+            $('.s3-delete-file').addClass('button-delete');
+
+            // Change refresh cache button text
+            $('.s3-refresh-button').each(function() {
+                var $button = $(this);
+                var buttonText = $button.text().trim();
+                if (buttonText === 'Refresh Cache') {
+                    $button.html('<span class="dashicons dashicons-update"></span> Refresh');
+                }
+            });
+        },
+
         // File selection handler
         handleFileSelection: function ($button) {
             var parent = window.parent;
@@ -199,8 +270,8 @@
             var bucket = $button.data('bucket');
             var key = $button.data('key');
 
-            // Simple confirmation
-            if (!window.confirm('Are you sure you want to delete "' + filename + '"?')) {
+            // Enhanced confirmation with more details
+            if (!window.confirm('Are you sure you want to delete "' + filename + '"?\n\nThis action cannot be undone.')) {
                 return; // User cancelled
             }
 
@@ -315,7 +386,7 @@
                 success: function (response) {
                     if (response.success) {
                         // Show success notification
-                        self.showNotification(response.data.message || 'Cache cleared successfully', 'success');
+                        self.showNotification(response.data.message || 'Cache refreshed successfully', 'success');
 
                         // Wait 1.5 seconds to show the notification before reloading
                         setTimeout(function () {
@@ -323,7 +394,7 @@
                         }, 1500);
                     } else {
                         // Show error notification
-                        self.showNotification(response.data.message || 'Failed to clear cache', 'error');
+                        self.showNotification(response.data.message || 'Failed to refresh data', 'error');
 
                         // Reset button state
                         $button.removeClass('refreshing')
@@ -399,6 +470,9 @@
                         if (currentSearch) {
                             self.filterTable(currentSearch);
                         }
+
+                        // Update button styles for new elements
+                        self.improveButtonStyles();
                     } else {
                         self.showError('Failed to load more items. Please try again.');
                         self.resetButton($button);
@@ -434,6 +508,9 @@
                 $tbody.empty().append(this.originalTableData.clone());
                 $stats.text('');
                 $bottomNav.show();
+
+                // Update button styles for restored elements
+                this.improveButtonStyles();
                 return;
             }
 
@@ -466,6 +543,9 @@
                 );
             } else {
                 $stats.text(visibleRows + ' of ' + totalRows + ' items match');
+
+                // Update button styles for filtered elements
+                this.improveButtonStyles();
             }
         },
 

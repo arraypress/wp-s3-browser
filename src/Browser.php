@@ -826,7 +826,7 @@ class Browser {
 
 		// Output content
 		echo '<div class="s3-browser-container">';
-        
+
 		// Add upload zone here, after breadcrumbs/navigation
 		$this->render_upload_zone();
 
@@ -1047,21 +1047,30 @@ class Browser {
 		$prefix = isset( $_GET['prefix'] ) ? sanitize_text_field( $_GET['prefix'] ) : '';
 
 		?>
-        <div class="s3-upload-container">
-            <div class="s3-upload-header">
-                <h3 class="s3-upload-title"><?php esc_html_e( 'Upload Files', 'arraypress' ); ?></h3>
-            </div>
-            <div class="s3-upload-zone" data-bucket="<?php echo esc_attr( $bucket ); ?>"
-                 data-prefix="<?php echo esc_attr( $prefix ); ?>">
-                <div class="s3-upload-message">
-                    <span class="dashicons dashicons-upload"></span>
-                    <p><?php esc_html_e( 'Drop files here to upload', 'arraypress' ); ?></p>
-                    <p class="s3-upload-or"><?php esc_html_e( 'or', 'arraypress' ); ?></p>
-                    <input type="file" multiple class="s3-file-input" id="s3FileUpload">
-                    <label for="s3FileUpload" class="button"><?php esc_html_e( 'Choose Files', 'arraypress' ); ?></label>
+        <div class="s3-upload-wrapper">
+            <button type="button" id="s3-toggle-upload" class="button button-primary s3-icon-button">
+                <span class="dashicons dashicons-upload"></span> <?php esc_html_e( 'Upload Files', 'arraypress' ); ?>
+            </button>
+
+            <div id="s3-upload-container" class="s3-upload-container" style="display: none;">
+                <div class="s3-upload-header">
+                    <h3 class="s3-upload-title"><?php esc_html_e( 'Upload Files', 'arraypress' ); ?></h3>
+                    <button type="button" class="s3-close-upload" aria-label="<?php esc_attr_e( 'Close', 'arraypress' ); ?>">
+                        <span class="dashicons dashicons-no-alt"></span>
+                    </button>
                 </div>
+                <div class="s3-upload-zone" data-bucket="<?php echo esc_attr( $bucket ); ?>"
+                     data-prefix="<?php echo esc_attr( $prefix ); ?>">
+                    <div class="s3-upload-message">
+                        <span class="dashicons dashicons-upload"></span>
+                        <p><?php esc_html_e( 'Drop files here to upload', 'arraypress' ); ?></p>
+                        <p class="s3-upload-or"><?php esc_html_e( 'or', 'arraypress' ); ?></p>
+                        <input type="file" multiple class="s3-file-input" id="s3FileUpload">
+                        <label for="s3FileUpload" class="button"><?php esc_html_e( 'Choose Files', 'arraypress' ); ?></label>
+                    </div>
+                </div>
+                <div class="s3-upload-list"></div>
             </div>
-            <div class="s3-upload-list"></div>
         </div>
 		<?php
 	}

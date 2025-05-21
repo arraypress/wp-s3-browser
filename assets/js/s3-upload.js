@@ -14,6 +14,8 @@
     window.S3Browser.uploads = {
         // Store active XHR requests for cancellation
         activeUploads: {},
+        // Track active upload count
+        activeUploadCount: 0,
 
         init: function () {
             this.bindEvents();
@@ -91,6 +93,9 @@
             // Show the upload list container
             $uploadList.show();
 
+            // Before starting uploads, trigger the starting event
+            $(document).trigger('s3UploadStarted');
+
             Array.from(files).forEach(file => {
                 // Create a unique key that preserves the file name
                 // Ensure prefix ends with a slash if not empty
@@ -123,14 +128,27 @@
 
                 $uploadList.append($progress);
 
+                // Increment active upload count
+                self.activeUploadCount++;
+
                 // Start upload process
                 const uploadPromise = self.getPresignedUrl(bucket, objectKey)
                     .then(url => self.uploadToS3(file, url, $progress, uploadId))
                     .then(() => {
                         $progress.addClass('s3-upload-success');
                         $progress.find('.s3-upload-status').html('<span class="dashicons dashicons-yes"></span>');
+
                         // Remove from active uploads
                         delete self.activeUploads[uploadId];
+
+                        // Decrement active upload count
+                        self.activeUploadCount--;
+                        if (self.activeUploadCount === 0) {
+                            $(document).trigger('s3AllUploadsComplete');
+                        }
+
+                        // Trigger upload complete event
+                        $(document).trigger('s3UploadComplete', [true]); // true = success
                     })
                     .catch(error => {
                         console.error('Upload error:', error);
@@ -159,6 +177,15 @@
 
                         // Remove from active uploads
                         delete self.activeUploads[uploadId];
+
+                        // Decrement active upload count
+                        self.activeUploadCount--;
+                        if (self.activeUploadCount === 0) {
+                            $(document).trigger('s3AllUploadsComplete');
+                        }
+
+                        // Trigger upload complete event
+                        $(document).trigger('s3UploadComplete', [false]); // false = failure
                     });
 
                 uploadPromises.push(uploadPromise);
