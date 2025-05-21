@@ -203,20 +203,6 @@ class ObjectsTable extends WP_List_Table {
         <div class="tablenav <?php echo esc_attr( $which ); ?>">
 			<?php if ( $which === 'top' ): ?>
                 <div class="s3-top-nav">
-                    <div class="s3-actions-container">
-						<?php
-						// Add refresh button with s3-icon-button class
-						printf(
-							'<button type="button" class="button s3-icon-button s3-refresh-button" data-type="objects" data-bucket="%s" data-prefix="%s" data-provider="%s">
-                            <span class="dashicons dashicons-update"></span> %s
-                        </button>',
-							esc_attr( $this->bucket ),
-							esc_attr( $this->prefix ),
-							esc_attr( $this->provider_id ),
-							esc_html__( 'Refresh', 'arraypress' )
-						);
-						?>
-                    </div>
                     <div class="s3-search-container">
                         <input type="search" id="s3-js-search"
                                placeholder="<?php esc_attr_e( 'Search files and folders...', 'arraypress' ); ?>"
@@ -225,6 +211,20 @@ class ObjectsTable extends WP_List_Table {
 							<?php esc_html_e( 'Clear', 'arraypress' ); ?>
                         </button>
                         <span class="s3-search-stats"></span>
+                    </div>
+                    <div class="s3-actions-container">
+		                <?php
+		                // Add refresh button with s3-icon-button class
+		                printf(
+			                '<button type="button" class="button s3-icon-button s3-refresh-button" data-type="objects" data-bucket="%s" data-prefix="%s" data-provider="%s">
+                            <span class="dashicons dashicons-update"></span> %s
+                        </button>',
+			                esc_attr( $this->bucket ),
+			                esc_attr( $this->prefix ),
+			                esc_attr( $this->provider_id ),
+			                esc_html__( 'Refresh', 'arraypress' )
+		                );
+		                ?>
                     </div>
                 </div>
 			<?php elseif ( $which === 'bottom' ): ?>
