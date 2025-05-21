@@ -21,7 +21,7 @@
             $(document).on('click', '.upload_file_button', this.trackFileButton);
 
             // Monitor classic editor media button clicks to reset WooCommerce context
-            $(document).on('click', '.wp-media-buttons .button', function() {
+            $(document).on('click', '.wp-media-buttons .button', function () {
                 // Clear WooCommerce file context when using general media buttons
                 if (window.wc_media_frame_context === 'product_file') {
                     delete window.wc_media_frame_context;
@@ -62,7 +62,7 @@
                     // Store reference to this frame
                     self.mediaFrame = this;
 
-                    // Add our S3 tab state with enhanced toolbar removal
+                    // Add our S3 tab state
                     this.states.add([
                         new wp.media.controller.State({
                             id: 's3_' + providerId,
@@ -73,26 +73,13 @@
                         })
                     ]);
 
-                    // Bind events for additional toolbar removal
+                    // Bind events for content rendering
                     this.on('content:render:s3-content', this.s3ContentRender, this);
-                    this.on('activate:s3_' + providerId, this.hideToolbarOnActivate, this);
                     this.on('deactivate:s3_' + providerId, this.cleanupOnDeactivate, this);
-                },
-
-                // Method called when S3 tab becomes active
-                hideToolbarOnActivate: function () {
-                    // Add class to frame for CSS targeting
-                    this.$el.addClass('s3-browser-active');
-
-                    // Direct DOM manipulation as backup
-                    this.$el.find('.media-frame-toolbar').remove();
-                    this.$el.find('.media-frame-content').css('bottom', '0');
                 },
 
                 // Cleanup when leaving S3 tab
                 cleanupOnDeactivate: function () {
-                    this.$el.removeClass('s3-browser-active');
-
                     // Clear the context when leaving S3 tab
                     if (window.wc_media_frame_context === 'product_file') {
                         delete window.wc_media_frame_context;
@@ -103,10 +90,6 @@
                     // Prevent multiple renders
                     if (self.frameInstance) {
                         this.content.set(self.frameInstance);
-                        // Double-check toolbar removal after content render
-                        setTimeout(() => {
-                            this.hideToolbarOnActivate();
-                        }, 100);
                         return;
                     }
 
@@ -171,11 +154,6 @@
                     // Set the content
                     this.content.set(view);
                     self.frameInstance = view;
-
-                    // Ensure the toolbar is hidden after content is rendered
-                    setTimeout(() => {
-                        this.hideToolbarOnActivate();
-                    }, 100);
                 }
             });
         }

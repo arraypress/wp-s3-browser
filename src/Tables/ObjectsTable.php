@@ -213,7 +213,7 @@ class ObjectsTable extends WP_List_Table {
 							esc_attr( $this->bucket ),
 							esc_attr( $this->prefix ),
 							esc_attr( $this->provider_id ),
-							esc_html__( 'Refresh Cache', 'arraypress' )
+							esc_html__( 'Refresh', 'arraypress' )
 						);
 						?>
                     </div>

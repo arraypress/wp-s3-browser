@@ -217,7 +217,7 @@ class BucketsTable extends WP_List_Table {
                             <span class="dashicons dashicons-update"></span> %s
                         </button>',
 							esc_attr( $this->provider_id ),
-							esc_html__( 'Refresh Cache', 'arraypress' )
+							esc_html__( 'Refresh', 'arraypress' )
 						);
 						?>
                     </div>
