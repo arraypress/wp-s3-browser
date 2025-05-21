@@ -565,7 +565,7 @@ class Browser {
 
 			// Enqueue main styles and scripts with dependency on config
 			// Let AssetLoader handle duplicate prevention
-			$css_handle    = enqueue_library_style( 'css/s3-browser.css' );
+			enqueue_library_style( 'css/s3-browser.css' );
 			$script_handle = enqueue_library_script( 'js/s3-browser.js', [ 'jquery', $config_handle ] );
 
 			// Enqueue the uploader script and styles
@@ -576,15 +576,60 @@ class Browser {
 			if ( $script_handle ) {
 				$post_id = $this->get_current_post_id();
 
-				// For the main browser script, add minimal required config
+				// For the main browser script, add comprehensive i18n strings
 				$browser_config = [
 					'postId'   => $post_id,
 					'autoLoad' => apply_filters( 's3_browser_auto_load', false, $this->provider_id ),
 					'i18n'     => [
-						'uploadFiles'   => __( 'Upload Files', 'arraypress' ),
-						'dropFilesHere' => __( 'Drop files here to upload', 'arraypress' ),
-						'or'            => __( 'or', 'arraypress' ),
-						'chooseFiles'   => __( 'Choose Files', 'arraypress' )
+						// Browser UI strings
+						'uploadFiles'      => __( 'Upload Files', 'arraypress' ),
+						'dropFilesHere'    => __( 'Drop files here to upload', 'arraypress' ),
+						'or'               => __( 'or', 'arraypress' ),
+						'chooseFiles'      => __( 'Choose Files', 'arraypress' ),
+						'waitForUploads'   => __( 'Please wait for uploads to complete before closing', 'arraypress' ),
+
+						// File operation strings
+						'confirmDelete'    => __( 'Are you sure you want to delete "{filename}"?\n\nThis action cannot be undone.', 'arraypress' ),
+						'deleteSuccess'    => __( 'File successfully deleted', 'arraypress' ),
+						'deleteError'      => __( 'Failed to delete file', 'arraypress' ),
+
+						// Cache and refresh
+						'cacheRefreshed'   => __( 'Cache refreshed successfully', 'arraypress' ),
+						'refreshError'     => __( 'Failed to refresh data', 'arraypress' ),
+
+						// Loading and errors
+						'loadingText'      => __( 'Loading...', 'arraypress' ),
+						'loadMoreItems'    => __( 'Load More Items', 'arraypress' ),
+						'loadMoreError'    => __( 'Failed to load more items. Please try again.', 'arraypress' ),
+						'networkError'     => __( 'Network error. Please try again.', 'arraypress' ),
+						'networkLoadError' => __( 'Network error. Please check your connection and try again.', 'arraypress' ),
+
+						// Search results
+						'noMatchesFound'   => __( 'No matches found', 'arraypress' ),
+						'noFilesFound'     => __( 'No files or folders found matching "{term}"', 'arraypress' ),
+						'itemsMatch'       => __( '{visible} of {total} items match', 'arraypress' ),
+
+						// Item counts
+						'singleItem'       => __( 'item', 'arraypress' ),
+						'multipleItems'    => __( 'items', 'arraypress' ),
+						'moreAvailable'    => __( ' (more available)', 'arraypress' ),
+
+						// Favorites
+						'favoritesError'   => __( 'Error updating default bucket', 'arraypress' ),
+						'setDefault'       => __( 'Set Default', 'arraypress' ),
+						'defaultText'      => __( 'Default', 'arraypress' ),
+
+						// Upload specific translations
+						'upload'           => [
+							'cancelUploadConfirm' => __( 'Are you sure you want to cancel "{filename}"?', 'arraypress' ),
+							'uploadFailed'        => __( 'Upload failed:', 'arraypress' ),
+							'uploadComplete'      => __( 'Uploads completed. Refreshing file listing...', 'arraypress' ),
+							'corsError'           => __( 'CORS configuration error - Your bucket needs proper CORS settings to allow uploads from this domain.', 'arraypress' ),
+							'networkError'        => __( 'Network error detected. Please check your internet connection and try again.', 'arraypress' ),
+							'failedPresignedUrl'  => __( 'Failed to get upload URL', 'arraypress' ),
+							'uploadFailedStatus'  => __( 'Upload failed with status', 'arraypress' ),
+							'uploadCancelled'     => __( 'Upload cancelled', 'arraypress' )
+						]
 					]
 				];
 
@@ -1055,7 +1100,8 @@ class Browser {
             <div id="s3-upload-container" class="s3-upload-container" style="display: none;">
                 <div class="s3-upload-header">
                     <h3 class="s3-upload-title"><?php esc_html_e( 'Upload Files', 'arraypress' ); ?></h3>
-                    <button type="button" class="s3-close-upload" aria-label="<?php esc_attr_e( 'Close', 'arraypress' ); ?>">
+                    <button type="button" class="s3-close-upload"
+                            aria-label="<?php esc_attr_e( 'Close', 'arraypress' ); ?>">
                         <span class="dashicons dashicons-no-alt"></span>
                     </button>
                 </div>
@@ -1066,7 +1112,8 @@ class Browser {
                         <p><?php esc_html_e( 'Drop files to upload', 'arraypress' ); ?></p>
                         <p class="s3-upload-or"><?php esc_html_e( 'or', 'arraypress' ); ?></p>
                         <input type="file" multiple class="s3-file-input" id="s3FileUpload">
-                        <label for="s3FileUpload" class="button"><?php esc_html_e( 'Select Files', 'arraypress' ); ?></label>
+                        <label for="s3FileUpload"
+                               class="button"><?php esc_html_e( 'Select Files', 'arraypress' ); ?></label>
                     </div>
                 </div>
                 <div class="s3-upload-list"></div>

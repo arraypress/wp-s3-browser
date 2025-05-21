@@ -17,34 +17,34 @@
         // Track active upload count
         activeUploadCount: 0,
 
-        init: function () {
-            this.bindEvents();
-            this.addStyles();
+        // Translation strings
+        i18n: {
+            // Default strings (fallbacks)
+            cancelUploadConfirm: 'Are you sure you want to cancel "{filename}"?',
+            uploadFailed: 'Upload failed:',
+            uploadComplete: 'Uploads completed. Refreshing file listing...',
+            corsError: 'CORS configuration error - Your bucket needs proper CORS settings to allow uploads from this domain.',
+            networkError: 'Network error detected. Please check your internet connection and try again.',
+            failedPresignedUrl: 'Failed to get upload URL',
+            uploadFailedStatus: 'Upload failed with status',
+            uploadCancelled: 'Upload cancelled'
         },
 
-        addStyles: function () {
-            // Add CSS styles for cancelled uploads
-            const style = $('<style>').text(`
-                .s3-upload-cancelled .s3-filename,
-                .s3-upload-cancelled .s3-filesize,
-                .s3-upload-cancelled .s3-progress-text {
-                    color: #e74c3c !important;
-                }
-                .s3-upload-notice {
-                    margin: 10px 15px;
-                    padding: 8px 12px;
-                    background: #f8d7da;
-                    border: 1px solid #f5c6cb;
-                    border-radius: 4px;
-                    color: #721c24;
-                }
-                .s3-transfer-data {
-                    color: #666;
-                    font-size: 11px;
-                    margin-left: 8px;
-                }
-            `);
-            $('head').append(style);
+        init: function () {
+            this.loadTranslations();
+            this.bindEvents();
+        },
+
+        /**
+         * Load translation strings from PHP
+         */
+        loadTranslations: function() {
+            // If s3BrowserConfig.i18n.upload exists, override defaults
+            if (typeof s3BrowserConfig !== 'undefined' &&
+                s3BrowserConfig.i18n &&
+                s3BrowserConfig.i18n.upload) {
+                $.extend(this.i18n, s3BrowserConfig.i18n.upload);
+            }
         },
 
         bindEvents: function () {
@@ -183,7 +183,7 @@
                         console.error('Upload error:', error);
 
                         // Check if this was a cancellation
-                        if (error.message === 'Upload cancelled') {
+                        if (error.message === self.i18n.uploadCancelled) {
                             $progress.addClass('s3-upload-cancelled');
                             $progress.find('.s3-upload-status').html('<span class="dashicons dashicons-no"></span>');
 
@@ -199,14 +199,14 @@
                             $progress.find('.s3-upload-status').html('<span class="dashicons dashicons-warning"></span>');
 
                             // Show error notice at the top (only place with detailed message)
-                            const errorMsg = error.message || 'Upload failed';
+                            const errorMsg = error.message || self.i18n.uploadFailed;
 
                             if (error.message.includes('CORS')) {
-                                self.showUploadError('CORS configuration error - Your bucket needs proper CORS settings to allow uploads from this domain.');
+                                self.showUploadError(self.i18n.corsError);
                             } else if (error.message.includes('network error')) {
-                                self.showUploadError('Network error detected. Please check your internet connection and try again.');
+                                self.showUploadError(self.i18n.networkError);
                             } else {
-                                self.showUploadError('Upload failed: ' + errorMsg);
+                                self.showUploadError(self.i18n.uploadFailed + ' ' + errorMsg);
                             }
                         }
 
@@ -235,7 +235,7 @@
                     if (hasSuccessfulUploads) {
                         // Show notification
                         if (typeof S3Browser.showNotification === 'function') {
-                            S3Browser.showNotification('Uploads completed. Refreshing file listing...', 'success');
+                            S3Browser.showNotification(self.i18n.uploadComplete, 'success');
                         }
 
                         // First try to clear cache through the API
@@ -282,6 +282,7 @@
         },
 
         getPresignedUrl: function (bucket, objectKey) {
+            const self = this;
             return new Promise((resolve, reject) => {
                 $.ajax({
                     url: S3BrowserGlobalConfig.ajaxUrl,
@@ -296,11 +297,11 @@
                         if (response.success && response.data && response.data.url) {
                             resolve(response.data.url);
                         } else {
-                            reject(new Error(response.data?.message || 'Failed to get upload URL'));
+                            reject(new Error(response.data?.message || self.i18n.failedPresignedUrl));
                         }
                     },
                     error: function (xhr, status, error) {
-                        reject(new Error(error || 'Network error'));
+                        reject(new Error(error || self.i18n.networkError));
                     }
                 });
             });
@@ -352,7 +353,7 @@
                     if (xhr.status >= 200 && xhr.status < 300) {
                         resolve(xhr.response);
                     } else {
-                        reject(new Error(`Upload failed with status ${xhr.status}`));
+                        reject(new Error(`${self.i18n.uploadFailedStatus} ${xhr.status}`));
                     }
                 });
 
@@ -360,14 +361,14 @@
                 xhr.addEventListener('error', function (e) {
                     // Check for CORS errors
                     if (e.target.status === 0) {
-                        reject(new Error('CORS configuration error - bucket needs proper CORS settings'));
+                        reject(new Error(self.i18n.corsError));
                     } else {
-                        reject(new Error('Upload failed due to network error'));
+                        reject(new Error(self.i18n.networkError));
                     }
                 });
 
                 xhr.addEventListener('abort', function () {
-                    reject(new Error('Upload cancelled'));
+                    reject(new Error(self.i18n.uploadCancelled));
                 });
 
                 // Start upload - PUT for pre-signed URLs
@@ -384,8 +385,9 @@
             const $uploadItem = $('#' + uploadId);
             const filename = $uploadItem.find('.s3-filename').text();
 
-            // Show confirmation dialog
-            if (confirm('Are you sure you want to cancel "' + filename + '"?')) {
+            // Show confirmation dialog with translated string
+            const confirmMessage = this.i18n.cancelUploadConfirm.replace('{filename}', filename);
+            if (confirm(confirmMessage)) {
                 // Check if this upload is active
                 if (self.activeUploads[uploadId]) {
                     // Abort the XHR request
