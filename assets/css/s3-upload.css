@@ -3,7 +3,7 @@
     margin: 0 0 20px;
     background: #fff;
     border: 1px solid #ccd0d4;
-    box-shadow: 0 1px 1px rgba(0,0,0,.04);
+    box-shadow: 0 1px 1px rgba(0, 0, 0, .04);
     border-radius: 4px;
     overflow: hidden;
     transition: all 0.3s ease;
@@ -98,7 +98,6 @@
 
 /* Upload Toggle Button */
 #s3-toggle-upload {
-    margin-bottom: 15px;
     font-weight: 500;
     transition: all 0.2s ease;
 }
@@ -174,13 +173,13 @@
     flex-grow: 1;
     margin-right: 10px;
     overflow: hidden;
-    box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .s3-progress {
     height: 100%;
     background-color: #007cba;
-    width: 0%;
+    width: 0;
     transition: width 0.3s ease;
     border-radius: 10px;
 }
@@ -224,8 +223,14 @@
 
 /* Upload animation */
 @keyframes s3-upload-fade-in {
-    from { opacity: 0; transform: translateY(-10px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .s3-upload-item {

@@ -128,10 +128,6 @@
    Upload Toggle Button
    ============================ */
 
-.s3-upload-wrapper {
-    margin-bottom: 15px;
-}
-
 #s3-toggle-upload {
     position: relative;
     font-weight: 500;
@@ -155,7 +151,7 @@
     margin: 0 0 20px;
     background: #fff;
     border: 1px solid #ccd0d4;
-    box-shadow: 0 1px 1px rgba(0,0,0,.04);
+    box-shadow: 0 1px 1px rgba(0, 0, 0, .04);
     border-radius: 4px;
     overflow: hidden;
 }
@@ -258,10 +254,6 @@
     margin-bottom: 10px;
 }
 
-.s3-actions-container {
-    margin-right: 15px;
-}
-
 .s3-search-container {
     display: flex;
     align-items: center;
@@ -351,8 +343,12 @@
 }
 
 @keyframes s3-spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
 }
 
 /* ============================
@@ -467,7 +463,7 @@
     position: relative;
     text-align: center;
     animation: s3-notification-fadeIn 0.3s ease-in-out;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
     z-index: 100;
 }
 
@@ -490,8 +486,14 @@
 }
 
 @keyframes s3-notification-fadeIn {
-    from { opacity: 0; transform: translateY(-10px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* ============================
