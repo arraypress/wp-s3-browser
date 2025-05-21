@@ -570,6 +570,7 @@ class Browser {
 
 			// Enqueue the uploader script and styles
 			enqueue_library_script( 'js/s3-upload.js', [ 'jquery', $config_handle, $script_handle ] );
+			enqueue_library_style( 'css/s3-upload.css' );
 
 			// Localize script data - AssetLoader will prevent duplicate localization
 			if ( $script_handle ) {
