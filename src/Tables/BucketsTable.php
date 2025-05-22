@@ -167,28 +167,57 @@ class BucketsTable extends WP_List_Table {
 	 * @param string $which Which tablenav ('top' or 'bottom')
 	 */
 	public function display_tablenav( $which ) {
-		if ( $which === 'top' ) {
-			?>
-            <div class="tablenav <?php echo esc_attr( $which ); ?>">
+		?>
+        <div class="tablenav <?php echo esc_attr( $which ); ?>">
+			<?php if ( $which === 'top' ): ?>
                 <div class="s3-top-nav">
                     <div class="s3-actions-container">
 						<?php
 						printf(
 							'<button type="button" class="button s3-icon-button s3-refresh-button" data-type="buckets" data-provider="%s">
-                            <span class="dashicons dashicons-update"></span> %s
-                        </button>',
+							<span class="dashicons dashicons-update"></span> %s
+						</button>',
 							esc_attr( $this->provider_id ),
 							esc_html__( 'Refresh', 'arraypress' )
 						);
 						?>
                     </div>
                 </div>
-                <br class="clear"/>
-            </div>
-			<?php
-		} else {
-			$this->pagination( $which );
-		}
+			<?php else: ?>
+                <!-- Bottom navigation matching WordPress standard structure -->
+                <div class="tablenav-pages">
+					<span class="displaying-num">
+						<?php
+						$count = count( $this->items );
+						echo esc_html( sprintf(
+							_n( '%s bucket', '%s buckets', $count, 'arraypress' ),
+							number_format_i18n( $count )
+						) );
+						?>
+					</span>
+					<?php if ( isset( $this->_pagination_args['marker'] ) && ! empty( $this->_pagination_args['marker'] ) ): ?>
+                        <span class="pagination-links">
+							<?php
+							$marker  = $this->_pagination_args['marker'];
+							$post_id = isset( $_GET['post_id'] ) ? intval( $_GET['post_id'] ) : 0;
+							$url     = add_query_arg( [
+								'chromeless' => 1,
+								'post_id'    => $post_id,
+								'tab'        => 's3_' . $this->provider_id,
+								'view'       => 'buckets',
+								'marker'     => urlencode( $marker )
+							] );
+							?>
+							<a class="next-page button s3-icon-button" href="<?php echo esc_url( $url ); ?>">
+								<?php esc_html_e( 'Next Page', 'arraypress' ); ?> &raquo;
+							</a>
+						</span>
+					<?php endif; ?>
+                </div>
+			<?php endif; ?>
+            <br class="clear"/>
+        </div>
+		<?php
 	}
 
 	/**

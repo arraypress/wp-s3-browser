@@ -142,21 +142,36 @@
     min-width: 500px;
 }
 
-.s3-bottom-nav {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+/* WordPress Standard Tablenav Structure - Don't Override */
+.s3-browser-container .tablenav {
+    /* Let WordPress handle the default styling */
 }
 
-/* Load More */
-.s3-load-more-wrapper {
-    display: flex;
-    align-items: center;
+.s3-browser-container .tablenav-pages {
+    /* Let WordPress handle the default styling */
 }
 
+.s3-browser-container .displaying-num {
+    /* Let WordPress handle the default styling */
+}
+
+.s3-browser-container .pagination-links {
+    /* Let WordPress handle the default styling */
+}
+
+/* Remove Custom Bottom Nav Styling That Conflicts */
+/* .s3-bottom-nav - REMOVED to prevent conflicts */
+
+/* Load More Specific Styling */
 #s3-load-more:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+}
+
+.s3-load-status {
+    margin-left: 10px;
+    font-style: italic;
+    color: #666;
 }
 
 /* Refresh Button */
@@ -248,7 +263,7 @@
         padding: 8px;
     }
 
-    .s3-top-nav, .s3-bottom-nav {
+    .s3-top-nav {
         flex-direction: column;
         align-items: stretch;
         gap: 10px;

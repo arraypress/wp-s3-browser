@@ -199,36 +199,45 @@ class ObjectsTable extends WP_List_Table {
 	 *
 	 * @return void
 	 */
+	/**
+	 * Display table navigation for ObjectsTable.php
+	 *
+	 * @param string $which Whether this is being called for the top or bottom of the table
+	 *
+	 * @return void
+	 */
 	protected function display_tablenav( $which ) {
 		?>
         <div class="tablenav <?php echo esc_attr( $which ); ?>">
 			<?php if ( $which === 'top' ): ?>
                 <div class="s3-top-nav">
                     <div class="s3-search-container">
-                        <input type="search" id="s3-js-search" placeholder="<?php esc_attr_e( 'Search files and folders...', 'arraypress' ); ?>" autocomplete="off"/>
+                        <input type="search" id="s3-js-search"
+                               placeholder="<?php esc_attr_e( 'Search files and folders...', 'arraypress' ); ?>"
+                               autocomplete="off"/>
                         <button type="button" id="s3-js-search-clear" class="button" style="display: none;">
 							<?php esc_html_e( 'Clear', 'arraypress' ); ?>
                         </button>
                         <span class="s3-search-stats"></span>
                     </div>
                     <div class="s3-actions-container">
-		                <?php
-		                // Add a refresh button with s3-icon-button class
-		                printf(
-			                '<button type="button" class="button s3-icon-button s3-refresh-button" data-type="objects" data-bucket="%s" data-prefix="%s" data-provider="%s">
+						<?php
+						// Add a refresh button with s3-icon-button class
+						printf(
+							'<button type="button" class="button s3-icon-button s3-refresh-button" data-type="objects" data-bucket="%s" data-prefix="%s" data-provider="%s">
                             <span class="dashicons dashicons-update"></span> %s
                         </button>',
-			                esc_attr( $this->bucket ),
-			                esc_attr( $this->prefix ),
-			                esc_attr( $this->provider_id ),
-			                esc_html__( 'Refresh', 'arraypress' )
-		                );
-		                ?>
+							esc_attr( $this->bucket ),
+							esc_attr( $this->prefix ),
+							esc_attr( $this->provider_id ),
+							esc_html__( 'Refresh', 'arraypress' )
+						);
+						?>
                     </div>
                 </div>
-			<?php elseif ( $which === 'bottom' ): ?>
-                <div class="s3-bottom-nav">
-                    <div class="s3-count-display">
+			<?php else: ?>
+                <!-- Bottom navigation matching WordPress standard structure -->
+                <div class="tablenav-pages">
                     <span class="displaying-num" id="s3-total-count">
                         <?php
                         $count    = count( $this->items );
@@ -246,9 +255,8 @@ class ObjectsTable extends WP_List_Table {
                         }
                         ?>
                     </span>
-                    </div>
 					<?php if ( isset( $this->_pagination_args['continuation_token'] ) && $this->_pagination_args['continuation_token'] ): ?>
-                        <div class="s3-load-more-wrapper">
+                        <span class="pagination-links">
                             <button type="button" id="s3-load-more" class="button button-secondary s3-icon-button"
                                     data-token="<?php echo esc_attr( $this->_pagination_args['continuation_token'] ); ?>"
                                     data-bucket="<?php echo esc_attr( $this->bucket ); ?>"
@@ -258,7 +266,7 @@ class ObjectsTable extends WP_List_Table {
                                 <span class="spinner" style="display: none;"></span>
                             </button>
                             <span class="s3-load-status"></span>
-                        </div>
+                        </span>
 					<?php endif; ?>
                 </div>
 			<?php endif; ?>
