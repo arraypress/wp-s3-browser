@@ -15,7 +15,7 @@ namespace ArrayPress\S3\Responses;
 
 use ArrayPress\S3\Abstracts\Response;
 use ArrayPress\S3\Models\S3Bucket;
-use ArrayPress\S3\Traits\Pagination;
+use ArrayPress\S3\Traits\Response\Pagination;
 
 /**
  * Response for bucket listing operations
@@ -28,14 +28,14 @@ class BucketsResponse extends Response {
 	 *
 	 * @var array
 	 */
-	private array $buckets = [];
+	private array $buckets;
 
 	/**
 	 * Owner information
 	 *
 	 * @var array|null
 	 */
-	private ?array $owner = null;
+	private ?array $owner;
 
 	/**
 	 * Truncation flag

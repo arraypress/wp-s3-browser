@@ -32,7 +32,7 @@ trait Caching {
 	 *
 	 * @var int
 	 */
-	private int $cache_ttl = 3600; // One hour default
+	private int $cache_ttl = 3600; // One-hour default
 
 	/**
 	 * Cache prefix
