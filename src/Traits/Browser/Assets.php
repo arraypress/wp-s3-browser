@@ -21,6 +21,13 @@ namespace ArrayPress\S3\Traits\Browser;
 trait Assets {
 
 	/**
+	 * Store the browser script handle for later reference
+	 *
+	 * @var string|null
+	 */
+	private ?string $browser_script_handle = null;
+
+	/**
 	 * Enqueue global configuration script
 	 *
 	 * @return string Script handle
@@ -106,13 +113,13 @@ trait Assets {
 		$config_handle = $this->enqueue_global_config();
 
 		// Enqueue main styles and scripts
-		$this->enqueue_core_browser_assets( $config_handle );
+		$script_handle = $this->enqueue_core_browser_assets( $config_handle );
 
 		// Enqueue upload functionality
 		$this->enqueue_upload_assets( $config_handle );
 
 		// Localize the main browser script
-		$this->localize_browser_script();
+		$this->localize_browser_script( $script_handle );
 	}
 
 	/**
@@ -136,6 +143,11 @@ trait Assets {
 			'ArrayPress\\S3'
 		);
 
+		// Store the actual script handle for later use
+		if ( $script_handle ) {
+			$this->browser_script_handle = $script_handle;
+		}
+
 		return $script_handle;
 	}
 
@@ -148,7 +160,11 @@ trait Assets {
 	 */
 	private function enqueue_upload_assets( string $config_handle ): void {
 		// Get the main browser script handle for dependency
-		$main_script_handle = $this->get_browser_script_handle();
+		$main_script_handle = $this->browser_script_handle ?? null;
+
+		if ( ! $main_script_handle ) {
+			return;
+		}
 
 		// Enqueue upload script
 		enqueue_library_script(
@@ -165,23 +181,13 @@ trait Assets {
 	}
 
 	/**
-	 * Get the main browser script handle
-	 *
-	 * @return string
-	 */
-	private function get_browser_script_handle(): string {
-		// This should match what the AssetLoader generates for js/s3-browser.js
-		return 'arraypress-s3-s3-browser';
-	}
-
-	/**
 	 * Localize the main browser script with configuration and translations
+	 *
+	 * @param string|false $script_handle The script handle to localize
 	 *
 	 * @return void
 	 */
-	private function localize_browser_script(): void {
-		$script_handle = $this->get_browser_script_handle();
-
+	private function localize_browser_script( $script_handle ): void {
 		if ( ! $script_handle || ! wp_script_is( $script_handle, 'enqueued' ) ) {
 			return;
 		}
