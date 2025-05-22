@@ -27,13 +27,38 @@ trait MediaLibrary {
 	 *
 	 * @return array Modified tabs array
 	 */
+//	public function add_media_tab( array $tabs ): array {
+//		// Check if this tab should be shown for the current context
+//		if ( ! $this->should_show_tab() ) {
+//			return $tabs;
+//		}
+//
+//		$tabs[ 's3_' . $this->provider_id ] = $this->provider_name;
+//
+//		return $tabs;
+//	}
+
+	/**
+	 * Add the S3 tab to the media uploader
+	 */
 	public function add_media_tab( array $tabs ): array {
+		error_log('Browser Debug - add_media_tab() called');
+		error_log('Browser Debug - Current tabs: ' . print_r(array_keys($tabs), true));
+
 		// Check if this tab should be shown for the current context
-		if ( ! $this->should_show_tab() ) {
+		$should_show = $this->should_show_tab();
+		error_log('Browser Debug - should_show_tab(): ' . ($should_show ? 'YES' : 'NO'));
+
+		if ( ! $should_show ) {
+			error_log('Browser Debug - Tab not shown, returning original tabs');
 			return $tabs;
 		}
 
-		$tabs[ 's3_' . $this->provider_id ] = $this->provider_name;
+		$tab_key = 's3_' . $this->provider_id;
+		$tabs[ $tab_key ] = $this->provider_name;
+
+		error_log('Browser Debug - Added tab: ' . $tab_key . ' = ' . $this->provider_name);
+		error_log('Browser Debug - Final tabs: ' . print_r(array_keys($tabs), true));
 
 		return $tabs;
 	}
@@ -74,6 +99,7 @@ trait MediaLibrary {
 
 		return true;
 	}
+
 
 	/**
 	 * Get the current post ID from various sources

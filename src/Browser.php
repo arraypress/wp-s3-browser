@@ -164,17 +164,24 @@ class Browser {
 	 * @return void
 	 */
 	private function init_hooks(): void {
+		error_log('Browser Debug - init_hooks() called');
+		error_log('Browser Debug - provider_id: ' . $this->provider_id);
+
 		// Add tab to media uploader
 		add_filter( 'media_upload_tabs', [ $this, 'add_media_tab' ] );
+		error_log('Browser Debug - Added media_upload_tabs filter');
 
 		// Register tab content handler
 		add_action( 'media_upload_s3_' . $this->provider_id, [ $this, 'handle_media_tab' ] );
+		error_log('Browser Debug - Added action: media_upload_s3_' . $this->provider_id);
 
 		// Enqueue admin scripts and styles
 		add_action( 'admin_enqueue_scripts', [ $this, 'admin_enqueue_scripts' ] );
+		error_log('Browser Debug - Added admin_enqueue_scripts action');
 
 		// Add media view strings for all post types
 		add_filter( 'media_view_strings', [ $this, 'add_media_view_strings' ], 20, 1 );
+		error_log('Browser Debug - Added media_view_strings filter');
 
 		// Register AJAX handlers
 		add_action( 'wp_ajax_s3_load_more_' . $this->provider_id, [ $this, 'handle_ajax_load_more' ] );
@@ -182,10 +189,14 @@ class Browser {
 		add_action( 'wp_ajax_s3_clear_cache_' . $this->provider_id, [ $this, 'handle_ajax_clear_cache' ] );
 		add_action( 'wp_ajax_s3_get_upload_url_' . $this->provider_id, [ $this, 'handle_ajax_get_upload_url' ] );
 		add_action( 'wp_ajax_s3_delete_object_' . $this->provider_id, [ $this, 'handle_ajax_delete_object' ] );
+		error_log('Browser Debug - Added all AJAX handlers');
 
 		// Add plugin integrations
 		$this->add_edd_integration();
 		$this->add_woocommerce_integration();
+		error_log('Browser Debug - Added plugin integrations');
+
+		error_log('Browser Debug - init_hooks() completed');
 	}
 
 	/**
@@ -193,32 +204,272 @@ class Browser {
 	 *
 	 * @return string Script handle
 	 */
+//	private function enqueue_global_config(): string {
+//		// Use a consistent handle
+//		$handle = 's3-browser-global-config';
+//
+//		// Register empty script if not already registered
+//		if ( ! wp_script_is( $handle, 'registered' ) ) {
+//			wp_register_script( $handle, false );
+//		}
+//
+//		// Enqueue if not already enqueued
+//		if ( ! wp_script_is( $handle ) ) {
+//			wp_enqueue_script( $handle, false, [ 'jquery' ], '1.0', true );
+//		}
+//
+//		// Only localize if not already done
+//		if ( ! wp_script_is( $handle, 'localized' ) ) {
+//			// Get current context
+//			$post_id   = $this->get_current_post_id();
+//			$post_type = $post_id ? get_post_type( $post_id ) : 'default';
+//
+//			// Get favorite bucket info
+//			$preferred_bucket = $this->get_preferred_bucket( $post_type );
+//			$bucket_to_use    = $preferred_bucket['bucket'] ?: $this->default_bucket;
+//			$prefix_to_use    = $preferred_bucket['prefix'] ?: $this->default_prefix;
+//
+//			// Create minimal shared config with only what's needed
+//			$shared_config = [
+//				'providerId'    => $this->provider_id,
+//				'providerName'  => $this->provider_name,
+//				'baseUrl'       => admin_url( 'media-upload.php' ),
+//				'ajaxUrl'       => admin_url( 'admin-ajax.php' ),
+//				'defaultBucket' => $bucket_to_use,
+//				'nonce'         => wp_create_nonce( 's3_browser_nonce_' . $this->provider_id ),
+//				'ajaxAction'    => 's3_load_more_' . $this->provider_id,
+//			];
+//
+//			// Only add favorite and prefix if relevant
+//			if ( ! empty( $preferred_bucket['bucket'] ) ) {
+//				$shared_config['favoriteBucket'] = $preferred_bucket['bucket'];
+//			}
+//
+//			if ( ! empty( $prefix_to_use ) ) {
+//				$shared_config['defaultPrefix'] = $prefix_to_use;
+//			}
+//
+//			// Localize the script
+//			wp_localize_script( $handle, 'S3BrowserGlobalConfig', $shared_config );
+//		}
+//
+//		return $handle;
+//	}
+
+	/**
+	 * Enqueue admin scripts and styles for the S3 browser
+	 *
+	 * @param string $hook_suffix Current admin page hook suffix
+	 *
+	 * @return void
+	 */
+//	public function admin_enqueue_scripts( string $hook_suffix ): void {
+//		// Check user capability
+//		if ( ! current_user_can( $this->capability ) ) {
+//			return;
+//		}
+//
+//		// For media upload popup
+//		if ( $hook_suffix === 'media-upload-popup' ) {
+//			// First enqueue the global config
+//			$config_handle = $this->enqueue_global_config();
+//
+//			// Enqueue main styles and scripts with dependency on config
+//			// Let AssetLoader handle duplicate prevention
+//			enqueue_library_style( 'css/s3-browser.css' );
+//			$script_handle = enqueue_library_script( 'js/s3-browser.js', [ 'jquery', $config_handle ] );
+//
+//			// Enqueue the uploader script and styles
+//			enqueue_library_script( 'js/s3-upload.js', [ 'jquery', $config_handle, $script_handle ] );
+//			enqueue_library_style( 'css/s3-upload.css' );
+//
+//			// Localize script data - AssetLoader will prevent duplicate localization
+//			if ( $script_handle ) {
+//				$post_id = $this->get_current_post_id();
+//
+//				// For the main browser script, add comprehensive i18n strings
+//				$browser_config = [
+//					'postId'   => $post_id,
+//					'autoLoad' => apply_filters( 's3_browser_auto_load', false, $this->provider_id ),
+//					'i18n'     => [
+//						// Browser UI strings
+//						'uploadFiles'      => __( 'Upload Files', 'arraypress' ),
+//						'dropFilesHere'    => __( 'Drop files here to upload', 'arraypress' ),
+//						'or'               => __( 'or', 'arraypress' ),
+//						'chooseFiles'      => __( 'Choose Files', 'arraypress' ),
+//						'waitForUploads'   => __( 'Please wait for uploads to complete before closing', 'arraypress' ),
+//
+//						// File operation strings
+//						'confirmDelete'    => __( 'Are you sure you want to delete "{filename}"?\n\nThis action cannot be undone.', 'arraypress' ),
+//						'deleteSuccess'    => __( 'File successfully deleted', 'arraypress' ),
+//						'deleteError'      => __( 'Failed to delete file', 'arraypress' ),
+//
+//						// Cache and refresh
+//						'cacheRefreshed'   => __( 'Cache refreshed successfully', 'arraypress' ),
+//						'refreshError'     => __( 'Failed to refresh data', 'arraypress' ),
+//
+//						// Loading and errors
+//						'loadingText'      => __( 'Loading...', 'arraypress' ),
+//						'loadMoreItems'    => __( 'Load More Items', 'arraypress' ),
+//						'loadMoreError'    => __( 'Failed to load more items. Please try again.', 'arraypress' ),
+//						'networkError'     => __( 'Network error. Please try again.', 'arraypress' ),
+//						'networkLoadError' => __( 'Network error. Please check your connection and try again.', 'arraypress' ),
+//
+//						// Search results
+//						'noMatchesFound'   => __( 'No matches found', 'arraypress' ),
+//						'noFilesFound'     => __( 'No files or folders found matching "{term}"', 'arraypress' ),
+//						'itemsMatch'       => __( '{visible} of {total} items match', 'arraypress' ),
+//
+//						// Item counts
+//						'singleItem'       => __( 'item', 'arraypress' ),
+//						'multipleItems'    => __( 'items', 'arraypress' ),
+//						'moreAvailable'    => __( ' (more available)', 'arraypress' ),
+//
+//						// Favorites
+//						'favoritesError'   => __( 'Error updating default bucket', 'arraypress' ),
+//						'setDefault'       => __( 'Set Default', 'arraypress' ),
+//						'defaultText'      => __( 'Default', 'arraypress' ),
+//
+//						// Upload specific translations
+//						'upload'           => [
+//							'cancelUploadConfirm' => __( 'Are you sure you want to cancel "{filename}"?', 'arraypress' ),
+//							'uploadFailed'        => __( 'Upload failed:', 'arraypress' ),
+//							'uploadComplete'      => __( 'Uploads completed. Refreshing file listing...', 'arraypress' ),
+//							'corsError'           => __( 'CORS configuration error - Your bucket needs proper CORS settings to allow uploads from this domain.', 'arraypress' ),
+//							'networkError'        => __( 'Network error detected. Please check your internet connection and try again.', 'arraypress' ),
+//							'failedPresignedUrl'  => __( 'Failed to get upload URL', 'arraypress' ),
+//							'uploadFailedStatus'  => __( 'Upload failed with status', 'arraypress' ),
+//							'uploadCancelled'     => __( 'Upload cancelled', 'arraypress' )
+//						]
+//					]
+//				];
+//
+//				// Localize the main browser script
+//				localize_library_script( $script_handle, 's3BrowserConfig', $browser_config );
+//			}
+//		}
+//	}
+
+	/**
+	 * Enqueue admin scripts and styles for the S3 browser
+	 */
+	public function admin_enqueue_scripts( string $hook_suffix ): void {
+		error_log('Browser Debug - admin_enqueue_scripts() called with hook: ' . $hook_suffix);
+
+		// Check user capability
+		if ( ! current_user_can( $this->capability ) ) {
+			error_log('Browser Debug - User lacks capability: ' . $this->capability);
+			return;
+		}
+
+		error_log('Browser Debug - User has required capability');
+
+		// For media upload popup
+		if ( $hook_suffix === 'media-upload-popup' ) {
+			error_log('Browser Debug - Processing media-upload-popup hook');
+
+			// First enqueue the global config
+			$config_handle = $this->enqueue_global_config();
+			error_log('Browser Debug - Global config handle: ' . $config_handle);
+
+			// Check if the enqueue functions exist
+			if (function_exists('enqueue_library_style')) {
+				error_log('Browser Debug - enqueue_library_style function exists');
+			} else {
+				error_log('Browser Debug - ERROR: enqueue_library_style function does NOT exist');
+			}
+
+			if (function_exists('enqueue_library_script')) {
+				error_log('Browser Debug - enqueue_library_script function exists');
+			} else {
+				error_log('Browser Debug - ERROR: enqueue_library_script function does NOT exist');
+			}
+
+			// Enqueue main styles and scripts with dependency on config
+			enqueue_library_style( 'css/s3-browser.css' );
+			error_log('Browser Debug - Enqueued s3-browser.css');
+
+			$script_handle = enqueue_library_script( 'js/s3-browser.js', [ 'jquery', $config_handle ] );
+			error_log('Browser Debug - Enqueued s3-browser.js, handle: ' . $script_handle);
+
+			// Enqueue the uploader script and styles
+			enqueue_library_script( 'js/s3-upload.js', [ 'jquery', $config_handle, $script_handle ] );
+			enqueue_library_style( 'css/s3-upload.css' );
+			error_log('Browser Debug - Enqueued upload scripts and styles');
+
+			// Localize script data
+			if ( $script_handle ) {
+				error_log('Browser Debug - Localizing script data');
+				$post_id = $this->get_current_post_id();
+				error_log('Browser Debug - Post ID: ' . $post_id);
+
+				// Check if localize function exists
+				if (function_exists('localize_library_script')) {
+					error_log('Browser Debug - localize_library_script function exists');
+
+					$browser_config = [
+						'postId'   => $post_id,
+						'autoLoad' => apply_filters( 's3_browser_auto_load', false, $this->provider_id ),
+						'i18n'     => []  // Shortened for debug
+					];
+
+					localize_library_script( $script_handle, 's3BrowserConfig', $browser_config );
+					error_log('Browser Debug - Script localized successfully');
+				} else {
+					error_log('Browser Debug - ERROR: localize_library_script function does NOT exist');
+				}
+			} else {
+				error_log('Browser Debug - ERROR: No script handle returned');
+			}
+		} else {
+			error_log('Browser Debug - Hook suffix is not media-upload-popup, skipping enqueue');
+		}
+	}
+
+	/**
+	 * Enqueue global configuration script
+	 */
 	private function enqueue_global_config(): string {
+		error_log('Browser Debug - enqueue_global_config() called');
+
 		// Use a consistent handle
 		$handle = 's3-browser-global-config';
+		error_log('Browser Debug - Using handle: ' . $handle);
 
 		// Register empty script if not already registered
 		if ( ! wp_script_is( $handle, 'registered' ) ) {
 			wp_register_script( $handle, false );
+			error_log('Browser Debug - Registered script');
+		} else {
+			error_log('Browser Debug - Script already registered');
 		}
 
 		// Enqueue if not already enqueued
 		if ( ! wp_script_is( $handle ) ) {
 			wp_enqueue_script( $handle, false, [ 'jquery' ], '1.0', true );
+			error_log('Browser Debug - Enqueued script');
+		} else {
+			error_log('Browser Debug - Script already enqueued');
 		}
 
 		// Only localize if not already done
 		if ( ! wp_script_is( $handle, 'localized' ) ) {
+			error_log('Browser Debug - Localizing global config');
+
 			// Get current context
 			$post_id   = $this->get_current_post_id();
 			$post_type = $post_id ? get_post_type( $post_id ) : 'default';
+			error_log('Browser Debug - Post ID: ' . $post_id . ', Post Type: ' . $post_type);
 
 			// Get favorite bucket info
 			$preferred_bucket = $this->get_preferred_bucket( $post_type );
 			$bucket_to_use    = $preferred_bucket['bucket'] ?: $this->default_bucket;
 			$prefix_to_use    = $preferred_bucket['prefix'] ?: $this->default_prefix;
 
-			// Create minimal shared config with only what's needed
+			error_log('Browser Debug - Bucket to use: ' . $bucket_to_use);
+			error_log('Browser Debug - Prefix to use: ' . $prefix_to_use);
+
+			// Create minimal shared config
 			$shared_config = [
 				'providerId'    => $this->provider_id,
 				'providerName'  => $this->provider_name,
@@ -229,114 +480,13 @@ class Browser {
 				'ajaxAction'    => 's3_load_more_' . $this->provider_id,
 			];
 
-			// Only add favorite and prefix if relevant
-			if ( ! empty( $preferred_bucket['bucket'] ) ) {
-				$shared_config['favoriteBucket'] = $preferred_bucket['bucket'];
-			}
-
-			if ( ! empty( $prefix_to_use ) ) {
-				$shared_config['defaultPrefix'] = $prefix_to_use;
-			}
-
-			// Localize the script
 			wp_localize_script( $handle, 'S3BrowserGlobalConfig', $shared_config );
+			error_log('Browser Debug - Global config localized');
+		} else {
+			error_log('Browser Debug - Global config already localized');
 		}
 
 		return $handle;
-	}
-
-	/**
-	 * Enqueue admin scripts and styles for the S3 browser
-	 *
-	 * @param string $hook_suffix Current admin page hook suffix
-	 *
-	 * @return void
-	 */
-	public function admin_enqueue_scripts( string $hook_suffix ): void {
-		// Check user capability
-		if ( ! current_user_can( $this->capability ) ) {
-			return;
-		}
-
-		// For media upload popup
-		if ( $hook_suffix === 'media-upload-popup' ) {
-			// First enqueue the global config
-			$config_handle = $this->enqueue_global_config();
-
-			// Enqueue main styles and scripts with dependency on config
-			// Let AssetLoader handle duplicate prevention
-			enqueue_library_style( 'css/s3-browser.css' );
-			$script_handle = enqueue_library_script( 'js/s3-browser.js', [ 'jquery', $config_handle ] );
-
-			// Enqueue the uploader script and styles
-			enqueue_library_script( 'js/s3-upload.js', [ 'jquery', $config_handle, $script_handle ] );
-			enqueue_library_style( 'css/s3-upload.css' );
-
-			// Localize script data - AssetLoader will prevent duplicate localization
-			if ( $script_handle ) {
-				$post_id = $this->get_current_post_id();
-
-				// For the main browser script, add comprehensive i18n strings
-				$browser_config = [
-					'postId'   => $post_id,
-					'autoLoad' => apply_filters( 's3_browser_auto_load', false, $this->provider_id ),
-					'i18n'     => [
-						// Browser UI strings
-						'uploadFiles'      => __( 'Upload Files', 'arraypress' ),
-						'dropFilesHere'    => __( 'Drop files here to upload', 'arraypress' ),
-						'or'               => __( 'or', 'arraypress' ),
-						'chooseFiles'      => __( 'Choose Files', 'arraypress' ),
-						'waitForUploads'   => __( 'Please wait for uploads to complete before closing', 'arraypress' ),
-
-						// File operation strings
-						'confirmDelete'    => __( 'Are you sure you want to delete "{filename}"?\n\nThis action cannot be undone.', 'arraypress' ),
-						'deleteSuccess'    => __( 'File successfully deleted', 'arraypress' ),
-						'deleteError'      => __( 'Failed to delete file', 'arraypress' ),
-
-						// Cache and refresh
-						'cacheRefreshed'   => __( 'Cache refreshed successfully', 'arraypress' ),
-						'refreshError'     => __( 'Failed to refresh data', 'arraypress' ),
-
-						// Loading and errors
-						'loadingText'      => __( 'Loading...', 'arraypress' ),
-						'loadMoreItems'    => __( 'Load More Items', 'arraypress' ),
-						'loadMoreError'    => __( 'Failed to load more items. Please try again.', 'arraypress' ),
-						'networkError'     => __( 'Network error. Please try again.', 'arraypress' ),
-						'networkLoadError' => __( 'Network error. Please check your connection and try again.', 'arraypress' ),
-
-						// Search results
-						'noMatchesFound'   => __( 'No matches found', 'arraypress' ),
-						'noFilesFound'     => __( 'No files or folders found matching "{term}"', 'arraypress' ),
-						'itemsMatch'       => __( '{visible} of {total} items match', 'arraypress' ),
-
-						// Item counts
-						'singleItem'       => __( 'item', 'arraypress' ),
-						'multipleItems'    => __( 'items', 'arraypress' ),
-						'moreAvailable'    => __( ' (more available)', 'arraypress' ),
-
-						// Favorites
-						'favoritesError'   => __( 'Error updating default bucket', 'arraypress' ),
-						'setDefault'       => __( 'Set Default', 'arraypress' ),
-						'defaultText'      => __( 'Default', 'arraypress' ),
-
-						// Upload specific translations
-						'upload'           => [
-							'cancelUploadConfirm' => __( 'Are you sure you want to cancel "{filename}"?', 'arraypress' ),
-							'uploadFailed'        => __( 'Upload failed:', 'arraypress' ),
-							'uploadComplete'      => __( 'Uploads completed. Refreshing file listing...', 'arraypress' ),
-							'corsError'           => __( 'CORS configuration error - Your bucket needs proper CORS settings to allow uploads from this domain.', 'arraypress' ),
-							'networkError'        => __( 'Network error detected. Please check your internet connection and try again.', 'arraypress' ),
-							'failedPresignedUrl'  => __( 'Failed to get upload URL', 'arraypress' ),
-							'uploadFailedStatus'  => __( 'Upload failed with status', 'arraypress' ),
-							'uploadCancelled'     => __( 'Upload cancelled', 'arraypress' )
-						]
-					]
-				];
-
-				// Localize the main browser script
-				localize_library_script( $script_handle, 's3BrowserConfig', $browser_config );
-			}
-		}
 	}
 
 }
