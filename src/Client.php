@@ -769,7 +769,7 @@ class Client {
 	 * @param string $object_key Object key
 	 * @param int    $expires    Expiration time in minutes
 	 *
-	 * @return ResponseInterface|WP_Error Pre-signed URL response or error
+	 * @return ResponseInterface Pre-signed URL response or error
 	 */
 	public function get_presigned_upload_url( string $bucket, string $object_key, int $expires = 15 ) {
 		return $this->signer->get_presigned_upload_url( $bucket, $object_key, $expires );

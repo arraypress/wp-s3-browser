@@ -883,7 +883,7 @@ class Signer implements SignerInterface {
 			$truncated,
 			$continuation_token,
 			$xml,
-			$prefix  // Pass the current prefix for filtering
+			$prefix
 		);
 	}
 
@@ -1293,7 +1293,7 @@ class Signer implements SignerInterface {
 	 * @return ErrorResponse
 	 */
 	private function handle_error_response( int $status_code, string $body, string $default_msg ): ErrorResponse {
-		// Try to parse error message from XML if available
+		// Try to parse an error message from XML if available
 		if ( strpos( $body, '<?xml' ) !== false ) {
 			$error_xml = $this->parse_xml_response( $body, false );
 			if ( ! is_wp_error( $error_xml ) && isset( $error_xml['Error'] ) ) {
