@@ -114,12 +114,8 @@ trait Integrations {
 			// First enqueue the global config
 			$config_handle = $this->enqueue_global_config();
 
-			// Enqueue EDD-specific script with explicit namespace
-			enqueue_library_script_with_namespace(
-				'js/s3-browser-edd.js',
-				'ArrayPress\\S3',
-				[ 'jquery', $config_handle ]
-			);
+			// Enqueue EDD-specific script using Assets trait helper
+			$this->enqueue_integration_script( 'js/s3-browser-edd.js', [ 'jquery', $config_handle ] );
 		} );
 	}
 
@@ -147,12 +143,8 @@ trait Integrations {
 			// First enqueue the global config
 			$config_handle = $this->enqueue_global_config();
 
-			// Enqueue WooCommerce-specific script with explicit namespace
-			enqueue_library_script_with_namespace(
-				'js/s3-browser-woocommerce.js',
-				'ArrayPress\\S3',
-				[ 'jquery', $config_handle ]
-			);
+			// Enqueue WooCommerce-specific script using Assets trait helper
+			$this->enqueue_integration_script( 'js/s3-browser-woocommerce.js', [ 'jquery', $config_handle ] );
 		} );
 
 		// Add WooCommerce-specific footer templates

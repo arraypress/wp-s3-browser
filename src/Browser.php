@@ -15,6 +15,7 @@ namespace ArrayPress\S3;
 
 use ArrayPress\S3\Abstracts\Provider;
 use ArrayPress\S3\Traits\Browser\AjaxHandlers;
+use ArrayPress\S3\Traits\Browser\Assets;
 use ArrayPress\S3\Traits\Browser\ContentRendering;
 use ArrayPress\S3\Traits\Browser\Integrations;
 use ArrayPress\S3\Traits\Browser\MediaLibrary;
@@ -34,6 +35,7 @@ class Browser {
 
 	// Use all the traits
 	use AjaxHandlers;
+	use Assets;
 	use ContentRendering;
 	use Integrations;
 	use MediaLibrary;
@@ -176,163 +178,6 @@ class Browser {
 		// Add plugin integrations
 		$this->add_edd_integration();
 		$this->add_woocommerce_integration();
-	}
-
-	/**
-	 * Enqueue global configuration script
-	 *
-	 * @return string Script handle
-	 */
-	private function enqueue_global_config(): string {
-		// Use a consistent handle
-		$handle = 's3-browser-global-config';
-
-		// Register empty script if not already registered
-		if ( ! wp_script_is( $handle, 'registered' ) ) {
-			wp_register_script( $handle, false );
-		}
-
-		// Enqueue if not already enqueued
-		if ( ! wp_script_is( $handle ) ) {
-			wp_enqueue_script( $handle, false, [ 'jquery' ], '1.0', true );
-		}
-
-		// Only localize if not already done
-		if ( ! wp_script_is( $handle, 'localized' ) ) {
-			// Get current context
-			$post_id   = $this->get_current_post_id();
-			$post_type = $post_id ? get_post_type( $post_id ) : 'default';
-
-			// Get favorite bucket info
-			$preferred_bucket = $this->get_preferred_bucket( $post_type );
-			$bucket_to_use    = $preferred_bucket['bucket'] ?: $this->default_bucket;
-			$prefix_to_use    = $preferred_bucket['prefix'] ?: $this->default_prefix;
-
-			// Create minimal shared config with only what's needed
-			$shared_config = [
-				'providerId'    => $this->provider_id,
-				'providerName'  => $this->provider_name,
-				'baseUrl'       => admin_url( 'media-upload.php' ),
-				'ajaxUrl'       => admin_url( 'admin-ajax.php' ),
-				'defaultBucket' => $bucket_to_use,
-				'nonce'         => wp_create_nonce( 's3_browser_nonce_' . $this->provider_id ),
-				'ajaxAction'    => 's3_load_more_' . $this->provider_id,
-			];
-
-			// Only add favorite and prefix if relevant
-			if ( ! empty( $preferred_bucket['bucket'] ) ) {
-				$shared_config['favoriteBucket'] = $preferred_bucket['bucket'];
-			}
-
-			if ( ! empty( $prefix_to_use ) ) {
-				$shared_config['defaultPrefix'] = $prefix_to_use;
-			}
-
-			// Localize the script
-			wp_localize_script( $handle, 'S3BrowserGlobalConfig', $shared_config );
-		}
-
-		return $handle;
-	}
-
-	/**
-	 * Enqueue admin scripts and styles for the S3 browser
-	 *
-	 * @param string $hook_suffix Current admin page hook suffix
-	 *
-	 * @return void
-	 */
-	public function admin_enqueue_scripts( string $hook_suffix ): void {
-		// Check user capability
-		if ( ! current_user_can( $this->capability ) ) {
-			return;
-		}
-
-		// For media upload popup
-		if ( $hook_suffix === 'media-upload-popup' ) {
-			// First enqueue the global config
-			$config_handle = $this->enqueue_global_config();
-
-			// Enqueue main styles and scripts with dependency on config
-			enqueue_library_style( 'css/s3-browser.css', [], null, 'all', '', __NAMESPACE__ );
-			$script_handle = enqueue_library_script( 'js/s3-browser.js', [
-				'jquery',
-				$config_handle
-			], null, true, '', __NAMESPACE__ );
-
-			// Enqueue the uploader script and styles
-			enqueue_library_script( 'js/s3-upload.js', [
-				'jquery',
-				$config_handle,
-				$script_handle
-			], null, true, '', __NAMESPACE__ );
-			enqueue_library_style( 'css/s3-upload.css', [], null, 'all', '', __NAMESPACE__ );
-
-			// Localize script data - AssetLoader will prevent duplicate localization
-			if ( $script_handle ) {
-				$post_id = $this->get_current_post_id();
-
-				// For the main browser script, add comprehensive i18n strings
-				$browser_config = [
-					'postId'   => $post_id,
-					'autoLoad' => apply_filters( 's3_browser_auto_load', false, $this->provider_id ),
-					'i18n'     => [
-						// Browser UI strings
-						'uploadFiles'      => __( 'Upload Files', 'arraypress' ),
-						'dropFilesHere'    => __( 'Drop files here to upload', 'arraypress' ),
-						'or'               => __( 'or', 'arraypress' ),
-						'chooseFiles'      => __( 'Choose Files', 'arraypress' ),
-						'waitForUploads'   => __( 'Please wait for uploads to complete before closing', 'arraypress' ),
-
-						// File operation strings
-						'confirmDelete'    => __( 'Are you sure you want to delete "{filename}"?\n\nThis action cannot be undone.', 'arraypress' ),
-						'deleteSuccess'    => __( 'File successfully deleted', 'arraypress' ),
-						'deleteError'      => __( 'Failed to delete file', 'arraypress' ),
-
-						// Cache and refresh
-						'cacheRefreshed'   => __( 'Cache refreshed successfully', 'arraypress' ),
-						'refreshError'     => __( 'Failed to refresh data', 'arraypress' ),
-
-						// Loading and errors
-						'loadingText'      => __( 'Loading...', 'arraypress' ),
-						'loadMoreItems'    => __( 'Load More Items', 'arraypress' ),
-						'loadMoreError'    => __( 'Failed to load more items. Please try again.', 'arraypress' ),
-						'networkError'     => __( 'Network error. Please try again.', 'arraypress' ),
-						'networkLoadError' => __( 'Network error. Please check your connection and try again.', 'arraypress' ),
-
-						// Search results
-						'noMatchesFound'   => __( 'No matches found', 'arraypress' ),
-						'noFilesFound'     => __( 'No files or folders found matching "{term}"', 'arraypress' ),
-						'itemsMatch'       => __( '{visible} of {total} items match', 'arraypress' ),
-
-						// Item counts
-						'singleItem'       => __( 'item', 'arraypress' ),
-						'multipleItems'    => __( 'items', 'arraypress' ),
-						'moreAvailable'    => __( ' (more available)', 'arraypress' ),
-
-						// Favorites
-						'favoritesError'   => __( 'Error updating default bucket', 'arraypress' ),
-						'setDefault'       => __( 'Set Default', 'arraypress' ),
-						'defaultText'      => __( 'Default', 'arraypress' ),
-
-						// Upload specific translations
-						'upload'           => [
-							'cancelUploadConfirm' => __( 'Are you sure you want to cancel "{filename}"?', 'arraypress' ),
-							'uploadFailed'        => __( 'Upload failed:', 'arraypress' ),
-							'uploadComplete'      => __( 'Uploads completed. Refreshing file listing...', 'arraypress' ),
-							'corsError'           => __( 'CORS configuration error - Your bucket needs proper CORS settings to allow uploads from this domain.', 'arraypress' ),
-							'networkError'        => __( 'Network error detected. Please check your internet connection and try again.', 'arraypress' ),
-							'failedPresignedUrl'  => __( 'Failed to get upload URL', 'arraypress' ),
-							'uploadFailedStatus'  => __( 'Upload failed with status', 'arraypress' ),
-							'uploadCancelled'     => __( 'Upload cancelled', 'arraypress' )
-						]
-					]
-				];
-
-				// Localize the main browser script
-				localize_library_script( $script_handle, 's3BrowserConfig', $browser_config );
-			}
-		}
 	}
 
 }
