@@ -130,6 +130,18 @@ class Browser {
 			HOUR_IN_SECONDS
 		);
 
+		// DEBUG: Check if methods exist
+		error_log( 'Browser Debug - Checking trait methods:' );
+		error_log( 'add_media_tab exists: ' . ( method_exists( $this, 'add_media_tab' ) ? 'YES' : 'NO' ) );
+		error_log( 'handle_media_tab exists: ' . ( method_exists( $this, 'handle_media_tab' ) ? 'YES' : 'NO' ) );
+		error_log( 'handle_ajax_load_more exists: ' . ( method_exists( $this, 'handle_ajax_load_more' ) ? 'YES' : 'NO' ) );
+		error_log( 'get_current_post_id exists: ' . ( method_exists( $this, 'get_current_post_id' ) ? 'YES' : 'NO' ) );
+		error_log( 'get_preferred_bucket exists: ' . ( method_exists( $this, 'get_preferred_bucket' ) ? 'YES' : 'NO' ) );
+
+		// List all traits being used
+		$traits = class_uses( $this );
+		error_log( 'Traits in use: ' . print_r( $traits, true ) );
+
 		// Register assets for this browser
 		register_library_assets( __NAMESPACE__ );
 
