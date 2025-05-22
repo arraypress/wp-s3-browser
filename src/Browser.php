@@ -254,13 +254,19 @@ class Browser {
 			$config_handle = $this->enqueue_global_config();
 
 			// Enqueue main styles and scripts with dependency on config
-			// Let AssetLoader handle duplicate prevention
-			enqueue_library_style( 'css/s3-browser.css' );
-			$script_handle = enqueue_library_script( 'js/s3-browser.js', [ 'jquery', $config_handle ] );
+			enqueue_library_style( 'css/s3-browser.css', [], null, 'all', '', __NAMESPACE__ );
+			$script_handle = enqueue_library_script( 'js/s3-browser.js', [
+				'jquery',
+				$config_handle
+			], null, true, '', __NAMESPACE__ );
 
 			// Enqueue the uploader script and styles
-			enqueue_library_script( 'js/s3-upload.js', [ 'jquery', $config_handle, $script_handle ] );
-			enqueue_library_style( 'css/s3-upload.css' );
+			enqueue_library_script( 'js/s3-upload.js', [
+				'jquery',
+				$config_handle,
+				$script_handle
+			], null, true, '', __NAMESPACE__ );
+			enqueue_library_style( 'css/s3-upload.css', [], null, 'all', '', __NAMESPACE__ );
 
 			// Localize script data - AssetLoader will prevent duplicate localization
 			if ( $script_handle ) {
@@ -327,27 +333,6 @@ class Browser {
 				localize_library_script( $script_handle, 's3BrowserConfig', $browser_config );
 			}
 		}
-	}
-
-	/**
-	 * Helper method for traits to enqueue scripts with correct namespace
-	 *
-	 * @param string $file Relative path to the JS file
-	 * @param array  $deps Dependencies
-	 * @param string $version Version string
-	 *
-	 * @return string|false Script handle on success, false on failure
-	 */
-	protected function enqueue_browser_script( string $file, array $deps = [ 'jquery' ], string $version = '1.0' ) {
-		$script_url = get_library_asset_url( $file, __NAMESPACE__ );
-		if ( ! $script_url ) {
-			return false;
-		}
-
-		$handle = sanitize_key( str_replace( [ '\\', '/', '.js' ], [ '-', '-', '' ], strtolower( __NAMESPACE__ . '-' . $file ) ) );
-		wp_enqueue_script( $handle, $script_url, $deps, $version, true );
-
-		return $handle;
 	}
 
 }
