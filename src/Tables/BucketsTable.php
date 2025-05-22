@@ -142,7 +142,7 @@ class BucketsTable extends WP_List_Table {
 		$favorite_bucket = get_user_meta( $user_id, $meta_key, true );
 		$is_favorite     = ( $favorite_bucket === $bucket );
 
-		// Create favorite button with the appropriate star icon and text
+		// Create a favorite button with the appropriate star icon and text
 		$favorite_class  = $is_favorite ? 'dashicons-star-filled s3-favorite-active' : 'dashicons-star-empty';
 		$favorite_text   = $is_favorite ? __( 'Default', 'arraypress' ) : __( 'Set Default', 'arraypress' );
 		$favorite_action = $is_favorite ? 'remove' : 'add';
@@ -159,6 +159,36 @@ class BucketsTable extends WP_List_Table {
 		);
 
 		return $output;
+	}
+
+	/**
+	 * Display table navigation for BucketsTable.php
+	 *
+	 * @param string $which Which tablenav ('top' or 'bottom')
+	 */
+	public function display_tablenav( $which ) {
+		if ( $which === 'top' ) {
+			?>
+            <div class="tablenav <?php echo esc_attr( $which ); ?>">
+                <div class="s3-top-nav">
+                    <div class="s3-actions-container">
+						<?php
+						printf(
+							'<button type="button" class="button s3-icon-button s3-refresh-button" data-type="buckets" data-provider="%s">
+                            <span class="dashicons dashicons-update"></span> %s
+                        </button>',
+							esc_attr( $this->provider_id ),
+							esc_html__( 'Refresh', 'arraypress' )
+						);
+						?>
+                    </div>
+                </div>
+                <br class="clear"/>
+            </div>
+			<?php
+		} else {
+			$this->pagination( $which );
+		}
 	}
 
 	/**
@@ -196,36 +226,6 @@ class BucketsTable extends WP_List_Table {
 					number_format_i18n( count( $this->items ) )
 				) ) . '</span>';
 			echo '</div>';
-		}
-	}
-
-	/**
-	 * Display table navigation for BucketsTable.php
-	 *
-	 * @param string $which Which tablenav ('top' or 'bottom')
-	 */
-	public function display_tablenav( $which ) {
-		if ( $which === 'top' ) {
-			?>
-            <div class="tablenav <?php echo esc_attr( $which ); ?>">
-                <div class="s3-top-nav">
-                    <div class="s3-actions-container">
-						<?php
-						printf(
-							'<button type="button" class="button s3-icon-button s3-refresh-button" data-type="buckets" data-provider="%s">
-                            <span class="dashicons dashicons-update"></span> %s
-                        </button>',
-							esc_attr( $this->provider_id ),
-							esc_html__( 'Refresh', 'arraypress' )
-						);
-						?>
-                    </div>
-                </div>
-                <br class="clear"/>
-            </div>
-			<?php
-		} else {
-			$this->pagination( $which );
 		}
 	}
 

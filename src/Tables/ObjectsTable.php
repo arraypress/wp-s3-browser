@@ -13,6 +13,7 @@ declare( strict_types=1 );
 
 namespace ArrayPress\S3\Tables;
 
+use Exception;
 use WP_List_Table;
 use ArrayPress\S3\Client;
 
@@ -204,9 +205,7 @@ class ObjectsTable extends WP_List_Table {
 			<?php if ( $which === 'top' ): ?>
                 <div class="s3-top-nav">
                     <div class="s3-search-container">
-                        <input type="search" id="s3-js-search"
-                               placeholder="<?php esc_attr_e( 'Search files and folders...', 'arraypress' ); ?>"
-                               autocomplete="off"/>
+                        <input type="search" id="s3-js-search" placeholder="<?php esc_attr_e( 'Search files and folders...', 'arraypress' ); ?>" autocomplete="off"/>
                         <button type="button" id="s3-js-search-clear" class="button" style="display: none;">
 							<?php esc_html_e( 'Clear', 'arraypress' ); ?>
                         </button>
@@ -214,7 +213,7 @@ class ObjectsTable extends WP_List_Table {
                     </div>
                     <div class="s3-actions-container">
 		                <?php
-		                // Add refresh button with s3-icon-button class
+		                // Add a refresh button with s3-icon-button class
 		                printf(
 			                '<button type="button" class="button s3-icon-button s3-refresh-button" data-type="objects" data-bucket="%s" data-prefix="%s" data-provider="%s">
                             <span class="dashicons dashicons-update"></span> %s
@@ -318,7 +317,7 @@ class ObjectsTable extends WP_List_Table {
 				'count'              => count( $table->items )
 			] );
 
-		} catch ( \Exception $e ) {
+		} catch ( Exception $e ) {
 			wp_send_json_error( [
 				'message' => 'Error loading more items: ' . $e->getMessage()
 			] );
