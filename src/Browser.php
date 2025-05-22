@@ -352,6 +352,10 @@ class Browser {
 
 	/**
 	 * Enqueue admin scripts and styles for the S3 browser
+	 *
+	 * @param string $hook_suffix Current admin page hook suffix
+	 *
+	 * @return void
 	 */
 	public function admin_enqueue_scripts( string $hook_suffix ): void {
 		error_log('Browser Debug - admin_enqueue_scripts() called with hook: ' . $hook_suffix);
@@ -364,9 +368,17 @@ class Browser {
 
 		error_log('Browser Debug - User has required capability');
 
-		// For media upload popup
-		if ( $hook_suffix === 'media-upload-popup' ) {
-			error_log('Browser Debug - Processing media-upload-popup hook');
+		// Enqueue for multiple media-related contexts
+		$media_hooks = [
+			'media-upload-popup',
+			'post.php',
+			'post-new.php',
+			'upload.php',
+			'media.php'
+		];
+
+		if ( in_array( $hook_suffix, $media_hooks, true ) ) {
+			error_log('Browser Debug - Processing media hook: ' . $hook_suffix);
 
 			// First enqueue the global config
 			$config_handle = $this->enqueue_global_config();
@@ -377,12 +389,14 @@ class Browser {
 				error_log('Browser Debug - enqueue_library_style function exists');
 			} else {
 				error_log('Browser Debug - ERROR: enqueue_library_style function does NOT exist');
+				return; // Exit early if functions don't exist
 			}
 
 			if (function_exists('enqueue_library_script')) {
 				error_log('Browser Debug - enqueue_library_script function exists');
 			} else {
 				error_log('Browser Debug - ERROR: enqueue_library_script function does NOT exist');
+				return; // Exit early if functions don't exist
 			}
 
 			// Enqueue main styles and scripts with dependency on config
@@ -397,7 +411,7 @@ class Browser {
 			enqueue_library_style( 'css/s3-upload.css' );
 			error_log('Browser Debug - Enqueued upload scripts and styles');
 
-			// Localize script data
+			// Localize script data - AssetLoader will prevent duplicate localization
 			if ( $script_handle ) {
 				error_log('Browser Debug - Localizing script data');
 				$post_id = $this->get_current_post_id();
@@ -407,12 +421,64 @@ class Browser {
 				if (function_exists('localize_library_script')) {
 					error_log('Browser Debug - localize_library_script function exists');
 
+					// For the main browser script, add comprehensive i18n strings
 					$browser_config = [
 						'postId'   => $post_id,
 						'autoLoad' => apply_filters( 's3_browser_auto_load', false, $this->provider_id ),
-						'i18n'     => []  // Shortened for debug
+						'i18n'     => [
+							// Browser UI strings
+							'uploadFiles'      => __( 'Upload Files', 'arraypress' ),
+							'dropFilesHere'    => __( 'Drop files here to upload', 'arraypress' ),
+							'or'               => __( 'or', 'arraypress' ),
+							'chooseFiles'      => __( 'Choose Files', 'arraypress' ),
+							'waitForUploads'   => __( 'Please wait for uploads to complete before closing', 'arraypress' ),
+
+							// File operation strings
+							'confirmDelete'    => __( 'Are you sure you want to delete "{filename}"?\n\nThis action cannot be undone.', 'arraypress' ),
+							'deleteSuccess'    => __( 'File successfully deleted', 'arraypress' ),
+							'deleteError'      => __( 'Failed to delete file', 'arraypress' ),
+
+							// Cache and refresh
+							'cacheRefreshed'   => __( 'Cache refreshed successfully', 'arraypress' ),
+							'refreshError'     => __( 'Failed to refresh data', 'arraypress' ),
+
+							// Loading and errors
+							'loadingText'      => __( 'Loading...', 'arraypress' ),
+							'loadMoreItems'    => __( 'Load More Items', 'arraypress' ),
+							'loadMoreError'    => __( 'Failed to load more items. Please try again.', 'arraypress' ),
+							'networkError'     => __( 'Network error. Please try again.', 'arraypress' ),
+							'networkLoadError' => __( 'Network error. Please check your connection and try again.', 'arraypress' ),
+
+							// Search results
+							'noMatchesFound'   => __( 'No matches found', 'arraypress' ),
+							'noFilesFound'     => __( 'No files or folders found matching "{term}"', 'arraypress' ),
+							'itemsMatch'       => __( '{visible} of {total} items match', 'arraypress' ),
+
+							// Item counts
+							'singleItem'       => __( 'item', 'arraypress' ),
+							'multipleItems'    => __( 'items', 'arraypress' ),
+							'moreAvailable'    => __( ' (more available)', 'arraypress' ),
+
+							// Favorites
+							'favoritesError'   => __( 'Error updating default bucket', 'arraypress' ),
+							'setDefault'       => __( 'Set Default', 'arraypress' ),
+							'defaultText'      => __( 'Default', 'arraypress' ),
+
+							// Upload specific translations
+							'upload'           => [
+								'cancelUploadConfirm' => __( 'Are you sure you want to cancel "{filename}"?', 'arraypress' ),
+								'uploadFailed'        => __( 'Upload failed:', 'arraypress' ),
+								'uploadComplete'      => __( 'Uploads completed. Refreshing file listing...', 'arraypress' ),
+								'corsError'           => __( 'CORS configuration error - Your bucket needs proper CORS settings to allow uploads from this domain.', 'arraypress' ),
+								'networkError'        => __( 'Network error detected. Please check your internet connection and try again.', 'arraypress' ),
+								'failedPresignedUrl'  => __( 'Failed to get upload URL', 'arraypress' ),
+								'uploadFailedStatus'  => __( 'Upload failed with status', 'arraypress' ),
+								'uploadCancelled'     => __( 'Upload cancelled', 'arraypress' )
+							]
+						]
 					];
 
+					// Localize the main browser script
 					localize_library_script( $script_handle, 's3BrowserConfig', $browser_config );
 					error_log('Browser Debug - Script localized successfully');
 				} else {
@@ -422,7 +488,7 @@ class Browser {
 				error_log('Browser Debug - ERROR: No script handle returned');
 			}
 		} else {
-			error_log('Browser Debug - Hook suffix is not media-upload-popup, skipping enqueue');
+			error_log('Browser Debug - Hook suffix not in media hooks list, skipping enqueue');
 		}
 	}
 
