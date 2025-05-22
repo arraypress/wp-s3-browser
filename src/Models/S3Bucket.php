@@ -39,7 +39,7 @@ class S3Bucket {
 	 *
 	 * @var string|null
 	 */
-	private ?string $region = null;
+	private ?string $region;
 
 	/**
 	 * Constructor
@@ -80,7 +80,7 @@ class S3Bucket {
 	}
 
 	/**
-	 * Get formatted creation date
+	 * Get a formatted creation date
 	 *
 	 * @param string $format PHP date format
 	 *

@@ -21,7 +21,7 @@ use ArrayPress\S3\Responses\BucketsResponse;
 use ArrayPress\S3\Responses\ErrorResponse;
 use ArrayPress\S3\Responses\ObjectsResponse;
 use ArrayPress\S3\Responses\SuccessResponse;
-use ArrayPress\S3\Traits\ResponseFormatter;
+//use ArrayPress\S3\Traits\ResponseFormatter;
 use ArrayPress\S3\Traits\Caching;
 use ArrayPress\S3\Utils\File;
 use ArrayPress\S3\Utils\Path;
@@ -33,7 +33,7 @@ use WP_Error;
  * Class Client
  */
 class Client {
-	use ResponseFormatter;
+//	use ResponseFormatter;
 	use Caching;
 
 	/**

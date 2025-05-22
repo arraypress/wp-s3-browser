@@ -130,7 +130,7 @@ class BucketsTable extends WP_List_Table {
 		// Get current user ID
 		$user_id = get_current_user_id();
 
-		// Create browse button instance
+		// Create a browse button instance
 		$output = sprintf(
 			'<a href="#" class="button s3-icon-button browse-bucket-button" data-bucket="%s"><span class="dashicons dashicons-visibility"></span>%s</a>',
 			esc_attr( $bucket ),
@@ -142,7 +142,7 @@ class BucketsTable extends WP_List_Table {
 		$favorite_bucket = get_user_meta( $user_id, $meta_key, true );
 		$is_favorite     = ( $favorite_bucket === $bucket );
 
-		// Create favorite button with appropriate star icon and text
+		// Create favorite button with the appropriate star icon and text
 		$favorite_class  = $is_favorite ? 'dashicons-star-filled s3-favorite-active' : 'dashicons-star-empty';
 		$favorite_text   = $is_favorite ? __( 'Default', 'arraypress' ) : __( 'Set Default', 'arraypress' );
 		$favorite_action = $is_favorite ? 'remove' : 'add';
@@ -211,7 +211,6 @@ class BucketsTable extends WP_List_Table {
                 <div class="s3-top-nav">
                     <div class="s3-actions-container">
 						<?php
-						// Add refresh button for buckets with s3-icon-button class
 						printf(
 							'<button type="button" class="button s3-icon-button s3-refresh-button" data-type="buckets" data-provider="%s">
                             <span class="dashicons dashicons-update"></span> %s
