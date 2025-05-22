@@ -8,7 +8,7 @@
  * @copyright   Copyright (c) 2025, ArrayPress Limited
  * @license     GPL2+
  * @version     1.0.0
- * @author      ArrayPress Team
+ * @author      David Sherlock
  */
 
 declare( strict_types=1 );
@@ -207,7 +207,7 @@ abstract class Provider implements ProviderInterface {
 	}
 
 	/**
-	 * Get available regions as associative array of code => label
+	 * Get available regions as an associative array of code => label
 	 *
 	 * @return array
 	 */

@@ -8,7 +8,7 @@
  * @copyright   Copyright (c) 2025, ArrayPress Limited
  * @license     GPL2+
  * @version     1.0.0
- * @author      ArrayPress Team
+ * @author      David Sherlock
  */
 
 declare( strict_types=1 );
@@ -16,6 +16,7 @@ declare( strict_types=1 );
 namespace ArrayPress\S3\Traits\Client;
 
 use ArrayPress\S3\Interfaces\Response as ResponseInterface;
+use ArrayPress\S3\Responses\BucketsResponse;
 use WP_Error;
 
 /**
@@ -103,7 +104,7 @@ trait BucketOperations {
 			return $response;
 		}
 
-		if ( ! ( $response instanceof \ArrayPress\S3\Responses\BucketsResponse ) ) {
+		if ( ! ( $response instanceof BucketsResponse ) ) {
 			return new WP_Error(
 				'invalid_response',
 				'Expected BucketsResponse but got ' . get_class( $response )
@@ -116,7 +117,7 @@ trait BucketOperations {
 			'truncated'       => $response->is_truncated(),
 			'next_marker'     => $response->get_next_marker(),
 			'owner'           => $response->get_owner(),
-			'response_object' => $response  // Return the response object too
+			'response_object' => $response
 		];
 	}
 
