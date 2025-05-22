@@ -18,7 +18,7 @@ namespace ArrayPress\S3\Traits\Browser;
 use WP_Screen;
 
 /**
- * Trait BrowserPluginIntegrations
+ * Trait Integrations
  */
 trait Integrations {
 
@@ -115,7 +115,7 @@ trait Integrations {
 			$config_handle = $this->enqueue_global_config();
 
 			// Enqueue EDD-specific script with dependency on the config
-			enqueue_library_script( 'js/s3-browser-edd.js', [ 'jquery', $config_handle ] );
+			$this->enqueue_browser_script( 'js/s3-browser-edd.js', [ 'jquery', $config_handle ] );
 		} );
 	}
 
@@ -144,7 +144,7 @@ trait Integrations {
 			$config_handle = $this->enqueue_global_config();
 
 			// Enqueue WooCommerce-specific script with dependency on the config
-			enqueue_library_script( 'js/s3-browser-woocommerce.js', [ 'jquery', $config_handle ] );
+			$this->enqueue_browser_script( 'js/s3-browser-woocommerce.js', [ 'jquery', $config_handle ] );
 		} );
 
 		// Add WooCommerce-specific footer templates
@@ -173,11 +173,11 @@ trait Integrations {
 	 */
 	private function add_woocommerce_media_template(): void {
 		?>
-		<script type="text/template" id="tmpl-s3-<?php echo esc_attr( $this->provider_id ); ?>-tab">
-			<div class="s3-browser-frame-wrapper">
-				<iframe src="{{ data.url }}" class="s3-browser-frame"></iframe>
-			</div>
-		</script>
+        <script type="text/template" id="tmpl-s3-<?php echo esc_attr( $this->provider_id ); ?>-tab">
+            <div class="s3-browser-frame-wrapper">
+                <iframe src="{{ data.url }}" class="s3-browser-frame"></iframe>
+            </div>
+        </script>
 		<?php
 	}
 

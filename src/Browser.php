@@ -1,6 +1,6 @@
 <?php
 /**
- * S3 Media Browser - Clean AJAX Implementation with Traits
+ * S3 Media Browser - Clean Implementation with Traits
  *
  * @package     ArrayPress\S3
  * @copyright   Copyright (c) 2024, ArrayPress Limited
@@ -43,56 +43,56 @@ class Browser {
 	 *
 	 * @var Client
 	 */
-	private Client $client;
+	protected Client $client;
 
 	/**
 	 * Storage provider instance
 	 *
 	 * @var Provider
 	 */
-	private Provider $provider;
+	protected Provider $provider;
 
 	/**
 	 * Storage provider ID
 	 *
 	 * @var string
 	 */
-	private string $provider_id;
+	protected string $provider_id;
 
 	/**
 	 * Storage provider name
 	 *
 	 * @var string
 	 */
-	private string $provider_name;
+	protected string $provider_name;
 
 	/**
 	 * List of allowed post types for this browser
 	 *
 	 * @var array
 	 */
-	private array $allowed_post_types = [];
+	protected array $allowed_post_types = [];
 
 	/**
 	 * Default bucket name (if empty, will show bucket selection)
 	 *
 	 * @var string
 	 */
-	private string $default_bucket;
+	protected string $default_bucket;
 
 	/**
 	 * Default prefix for the default bucket
 	 *
 	 * @var string
 	 */
-	private string $default_prefix;
+	protected string $default_prefix;
 
 	/**
 	 * Capability required to use this browser
 	 *
 	 * @var string
 	 */
-	private string $capability;
+	protected string $capability;
 
 	/**
 	 * Constructor
@@ -154,24 +154,17 @@ class Browser {
 	 * @return void
 	 */
 	private function init_hooks(): void {
-		error_log( 'Browser Debug - init_hooks() called' );
-		error_log( 'Browser Debug - provider_id: ' . $this->provider_id );
-
 		// Add tab to media uploader
 		add_filter( 'media_upload_tabs', [ $this, 'add_media_tab' ] );
-		error_log( 'Browser Debug - Added media_upload_tabs filter' );
 
 		// Register tab content handler
 		add_action( 'media_upload_s3_' . $this->provider_id, [ $this, 'handle_media_tab' ] );
-		error_log( 'Browser Debug - Added action: media_upload_s3_' . $this->provider_id );
 
 		// Enqueue admin scripts and styles
 		add_action( 'admin_enqueue_scripts', [ $this, 'admin_enqueue_scripts' ] );
-		error_log( 'Browser Debug - Added admin_enqueue_scripts action' );
 
 		// Add media view strings for all post types
 		add_filter( 'media_view_strings', [ $this, 'add_media_view_strings' ], 20, 1 );
-		error_log( 'Browser Debug - Added media_view_strings filter' );
 
 		// Register AJAX handlers
 		add_action( 'wp_ajax_s3_load_more_' . $this->provider_id, [ $this, 'handle_ajax_load_more' ] );
@@ -179,14 +172,10 @@ class Browser {
 		add_action( 'wp_ajax_s3_clear_cache_' . $this->provider_id, [ $this, 'handle_ajax_clear_cache' ] );
 		add_action( 'wp_ajax_s3_get_upload_url_' . $this->provider_id, [ $this, 'handle_ajax_get_upload_url' ] );
 		add_action( 'wp_ajax_s3_delete_object_' . $this->provider_id, [ $this, 'handle_ajax_delete_object' ] );
-		error_log( 'Browser Debug - Added all AJAX handlers' );
 
 		// Add plugin integrations
 		$this->add_edd_integration();
 		$this->add_woocommerce_integration();
-		error_log( 'Browser Debug - Added plugin integrations' );
-
-		error_log( 'Browser Debug - init_hooks() completed' );
 	}
 
 	/**
@@ -339,4 +328,26 @@ class Browser {
 			}
 		}
 	}
+
+	/**
+	 * Helper method for traits to enqueue scripts with correct namespace
+	 *
+	 * @param string $file Relative path to the JS file
+	 * @param array  $deps Dependencies
+	 * @param string $version Version string
+	 *
+	 * @return string|false Script handle on success, false on failure
+	 */
+	protected function enqueue_browser_script( string $file, array $deps = [ 'jquery' ], string $version = '1.0' ) {
+		$script_url = get_library_asset_url( $file, __NAMESPACE__ );
+		if ( ! $script_url ) {
+			return false;
+		}
+
+		$handle = sanitize_key( str_replace( [ '\\', '/', '.js' ], [ '-', '-', '' ], strtolower( __NAMESPACE__ . '-' . $file ) ) );
+		wp_enqueue_script( $handle, $script_url, $deps, $version, true );
+
+		return $handle;
+	}
+
 }

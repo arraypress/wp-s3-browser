@@ -18,7 +18,7 @@ namespace ArrayPress\S3\Traits\Browser;
 use ArrayPress\S3\Tables\ObjectsTable;
 
 /**
- * Trait Ajax
+ * Trait AjaxHandlers
  */
 trait AjaxHandlers {
 
