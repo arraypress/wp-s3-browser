@@ -13,7 +13,7 @@
 
 declare( strict_types=1 );
 
-namespace ArrayPress\S3\Traits;
+namespace ArrayPress\S3\Traits\Client;
 
 /**
  * Trait Caching

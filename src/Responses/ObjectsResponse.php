@@ -19,8 +19,7 @@ namespace ArrayPress\S3\Responses;
 use ArrayPress\S3\Abstracts\Response;
 use ArrayPress\S3\Models\S3Object;
 use ArrayPress\S3\Models\S3Prefix;
-use ArrayPress\S3\Traits\Pagination;
-use PayWithAmazon\ResponseInterface;
+use ArrayPress\S3\Traits\Response\Pagination;
 
 /**
  * Response class for S3 object listing operations

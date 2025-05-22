@@ -50,7 +50,7 @@ class SuccessResponse extends Response {
 		array $data = [],
 		$raw_data = null
 	) {
-		// Always pass true for success flag regardless of status code
+		// Always pass true for a success flag regardless of status code
 		parent::__construct( $status_code, true, $raw_data );
 		$this->message = $message;
 		$this->data    = $data;
@@ -80,7 +80,6 @@ class SuccessResponse extends Response {
 	 * @return bool
 	 */
 	public function is_successful(): bool {
-		// Explicitly override to always return true for a SuccessResponse
 		return true;
 	}
 
