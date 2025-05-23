@@ -16,6 +16,7 @@ declare( strict_types=1 );
 namespace ArrayPress\S3\Abstracts;
 
 use ArrayPress\S3\Interfaces\Provider as ProviderInterface;
+use ArrayPress\S3\Utils\Encode;
 use InvalidArgumentException;
 
 /**
@@ -171,7 +172,7 @@ abstract class Provider implements ProviderInterface {
 	 */
 	public function format_url( string $bucket, string $object = '' ): string {
 		$endpoint       = $this->get_endpoint();
-		$encoded_object = empty( $object ) ? '' : $this->encode_object_key( $object );
+		$encoded_object = empty( $object ) ? '' : Encode::object_key( $object );
 
 		if ( $this->uses_path_style() ) {
 			return 'https://' . $endpoint . '/' . $bucket .

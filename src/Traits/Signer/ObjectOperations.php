@@ -20,6 +20,7 @@ use ArrayPress\S3\Responses\ObjectsResponse;
 use ArrayPress\S3\Responses\ObjectResponse;
 use ArrayPress\S3\Responses\ErrorResponse;
 use ArrayPress\S3\Responses\SuccessResponse;
+use ArrayPress\S3\Utils\Encode;
 use ArrayPress\S3\Utils\File;
 
 /**
@@ -352,7 +353,7 @@ trait ObjectOperations {
 		}
 
 		// Use our special encoding method to properly handle special characters
-		$encoded_key = $this->encode_object_key_for_url( $object_key );
+		$encoded_key = Encode::object_key( $object_key );
 
 		// Generate authorization headers with the encoded key
 		$headers = $this->generate_auth_headers(
@@ -433,8 +434,8 @@ trait ObjectOperations {
 		}
 
 		// Encode the source key and target key for URL
-		$encoded_source_key = $this->encode_object_key_for_url( $source_key );
-		$encoded_target_key = $this->encode_object_key_for_url( $target_key );
+		$encoded_source_key = Encode::object_key( $source_key );
+		$encoded_target_key = Encode::object_key( $target_key );
 
 		// Create the source path in the format required by the S3 CopyObject operation
 		// Note: The x-amz-copy-source header must be URL-encoded

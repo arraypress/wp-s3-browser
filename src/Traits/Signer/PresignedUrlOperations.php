@@ -18,6 +18,7 @@ namespace ArrayPress\S3\Traits\Signer;
 use ArrayPress\S3\Interfaces\Response as ResponseInterface;
 use ArrayPress\S3\Responses\PresignedUrlResponse;
 use ArrayPress\S3\Responses\ErrorResponse;
+use ArrayPress\S3\Utils\Encode;
 
 /**
  * Trait PresignedUrlOperations
@@ -50,7 +51,7 @@ trait PresignedUrlOperations {
 		$datestamp = gmdate( 'Ymd', $time );
 
 		// Use our special encoding method to properly handle special characters
-		$encoded_key = $this->encode_object_key_for_url( $object_key );
+		$encoded_key = Encode::object_key( $object_key );
 
 		// Get endpoint from provider
 		$host = $this->provider->get_endpoint();
@@ -146,7 +147,7 @@ trait PresignedUrlOperations {
 		$datestamp = gmdate( 'Ymd', $time );
 
 		// Use our special encoding method to properly handle special characters
-		$encoded_key = $this->encode_object_key_for_url( $object_key );
+		$encoded_key = Encode::object_key( $object_key );
 
 		// Format the canonical URI
 		$canonical_uri = '/' . $bucket . '/' . $encoded_key;
