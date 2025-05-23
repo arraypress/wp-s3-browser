@@ -71,7 +71,7 @@ trait UploadOperations {
 				$content_type = mime_content_type( $file_path ) ?: 'application/octet-stream';
 			} else {
 				// If it's file data, determine from the target key
-				$content_type = File::get_mime_type( $target_key );
+				$content_type = File::mime_type( $target_key );
 			}
 		}
 

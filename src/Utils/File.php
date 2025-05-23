@@ -20,7 +20,7 @@ namespace ArrayPress\S3\Utils;
  *
  * Handles file-related operations and metadata
  */
-class FileNew {
+class File {
 
 	/**
 	 * Get file extension from filename or object key
@@ -42,6 +42,19 @@ class FileNew {
 	 */
 	public static function name( string $object_key ): string {
 		return basename( $object_key );
+	}
+
+	/**
+	 * Get filename from object key
+	 *
+	 * @param string $key Object key
+	 *
+	 * @return string Filename
+	 */
+	public static function object_name( string $key ): string {
+		$parts = explode( '/', $key );
+
+		return end( $parts );
 	}
 
 	/**

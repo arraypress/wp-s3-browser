@@ -571,7 +571,7 @@ trait Objects {
 		}
 
 		// Get filename from key
-		$filename = File::get_filename( $key_value );
+		$filename = File::object_name( $key_value );
 
 		// Add formatted object
 		$objects[] = [
@@ -582,8 +582,8 @@ trait Objects {
 			'Size'          => $size,
 			'StorageClass'  => $storage_class,
 			'FormattedSize' => size_format( $size ),
-			'Type'          => File::get_file_type( $filename ),
-			'MimeType'      => File::get_mime_type( $filename )
+			'Type'          => File::type( $filename ),
+			'MimeType'      => File::mime_type( $filename )
 		];
 	}
 

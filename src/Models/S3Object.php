@@ -95,7 +95,7 @@ class S3Object {
 	 * @return string
 	 */
 	public function get_filename(): string {
-		return File::get_filename( $this->key );
+		return File::object_name( $this->key );
 	}
 
 	/**
@@ -162,7 +162,7 @@ class S3Object {
 	 * @return string
 	 */
 	public function get_file_type(): string {
-		return File::get_file_type( $this->get_filename() );
+		return File::type( $this->get_filename() );
 	}
 
 	/**
@@ -171,7 +171,7 @@ class S3Object {
 	 * @return string
 	 */
 	public function get_mime_type(): string {
-		return File::get_mime_type( $this->get_filename() );
+		return File::mime_type( $this->get_filename() );
 	}
 
 	/**
