@@ -24,6 +24,7 @@ use ArrayPress\S3\Traits\Signer\ObjectOperations;
 use ArrayPress\S3\Traits\Signer\PresignedUrlOperations;
 use ArrayPress\S3\Traits\Signer\UrlUtilities;
 use ArrayPress\S3\Traits\Signer\Utilities;
+use ArrayPress\S3\Traits\Signer\Extraction;
 
 /**
  * Class Signer
@@ -36,6 +37,7 @@ class Signer implements SignerInterface {
 	use PresignedUrlOperations;
 	use UrlUtilities;
 	use Utilities;
+	use Extraction;
 
 	/**
 	 * Provider instance
