@@ -225,7 +225,7 @@ trait ObjectOperations {
 		// If we're caching, we need to bust the cache for this bucket/prefix
 		if ( $this->is_cache_enabled() ) {
 			// Extract the directory prefix from the object key
-			$prefix = Path::extract_directory_prefix( $object_key );
+			$prefix = Directory::prefix( $object_key );
 
 			// Clear cache for this specific prefix
 			$cache_key = $this->get_cache_key( 'objects_' . $bucket, [
@@ -266,7 +266,7 @@ trait ObjectOperations {
 		// Clear cache for target bucket/prefix
 		if ( $this->is_cache_enabled() ) {
 			// Extract the directory prefix from the target object key
-			$prefix = Path::extract_directory_prefix( $target_key );
+			$prefix = Directory::prefix( $target_key );
 
 			// Clear cache for this specific prefix
 			$cache_key = $this->get_cache_key( 'objects_' . $target_bucket, [

@@ -15,6 +15,7 @@ declare( strict_types=1 );
 
 namespace ArrayPress\S3\Models;
 
+use ArrayPress\S3\Utils\Directory;
 use ArrayPress\S3\Utils\Path;
 
 /**
@@ -53,7 +54,7 @@ class S3Prefix {
 	 * @return string
 	 */
 	public function get_folder_name(): string {
-		return Path::get_folder_name( $this->prefix );
+		return Directory::name( $this->prefix );
 	}
 
 	/**
@@ -62,7 +63,7 @@ class S3Prefix {
 	 * @return string
 	 */
 	public function get_parent_prefix(): string {
-		return Path::get_parent_directory( $this->prefix );
+		return Directory::parent( $this->prefix );
 	}
 
 	/**
@@ -71,7 +72,7 @@ class S3Prefix {
 	 * @return array
 	 */
 	public function get_path_parts(): array {
-		return Path::get_path_parts( $this->prefix );
+		return Directory::breadcrumbs( $this->prefix );
 	}
 
 	/**

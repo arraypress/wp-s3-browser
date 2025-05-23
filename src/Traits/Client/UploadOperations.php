@@ -120,7 +120,7 @@ trait UploadOperations {
 		// 5. Clear cache for this bucket/prefix
 		if ( $this->is_cache_enabled() ) {
 			// Extract the directory prefix from the object key
-			$prefix = Path::extract_directory_prefix( $target_key );
+			$prefix = Directory::prefix( $target_key );
 
 			// Clear cache for this specific prefix
 			$cache_key = $this->get_cache_key( 'objects_' . $bucket, [

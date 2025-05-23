@@ -26,6 +26,7 @@ class Directory {
 	 * Get directory path from object key
 	 *
 	 * @param string $object_key Object key
+	 *
 	 * @return string Directory path
 	 */
 	public static function path( string $object_key ): string {
@@ -36,11 +37,13 @@ class Directory {
 	 * Get folder name from prefix
 	 *
 	 * @param string $prefix Prefix (folder path)
+	 *
 	 * @return string Folder name
 	 */
 	public static function name( string $prefix ): string {
 		$prefix = rtrim( $prefix, '/' );
 		$parts  = explode( '/', $prefix );
+
 		return end( $parts );
 	}
 
@@ -48,6 +51,7 @@ class Directory {
 	 * Get parent directory path
 	 *
 	 * @param string $path Current path
+	 *
 	 * @return string Parent directory path
 	 */
 	public static function parent( string $path ): string {
@@ -65,6 +69,7 @@ class Directory {
 	 * Create path parts for building breadcrumbs
 	 *
 	 * @param string $prefix Full path prefix
+	 *
 	 * @return array Array of path segments with names and full paths
 	 */
 	public static function breadcrumbs( string $prefix ): array {
@@ -91,8 +96,9 @@ class Directory {
 	/**
 	 * Extract directory prefix from a file path
 	 *
-	 * @param string $object_key Object key/path
-	 * @param bool $with_trailing_slash Whether to include trailing slash
+	 * @param string $object_key          Object key/path
+	 * @param bool   $with_trailing_slash Whether to include trailing slash
+	 *
 	 * @return string Directory prefix
 	 */
 	public static function prefix( string $object_key, bool $with_trailing_slash = true ): string {
@@ -113,6 +119,7 @@ class Directory {
 	 * Check if a path is a directory/folder (ends with slash)
 	 *
 	 * @param string $path Path to check
+	 *
 	 * @return bool True if the path is a directory
 	 */
 	public static function is_directory( string $path ): bool {
