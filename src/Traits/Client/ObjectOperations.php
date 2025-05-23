@@ -17,7 +17,9 @@ namespace ArrayPress\S3\Traits\Client;
 
 use ArrayPress\S3\Interfaces\Response as ResponseInterface;
 use ArrayPress\S3\Responses\ErrorResponse;
+use ArrayPress\S3\Responses\ObjectsResponse;
 use ArrayPress\S3\Responses\SuccessResponse;
+use ArrayPress\S3\Utils\Directory;
 use ArrayPress\S3\Utils\Path;
 use WP_Error;
 use Generator;
@@ -133,7 +135,7 @@ trait ObjectOperations {
 			);
 		}
 
-		if ( ! ( $response instanceof \ArrayPress\S3\Responses\ObjectsResponse ) ) {
+		if ( ! ( $response instanceof ObjectsResponse ) ) {
 			return new WP_Error(
 				'invalid_response',
 				'Expected ObjectsResponse but got ' . get_class( $response )
