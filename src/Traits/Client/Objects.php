@@ -18,16 +18,14 @@ namespace ArrayPress\S3\Traits\Client;
 use ArrayPress\S3\Interfaces\Response as ResponseInterface;
 use ArrayPress\S3\Responses\ErrorResponse;
 use ArrayPress\S3\Responses\ObjectsResponse;
-use ArrayPress\S3\Responses\SuccessResponse;
 use ArrayPress\S3\Utils\Directory;
-use ArrayPress\S3\Utils\Path;
 use WP_Error;
 use Generator;
 
 /**
  * Trait ObjectOperations
  */
-trait ObjectOperations {
+trait Objects {
 
 	/**
 	 * Get objects in a bucket

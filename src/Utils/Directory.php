@@ -8,7 +8,7 @@
  * @copyright   Copyright (c) 2025, ArrayPress Limited
  * @license     GPL2+
  * @version     1.0.0
- * @author      ArrayPress Team
+ * @author      David Sherlock
  */
 
 declare( strict_types=1 );
@@ -23,7 +23,7 @@ namespace ArrayPress\S3\Utils;
 class Directory {
 
 	/**
-	 * Get directory path from object key
+	 * Get a directory path from an object key
 	 *
 	 * @param string $object_key Object key
 	 *
@@ -125,4 +125,5 @@ class Directory {
 	public static function is_directory( string $path ): bool {
 		return str_ends_with( $path, '/' );
 	}
+
 }

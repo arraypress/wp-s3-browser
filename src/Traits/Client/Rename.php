@@ -22,7 +22,7 @@ use ArrayPress\S3\Responses\SuccessResponse;
 /**
  * Trait RenameOperations
  */
-trait RenameOperations {
+trait Rename {
 
 	/**
 	 * Rename an object in a bucket
@@ -87,7 +87,7 @@ trait RenameOperations {
 	 * @param string $target_prefix New prefix
 	 * @param bool   $recursive     Whether to process recursively
 	 *
-	 * @return ResponseInterface|WP_Error Response or error
+	 * @return ResponseInterface Response or error
 	 */
 	public function rename_prefix(
 		string $bucket,

@@ -27,7 +27,8 @@ trait XmlParser {
 	 * Parse XML response
 	 *
 	 * @param string $xml_string XML string to parse
-	 * @param bool $log_errors Whether to log parsing errors
+	 * @param bool   $log_errors Whether to log parsing errors
+	 *
 	 * @return array|WP_Error Parsed array or WP_Error on failure
 	 */
 	protected function parse_xml_response( string $xml_string, bool $log_errors = true ) {
@@ -75,9 +76,10 @@ trait XmlParser {
 	/**
 	 * Convert SimpleXML object to array
 	 *
-	 * @param \SimpleXMLElement $xml SimpleXML object
-	 * @param int $depth Current recursion depth
-	 * @param int $max_depth Maximum recursion depth
+	 * @param \SimpleXMLElement $xml       SimpleXML object
+	 * @param int               $depth     Current recursion depth
+	 * @param int               $max_depth Maximum recursion depth
+	 *
 	 * @return array Converted array
 	 */
 	protected function xml_to_array( \SimpleXMLElement $xml, int $depth = 0, int $max_depth = 100 ): array {
@@ -116,11 +118,13 @@ trait XmlParser {
 			// If we have attributes and text, add the text as @text
 			if ( isset( $result['@attributes'] ) ) {
 				$result['@text'] = $text;
+
 				return $result;
 			}
 
 			// Just a simple text node - return as value
 			$result['value'] = $text;
+
 			return $result;
 		}
 
@@ -154,6 +158,7 @@ trait XmlParser {
 	 * Extract text value from XML node (handles S3-specific structure)
 	 *
 	 * @param mixed $node XML node data
+	 *
 	 * @return string Extracted text value
 	 */
 	protected function extract_text_value( $node ): string {
@@ -168,12 +173,14 @@ trait XmlParser {
 	 * Check if XML array represents truncated results (S3-specific)
 	 *
 	 * @param array $xml XML array
+	 *
 	 * @return bool True if truncated
 	 */
 	protected function is_truncated_response( array $xml ): bool {
 		$truncated_value = Xml::find_value( $xml, 'IsTruncated' );
 		if ( $truncated_value !== null ) {
 			$text_value = $this->extract_text_value( $truncated_value );
+
 			return $text_value === 'true' || $text_value === '1';
 		}
 
@@ -184,6 +191,7 @@ trait XmlParser {
 	 * Get next continuation token from XML (S3-specific)
 	 *
 	 * @param array $xml XML array
+	 *
 	 * @return string|null Next continuation token or null
 	 */
 	protected function get_continuation_token( array $xml ): ?string {
@@ -199,6 +207,7 @@ trait XmlParser {
 	 * Get next marker from XML (S3-specific)
 	 *
 	 * @param array $xml XML array
+	 *
 	 * @return string|null Next marker or null
 	 */
 	protected function get_next_marker( array $xml ): ?string {
@@ -213,8 +222,9 @@ trait XmlParser {
 	/**
 	 * Get a value from a dot-notation path in an array (uses utility)
 	 *
-	 * @param array $array The array to search
-	 * @param string $path Dot notation path (e.g. "Buckets.Bucket")
+	 * @param array  $array The array to search
+	 * @param string $path  Dot notation path (e.g. "Buckets.Bucket")
+	 *
 	 * @return mixed|null The value or null if not found
 	 */
 	protected function get_value_from_path( array $array, string $path ) {
@@ -224,10 +234,10 @@ trait XmlParser {
 	/**
 	 * Process XML namespaces
 	 *
-	 * @param \SimpleXMLElement $xml SimpleXML object
-	 * @param array $result Result array to modify
-	 * @param int $depth Current recursion depth
-	 * @param int $max_depth Maximum recursion depth
+	 * @param \SimpleXMLElement $xml       SimpleXML object
+	 * @param array             $result    Result array to modify
+	 * @param int               $depth     Current recursion depth
+	 * @param int               $max_depth Maximum recursion depth
 	 */
 	protected function process_xml_namespaces( \SimpleXMLElement $xml, array &$result, int $depth, int $max_depth ): void {
 		foreach ( $xml->getNamespaces( true ) as $prefix => $ns ) {
@@ -255,7 +265,7 @@ trait XmlParser {
 	/**
 	 * Debug log XML parsing errors
 	 *
-	 * @param array $errors Array of LibXMLError objects
+	 * @param array  $errors     Array of LibXMLError objects
 	 * @param string $xml_string The XML string that failed to parse
 	 */
 	protected function debug_log_xml_errors( array $errors, string $xml_string ): void {
@@ -285,7 +295,7 @@ trait XmlParser {
 					$context_end   = min( count( $lines ) - 1, $line_index + 2 );
 					$context       = [];
 
-					for ( $i = $context_start; $i <= $context_end; $i++ ) {
+					for ( $i = $context_start; $i <= $context_end; $i ++ ) {
 						$line_number = $i + 1;
 						$prefix      = ( $i === $line_index ) ? ">> " : "   ";
 						$context[]   = sprintf( "%s%d: %s", $prefix, $line_number, $lines[ $i ] );
@@ -304,6 +314,7 @@ trait XmlParser {
 	 * Get XML error type string
 	 *
 	 * @param int $level LibXML error level
+	 *
 	 * @return string Error type description
 	 */
 	private function get_xml_error_type( int $level ): string {

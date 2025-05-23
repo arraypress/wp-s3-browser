@@ -24,7 +24,7 @@ use Exception;
 /**
  * Trait ClientAdvancedOperations
  */
-trait PermissionOperations {
+trait Permissions {
 
 	/**
 	 * Check permissions of the current access key

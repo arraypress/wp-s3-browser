@@ -39,11 +39,11 @@ trait Extraction {
 		];
 
 		foreach ( $possible_paths as $path ) {
-			$owner_data = $this->get_value_from_path( $xml, $path );
+			$owner_data = Xml::get_value( $xml, $path );
 			if ( $owner_data ) {
 				return [
-					'ID'          => $this->get_value_from_path( $owner_data, 'ID.value' ) ?? '',
-					'DisplayName' => $this->get_value_from_path( $owner_data, 'DisplayName.value' ) ?? ''
+					'ID'          => Xml::get_value( $owner_data, 'ID.value' ) ?? '',
+					'DisplayName' => Xml::get_value( $owner_data, 'DisplayName.value' ) ?? ''
 				];
 			}
 		}
@@ -66,7 +66,7 @@ trait Extraction {
 		];
 
 		foreach ( $possible_bucket_paths as $path ) {
-			$buckets_data = $this->get_value_from_path( $xml, $path );
+			$buckets_data = Xml::get_value( $xml, $path );
 			if ( $buckets_data ) {
 				return $this->format_buckets_data( $buckets_data );
 			}
@@ -158,7 +158,7 @@ trait Extraction {
 
 		// Check for truncation
 		foreach ( $possible_truncated_paths as $path ) {
-			$is_truncated = $this->get_value_from_path( $xml, $path );
+			$is_truncated = Xml::get_value( $xml, $path );
 			if ( $is_truncated ) {
 				$result['truncated'] = ( $is_truncated === 'true' || $is_truncated === true );
 				break;
@@ -173,7 +173,7 @@ trait Extraction {
 			];
 
 			foreach ( $possible_marker_paths as $path ) {
-				$marker = $this->get_value_from_path( $xml, $path );
+				$marker = Xml::get_value( $xml, $path );
 				if ( $marker ) {
 					$result['next_marker'] = $marker;
 					break;

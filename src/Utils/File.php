@@ -45,19 +45,6 @@ class File {
 	}
 
 	/**
-	 * Get filename from object key
-	 *
-	 * @param string $key Object key
-	 *
-	 * @return string Filename
-	 */
-	public static function object_name( string $key ): string {
-		$parts = explode( '/', $key );
-
-		return end( $parts );
-	}
-
-	/**
 	 * Check if an object key has a file extension
 	 *
 	 * @param string $object_key Object key to check
@@ -71,165 +58,280 @@ class File {
 	}
 
 	/**
-	 * Get file type based on extension
+	 * Get file type description based on extension
+	 *
+	 * Uses WordPress's wp_check_filetype() for comprehensive file type detection.
 	 *
 	 * @param string $filename Filename
 	 *
 	 * @return string File type description
 	 */
 	public static function type( string $filename ): string {
-		// Use WordPress functions if available
-		if ( function_exists( 'wp_check_filetype' ) ) {
-			$filetype  = wp_check_filetype( $filename );
-			$mime_type = $filetype['type'];
+		$mime_type = self::mime_type( $filename );
 
-			if ( ! empty( $mime_type ) ) {
-				return self::mime_to_friendly_name( $mime_type );
-			}
-		}
-
-		// Fallback to extension-based detection
-		$ext = self::extension( $filename );
-
-		return self::extension_to_friendly_name( $ext );
+		// Convert MIME type to friendly description
+		return self::mime_to_description( $mime_type );
 	}
 
 	/**
-	 * Get mime type from filename
+	 * Get MIME type from filename
+	 *
+	 * Uses WordPress's wp_check_filetype() which handles a comprehensive list
+	 * of file types and extensions.
 	 *
 	 * @param string $filename Filename
 	 *
 	 * @return string MIME type
 	 */
 	public static function mime_type( string $filename ): string {
-		// Handle empty filenames
 		if ( empty( $filename ) ) {
 			return 'application/octet-stream';
 		}
 
-		// Use WordPress functions if available
-		if ( function_exists( 'wp_check_filetype' ) ) {
-			$filetype = wp_check_filetype( $filename );
+		// WordPress handles this comprehensively
+		$filetype = wp_check_filetype( $filename );
 
-			return (string) ( $filetype['type'] ?? 'application/octet-stream' );
-		}
-
-		// Simple fallback based on extension
-		$ext = self::extension( $filename );
-
-		return self::extension_to_mime_type( $ext );
+		return $filetype['type'] ?: 'application/octet-stream';
 	}
 
 	/**
-	 * Convert MIME type to user-friendly name
+	 * Get file extension that WordPress recognizes for this filename
+	 *
+	 * @param string $filename Filename
+	 *
+	 * @return string WordPress-recognized extension
+	 */
+	public static function wp_extension( string $filename ): string {
+		if ( empty( $filename ) ) {
+			return '';
+		}
+
+		$filetype = wp_check_filetype( $filename );
+
+		return $filetype['ext'] ?: '';
+	}
+
+	/**
+	 * Check if a file type is allowed by WordPress
+	 *
+	 * @param string $filename Filename
+	 *
+	 * @return bool True if a file type is allowed
+	 */
+	public static function is_allowed_type( string $filename ): bool {
+		$filetype = wp_check_filetype( $filename );
+
+		return ! empty( $filetype['type'] ) && ! empty( $filetype['ext'] );
+	}
+
+	/**
+	 * Check if the file is an image type
+	 *
+	 * @param string $filename Filename
+	 *
+	 * @return bool True if a file is an image
+	 */
+	public static function is_image( string $filename ): bool {
+		$mime_type = self::mime_type( $filename );
+
+		return str_starts_with( $mime_type, 'image/' );
+	}
+
+	/**
+	 * Check if the file is a video type
+	 *
+	 * @param string $filename Filename
+	 *
+	 * @return bool True if a file is a video
+	 */
+	public static function is_video( string $filename ): bool {
+		$mime_type = self::mime_type( $filename );
+
+		return str_starts_with( $mime_type, 'video/' );
+	}
+
+	/**
+	 * Check if the file is an audio type
+	 *
+	 * @param string $filename Filename
+	 *
+	 * @return bool True if a file is audio
+	 */
+	public static function is_audio( string $filename ): bool {
+		$mime_type = self::mime_type( $filename );
+
+		return str_starts_with( $mime_type, 'audio/' );
+	}
+
+	/**
+	 * Check if the file is a document type
+	 *
+	 * @param string $filename Filename
+	 *
+	 * @return bool True if a file is a document
+	 */
+	public static function is_document( string $filename ): bool {
+		$mime_type = self::mime_type( $filename );
+
+		$document_types = [
+			'application/pdf',
+			'application/msword',
+			'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+			'application/vnd.ms-excel',
+			'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+			'application/vnd.ms-powerpoint',
+			'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+			'text/plain',
+			'text/csv',
+			'application/rtf'
+		];
+
+		return in_array( $mime_type, $document_types, true );
+	}
+
+	/**
+	 * Get file category (image, video, audio, document, archive, other)
+	 *
+	 * @param string $filename Filename
+	 *
+	 * @return string File category
+	 */
+	public static function category( string $filename ): string {
+		if ( self::is_image( $filename ) ) {
+			return 'image';
+		}
+
+		if ( self::is_video( $filename ) ) {
+			return 'video';
+		}
+
+		if ( self::is_audio( $filename ) ) {
+			return 'audio';
+		}
+
+		if ( self::is_document( $filename ) ) {
+			return 'document';
+		}
+
+		$mime_type = self::mime_type( $filename );
+
+		if ( in_array( $mime_type, [
+			'application/zip',
+			'application/x-rar-compressed',
+			'application/x-tar',
+			'application/gzip'
+		], true ) ) {
+			return 'archive';
+		}
+
+		return 'other';
+	}
+
+	/**
+	 * Convert MIME type to user-friendly description
 	 *
 	 * @param string $mime_type MIME type
 	 *
-	 * @return string Friendly name
+	 * @return string Friendly description
 	 */
-	private static function mime_to_friendly_name( string $mime_type ): string {
-		$types_map = [
-			'image/jpeg'                                                                => 'Image (JPEG)',
-			'image/png'                                                                 => 'Image (PNG)',
-			'image/gif'                                                                 => 'Image (GIF)',
-			'image/webp'                                                                => 'Image (WebP)',
-			'image/svg+xml'                                                             => 'Image (SVG)',
-			'application/pdf'                                                           => 'PDF Document',
-			'application/msword'                                                        => 'Word Document',
-			'application/vnd.openxmlformats-officedocument.wordprocessingml.document'   => 'Word Document',
-			'application/vnd.ms-excel'                                                  => 'Excel Spreadsheet',
-			'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'         => 'Excel Spreadsheet',
-			'application/vnd.ms-powerpoint'                                             => 'PowerPoint Presentation',
-			'application/vnd.openxmlformats-officedocument.presentationml.presentation' => 'PowerPoint Presentation',
-			'text/plain'                                                                => 'Text File',
-			'application/zip'                                                           => 'ZIP Archive',
-			'application/x-rar-compressed'                                              => 'RAR Archive',
-			'audio/mpeg'                                                                => 'Audio (MP3)',
-			'video/mp4'                                                                 => 'Video (MP4)',
-			'text/html'                                                                 => 'HTML Document',
-			'text/css'                                                                  => 'CSS File',
-			'application/javascript'                                                    => 'JavaScript File',
-			'application/json'                                                          => 'JSON File',
-			'application/xml'                                                           => 'XML File',
-			'text/csv'                                                                  => 'CSV File'
-		];
+	private static function mime_to_description( string $mime_type ): string {
+		// Handle broad categories first
+		if ( str_starts_with( $mime_type, 'image/' ) ) {
+			switch ( $mime_type ) {
+				case 'image/jpeg':
+					return __( 'JPEG Image', 'arraypress' );
+				case 'image/png':
+					return __( 'PNG Image', 'arraypress' );
+				case 'image/gif':
+					return __( 'GIF Image', 'arraypress' );
+				case 'image/webp':
+					return __( 'WebP Image', 'arraypress' );
+				case 'image/svg+xml':
+					return __( 'SVG Image', 'arraypress' );
+				case 'image/bmp':
+					return __( 'BMP Image', 'arraypress' );
+				case 'image/tiff':
+					return __( 'TIFF Image', 'arraypress' );
+				default:
+					return __( 'Image', 'arraypress' );
+			}
+		}
 
-		return $types_map[ $mime_type ] ?? 'File';
+		if ( str_starts_with( $mime_type, 'video/' ) ) {
+			switch ( $mime_type ) {
+				case 'video/mp4':
+					return __( 'MP4 Video', 'arraypress' );
+				case 'video/quicktime':
+					return __( 'QuickTime Video', 'arraypress' );
+				case 'video/x-msvideo':
+					return __( 'AVI Video', 'arraypress' );
+				case 'video/webm':
+					return __( 'WebM Video', 'arraypress' );
+				default:
+					return __( 'Video', 'arraypress' );
+			}
+		}
+
+		if ( str_starts_with( $mime_type, 'audio/' ) ) {
+			switch ( $mime_type ) {
+				case 'audio/mpeg':
+					return __( 'MP3 Audio', 'arraypress' );
+				case 'audio/wav':
+					return __( 'WAV Audio', 'arraypress' );
+				case 'audio/ogg':
+					return __( 'OGG Audio', 'arraypress' );
+				case 'audio/mp4':
+					return __( 'M4A Audio', 'arraypress' );
+				default:
+					return __( 'Audio', 'arraypress' );
+			}
+		}
+
+		// Handle specific application types
+		switch ( $mime_type ) {
+			case 'application/pdf':
+				return __( 'PDF Document', 'arraypress' );
+			case 'application/msword':
+				return __( 'Word Document', 'arraypress' );
+			case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+				return __( 'Word Document', 'arraypress' );
+			case 'application/vnd.ms-excel':
+				return __( 'Excel Spreadsheet', 'arraypress' );
+			case 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':
+				return __( 'Excel Spreadsheet', 'arraypress' );
+			case 'application/vnd.ms-powerpoint':
+				return __( 'PowerPoint Presentation', 'arraypress' );
+			case 'application/vnd.openxmlformats-officedocument.presentationml.presentation':
+				return __( 'PowerPoint Presentation', 'arraypress' );
+			case 'application/zip':
+				return __( 'ZIP Archive', 'arraypress' );
+			case 'application/x-rar-compressed':
+				return __( 'RAR Archive', 'arraypress' );
+			case 'application/x-tar':
+				return __( 'TAR Archive', 'arraypress' );
+			case 'application/gzip':
+				return __( 'GZIP Archive', 'arraypress' );
+			case 'text/plain':
+				return __( 'Text File', 'arraypress' );
+			case 'text/csv':
+				return __( 'CSV File', 'arraypress' );
+			case 'text/html':
+				return __( 'HTML Document', 'arraypress' );
+			case 'text/css':
+				return __( 'CSS File', 'arraypress' );
+			case 'application/javascript':
+				return __( 'JavaScript File', 'arraypress' );
+			case 'application/json':
+				return __( 'JSON File', 'arraypress' );
+			case 'application/xml':
+				return __( 'XML File', 'arraypress' );
+			case 'application/rtf':
+				return __( 'RTF Document', 'arraypress' );
+			case 'application/octet-stream':
+				return __( 'Binary File', 'arraypress' );
+			default:
+				return __( 'File', 'arraypress' );
+		}
 	}
 
-	/**
-	 * Convert file extension to friendly name
-	 *
-	 * @param string $ext File extension
-	 *
-	 * @return string Friendly name
-	 */
-	private static function extension_to_friendly_name( string $ext ): string {
-		$types = [
-			'jpg'  => 'Image (JPEG)',
-			'jpeg' => 'Image (JPEG)',
-			'png'  => 'Image (PNG)',
-			'gif'  => 'Image (GIF)',
-			'webp' => 'Image (WebP)',
-			'svg'  => 'Image (SVG)',
-			'pdf'  => 'PDF Document',
-			'doc'  => 'Word Document',
-			'docx' => 'Word Document',
-			'xls'  => 'Excel Spreadsheet',
-			'xlsx' => 'Excel Spreadsheet',
-			'ppt'  => 'PowerPoint Presentation',
-			'pptx' => 'PowerPoint Presentation',
-			'txt'  => 'Text File',
-			'zip'  => 'ZIP Archive',
-			'rar'  => 'RAR Archive',
-			'mp3'  => 'Audio (MP3)',
-			'mp4'  => 'Video (MP4)',
-			'html' => 'HTML Document',
-			'css'  => 'CSS File',
-			'js'   => 'JavaScript File',
-			'json' => 'JSON File',
-			'xml'  => 'XML File',
-			'csv'  => 'CSV File'
-		];
-
-		return $types[ $ext ] ?? 'File';
-	}
-
-	/**
-	 * Convert file extension to MIME type
-	 *
-	 * @param string $ext File extension
-	 *
-	 * @return string MIME type
-	 */
-	private static function extension_to_mime_type( string $ext ): string {
-		$mime_types = [
-			'jpg'  => 'image/jpeg',
-			'jpeg' => 'image/jpeg',
-			'png'  => 'image/png',
-			'gif'  => 'image/gif',
-			'webp' => 'image/webp',
-			'svg'  => 'image/svg+xml',
-			'pdf'  => 'application/pdf',
-			'doc'  => 'application/msword',
-			'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-			'xls'  => 'application/vnd.ms-excel',
-			'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-			'ppt'  => 'application/vnd.ms-powerpoint',
-			'pptx' => 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-			'txt'  => 'text/plain',
-			'zip'  => 'application/zip',
-			'rar'  => 'application/x-rar-compressed',
-			'mp3'  => 'audio/mpeg',
-			'mp4'  => 'video/mp4',
-			'html' => 'text/html',
-			'css'  => 'text/css',
-			'js'   => 'application/javascript',
-			'json' => 'application/json',
-			'xml'  => 'application/xml',
-			'csv'  => 'text/csv'
-		];
-
-		return $mime_types[ $ext ] ?? 'application/octet-stream';
-	}
 }

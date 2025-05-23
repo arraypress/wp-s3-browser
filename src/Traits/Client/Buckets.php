@@ -22,7 +22,7 @@ use WP_Error;
 /**
  * Trait ClientBucketOperations
  */
-trait BucketOperations {
+trait Buckets {
 
 	/**
 	 * Get buckets list

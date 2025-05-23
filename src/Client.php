@@ -16,25 +16,27 @@ declare( strict_types=1 );
 namespace ArrayPress\S3;
 
 use ArrayPress\S3\Abstracts\Provider;
-use ArrayPress\S3\Traits\Client\BucketOperations;
+use ArrayPress\S3\Traits\Client\Buckets;
 use ArrayPress\S3\Traits\Client\Caching;
 use ArrayPress\S3\Traits\Client\Configuration;
-use ArrayPress\S3\Traits\Client\ObjectOperations;
-use ArrayPress\S3\Traits\Client\PermissionOperations;
-use ArrayPress\S3\Traits\Client\RenameOperations;
-use ArrayPress\S3\Traits\Client\UploadOperations;
+use ArrayPress\S3\Traits\Client\Objects;
+use ArrayPress\S3\Traits\Client\Permissions;
+use ArrayPress\S3\Traits\Client\PresignedUrls;
+use ArrayPress\S3\Traits\Client\Rename;
+use ArrayPress\S3\Traits\Client\Upload;
 
 /**
  * Class Client
  */
 class Client {
 	use Caching;
-	use BucketOperations;
+	use Buckets;
 	use Configuration;
-	use ObjectOperations;
-	use PermissionOperations;
-	use RenameOperations;
-	use UploadOperations;
+	use Objects;
+	use Permissions;
+	use PresignedUrls;
+	use Rename;
+	use Upload;
 
 	/**
 	 * Provider instance

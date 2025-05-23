@@ -8,7 +8,7 @@
  * @copyright   Copyright (c) 2025, ArrayPress Limited
  * @license     GPL2+
  * @version     1.0.0
- * @author      ArrayPress Team
+ * @author      David Sherlock
  */
 
 declare( strict_types=1 );
@@ -19,6 +19,13 @@ namespace ArrayPress\S3\Traits\Browser;
  * Trait Assets
  */
 trait Assets {
+
+	/**
+	 * Library namespace for asset loading
+	 *
+	 * @var string
+	 */
+	private static string $library_namespace = 'ArrayPress\\S3';
 
 	/**
 	 * Store the browser script handle for later reference
@@ -131,7 +138,7 @@ trait Assets {
 	 */
 	private function enqueue_core_browser_assets( string $config_handle ) {
 		// Enqueue main browser styles
-		enqueue_library_style( 'css/s3-browser.css', [], null, 'all', '', 'ArrayPress\\S3' );
+		enqueue_library_style( 'css/s3-browser.css', [], null, 'all', '', self::$library_namespace );
 
 		// Enqueue main browser script
 		$script_handle = enqueue_library_script(
@@ -140,7 +147,7 @@ trait Assets {
 			null,
 			true,
 			'',
-			'ArrayPress\\S3'
+			self::$library_namespace
 		);
 
 		// Store the actual script handle for later use
@@ -173,11 +180,11 @@ trait Assets {
 			null,
 			true,
 			'',
-			'ArrayPress\\S3'
+			self::$library_namespace
 		);
 
 		// Enqueue upload styles
-		enqueue_library_style( 'css/s3-upload.css', [], null, 'all', '', 'ArrayPress\\S3' );
+		enqueue_library_style( 'css/s3-upload.css', [], null, 'all', '', self::$library_namespace );
 	}
 
 	/**
@@ -274,7 +281,7 @@ trait Assets {
 	 * @return string|false Script handle on success, false on failure
 	 */
 	protected function enqueue_integration_script( string $file, array $deps = [ 'jquery' ], string $version = '1.0' ) {
-		return enqueue_library_script_with_namespace( $file, 'ArrayPress\\S3', $deps );
+		return enqueue_library_script_with_namespace( $file, self::$library_namespace, $deps );
 	}
 
 	/**
@@ -287,7 +294,6 @@ trait Assets {
 	 * @return string|false Style handle on success, false on failure
 	 */
 	protected function enqueue_integration_style( string $file, array $deps = [], string $version = '1.0' ) {
-		return enqueue_library_style_with_namespace( $file, 'ArrayPress\\S3', $deps );
+		return enqueue_library_style_with_namespace( $file, self::$library_namespace, $deps );
 	}
-
 }

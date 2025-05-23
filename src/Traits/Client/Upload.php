@@ -18,13 +18,13 @@ namespace ArrayPress\S3\Traits\Client;
 use ArrayPress\S3\Interfaces\Response as ResponseInterface;
 use ArrayPress\S3\Responses\ErrorResponse;
 use ArrayPress\S3\Responses\SuccessResponse;
+use ArrayPress\S3\Utils\Directory;
 use ArrayPress\S3\Utils\File;
-use ArrayPress\S3\Utils\Path;
 
 /**
  * Trait UploadOperations
  */
-trait UploadOperations {
+trait Upload {
 
 	/**
 	 * Upload a file to a bucket
@@ -141,32 +141,6 @@ trait UploadOperations {
 				'size'   => strlen( $file_contents )
 			]
 		);
-	}
-
-	/**
-	 * Generate a pre-signed URL for an object
-	 *
-	 * @param string $bucket     Bucket name
-	 * @param string $object_key Object key
-	 * @param int    $expires    Expiration time in minutes
-	 *
-	 * @return ResponseInterface Pre-signed URL response, URL string, or error
-	 */
-	public function get_presigned_url( string $bucket, string $object_key, int $expires = 60 ): ResponseInterface {
-		return $this->signer->get_presigned_url( $bucket, $object_key, $expires );
-	}
-
-	/**
-	 * Generate a pre-signed URL for uploading an object
-	 *
-	 * @param string $bucket     Bucket name
-	 * @param string $object_key Object key
-	 * @param int    $expires    Expiration time in minutes
-	 *
-	 * @return ResponseInterface Pre-signed URL response or error
-	 */
-	public function get_presigned_upload_url( string $bucket, string $object_key, int $expires = 15 ): ResponseInterface {
-		return $this->signer->get_presigned_upload_url( $bucket, $object_key, $expires );
 	}
 
 }

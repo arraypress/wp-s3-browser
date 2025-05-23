@@ -16,7 +16,7 @@ declare( strict_types=1 );
 namespace ArrayPress\S3\Models;
 
 use ArrayPress\S3\Utils\Directory;
-use ArrayPress\S3\Utils\Path;
+
 
 /**
  * Class S3Prefix

@@ -8,7 +8,7 @@
  * @copyright   Copyright (c) 2025, ArrayPress Limited
  * @license     GPL2+
  * @version     1.0.0
- * @author      ArrayPress Team
+ * @author      David Sherlock
  */
 
 declare( strict_types=1 );
@@ -79,29 +79,48 @@ class Detect {
 
 		if ( ! $parsed ) {
 			// If parsing fails, check the path directly
-			return FileNew::has_extension( basename( $path ) );
+			return File::has_extension( basename( $path ) );
 		}
 
-		return FileNew::has_extension( $parsed['object'] );
+		return File::has_extension( $parsed['object'] );
 	}
 
 	/**
-	 * Check if object key represents a file (has extension)
+	 * Check if an object key represents a file (has extension)
 	 *
 	 * @param string $object Object key
 	 * @return bool
 	 */
 	public static function is_file( string $object ): bool {
-		return FileNew::has_extension( $object );
+		return File::has_extension( $object );
 	}
 
 	/**
-	 * Check if object key represents a directory (no extension, ends with /)
+	 * Check if an object key represents a directory (no extension, ends with /)
 	 *
 	 * @param string $object Object key
 	 * @return bool
 	 */
 	public static function is_directory( string $object ): bool {
-		return ! FileNew::has_extension( $object ) || str_ends_with( $object, '/' );
+		return ! File::has_extension( $object ) || str_ends_with( $object, '/' );
 	}
+
+	/**
+	 * Check if path is R2 format (bucket/object)
+	 */
+	private function is_r2_path( $path ) {
+		return ! preg_match( '/^https?:\/\//', $path ) &&
+		       ! preg_match( '/^\//', $path ) &&
+		       ! preg_match( '/^\[.*\]$/', $path ) &&
+		       strpos( $path, '/' ) !== false;
+	}
+
+	/**
+	 * Check if URL is an R2 URL
+	 */
+	private function is_r2_url( $url ) {
+		return strpos( $url, 'r2.cloudflarestorage.com' ) !== false ||
+		       strpos( $url, '.r2.dev' ) !== false;
+	}
+
 }

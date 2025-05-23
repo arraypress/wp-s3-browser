@@ -571,7 +571,7 @@ trait Objects {
 		}
 
 		// Get filename from key
-		$filename = File::object_name( $key_value );
+		$filename = File::name( $key_value );
 
 		// Add formatted object
 		$objects[] = [

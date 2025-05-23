@@ -95,7 +95,7 @@ class S3Object {
 	 * @return string
 	 */
 	public function get_filename(): string {
-		return File::object_name( $this->key );
+		return File::name( $this->key );
 	}
 
 	/**

@@ -145,24 +145,6 @@ abstract class Provider implements ProviderInterface {
 	}
 
 	/**
-	 * Format URL encode S3 object key preserving path structure
-	 *
-	 * @param string $object_key S3 object key to encode
-	 *
-	 * @return string Encoded object key
-	 */
-	protected function encode_object_key( string $object_key ): string {
-		// Remove any leading slash
-		$object_key = ltrim( $object_key, '/' );
-
-		// Replace + with space (for consistent handling)
-		$object_key = str_replace( '+', ' ', $object_key );
-
-		// URL encode the key but preserve slashes
-		return str_replace( '%2F', '/', rawurlencode( $object_key ) );
-	}
-
-	/**
 	 * Format bucket URL
 	 *
 	 * @param string $bucket Bucket name

@@ -17,6 +17,7 @@ namespace ArrayPress\S3\Providers;
 
 use ArrayPress\S3\Abstracts\Provider;
 use InvalidArgumentException;
+use ArrayPress\S3\Utils\Encode;
 
 /**
  * Class GenericS3Provider
@@ -249,7 +250,7 @@ class GenericS3Provider extends Provider {
 	 */
 	public function format_url( string $bucket, string $object = '' ): string {
 		$endpoint       = $this->get_endpoint();
-		$encoded_object = empty( $object ) ? '' : $this->encode_object_key( $object );
+		$encoded_object = empty( $object ) ? '' : Encode::object_key( $object );
 		$protocol       = $this->use_https() ? 'https://' : 'http://';
 
 		if ( $this->uses_path_style() ) {

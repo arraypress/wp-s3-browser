@@ -8,7 +8,7 @@
  * @copyright   Copyright (c) 2025, ArrayPress Limited
  * @license     GPL2+
  * @version     1.0.0
- * @author      ArrayPress Team
+ * @author      David Sherlock
  */
 
 declare( strict_types=1 );
@@ -23,7 +23,7 @@ namespace ArrayPress\S3\Utils;
 class Xml {
 
 	/**
-	 * Get value from XML array using dot notation path
+	 * Get value from an XML array using a dot notation path
 	 *
 	 * @param array $array XML array
 	 * @param string $path Dot notation path (e.g., 'Owner.ID.value')
