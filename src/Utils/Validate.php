@@ -16,6 +16,7 @@ declare( strict_types=1 );
 namespace ArrayPress\S3\Utils;
 
 use ArrayPress\S3\Abstracts\Provider;
+use Exception;
 
 /**
  * Class Validate
@@ -40,7 +41,7 @@ class Validate {
 		if ( $provider && method_exists( $provider, 'is_valid_bucket_name' ) ) {
 			try {
 				return $provider->is_valid_bucket_name( $bucket );
-			} catch ( \Exception $e ) {
+			} catch ( Exception $e ) {
 				return false;
 			}
 		}
@@ -65,7 +66,7 @@ class Validate {
 		if ( $provider && method_exists( $provider, 'is_valid_object_key' ) ) {
 			try {
 				return $provider->is_valid_object_key( $object );
-			} catch ( \Exception $e ) {
+			} catch ( Exception $e ) {
 				return false;
 			}
 		}
@@ -202,4 +203,5 @@ class Validate {
 
 		return true;
 	}
+
 }

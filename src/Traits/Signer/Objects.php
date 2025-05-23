@@ -26,7 +26,7 @@ use ArrayPress\S3\Utils\File;
 /**
  * Trait ObjectOperations
  */
-trait ObjectOperations {
+trait Objects {
 
 	/**
 	 * List objects in a bucket

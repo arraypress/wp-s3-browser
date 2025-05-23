@@ -19,11 +19,10 @@ use ArrayPress\S3\Abstracts\Provider;
 use ArrayPress\S3\Interfaces\Signer as SignerInterface;
 use ArrayPress\S3\Traits\Signer\XmlParser;
 use ArrayPress\S3\Traits\Signer\Authentication;
-use ArrayPress\S3\Traits\Signer\BucketOperations;
-use ArrayPress\S3\Traits\Signer\ObjectOperations;
-use ArrayPress\S3\Traits\Signer\PresignedUrlOperations;
-use ArrayPress\S3\Traits\Signer\UrlUtilities;
-use ArrayPress\S3\Traits\Signer\Utilities;
+use ArrayPress\S3\Traits\Signer\Buckets;
+use ArrayPress\S3\Traits\Signer\Debug;
+use ArrayPress\S3\Traits\Signer\Objects;
+use ArrayPress\S3\Traits\Signer\PresignedUrls;
 use ArrayPress\S3\Traits\Signer\Extraction;
 
 /**
@@ -32,11 +31,10 @@ use ArrayPress\S3\Traits\Signer\Extraction;
 class Signer implements SignerInterface {
 	use XmlParser;
 	use Authentication;
-	use BucketOperations;
-	use ObjectOperations;
-	use PresignedUrlOperations;
-	use UrlUtilities;
-	use Utilities;
+	use Buckets;
+	use Debug;
+	use Objects;
+	use PresignedUrls;
 	use Extraction;
 
 	/**

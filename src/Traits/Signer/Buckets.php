@@ -22,7 +22,7 @@ use ArrayPress\S3\Responses\ErrorResponse;
 /**
  * Trait BucketOperations
  */
-trait BucketOperations {
+trait Buckets {
 
 	/**
 	 * List all buckets

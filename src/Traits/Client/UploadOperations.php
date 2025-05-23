@@ -165,7 +165,7 @@ trait UploadOperations {
 	 *
 	 * @return ResponseInterface Pre-signed URL response or error
 	 */
-	public function get_presigned_upload_url( string $bucket, string $object_key, int $expires = 15 ) {
+	public function get_presigned_upload_url( string $bucket, string $object_key, int $expires = 15 ): ResponseInterface {
 		return $this->signer->get_presigned_upload_url( $bucket, $object_key, $expires );
 	}
 

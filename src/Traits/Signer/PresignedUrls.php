@@ -23,7 +23,7 @@ use ArrayPress\S3\Utils\Encode;
 /**
  * Trait PresignedUrlOperations
  */
-trait PresignedUrlOperations {
+trait PresignedUrls {
 
 	/**
 	 * Generate a pre-signed URL for an object
