@@ -137,7 +137,7 @@ class BucketsTable extends WP_List_Table {
 			esc_html__( 'Browse', 'arraypress' )
 		);
 
-		// Check if this bucket is a favorite using straightforward meta check
+		// Check if this bucket is a favorite using straightforward meta-check
 		$meta_key        = "s3_favorite_{$this->provider_id}_{$post_type}";
 		$favorite_bucket = get_user_meta( $user_id, $meta_key, true );
 		$is_favorite     = ( $favorite_bucket === $bucket );
