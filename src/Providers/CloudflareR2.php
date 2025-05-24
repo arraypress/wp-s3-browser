@@ -146,8 +146,8 @@ class CloudflareR2 extends Provider {
 			$alternatives[] = $account_id . '.r2.dev';
 
 			// Regional R2 endpoints
-			foreach ( $this->regions as $region_code => $region_data ) {
-				if ( isset( $region_data['prefix'] ) && ! empty( $region_data['prefix'] ) ) {
+			foreach ( $this->regions as $region_data ) {
+				if ( ! empty( $region_data['prefix'] ) ) {
 					$alternatives[] = $account_id . '.' . $region_data['prefix'] . 'r2.cloudflarestorage.com';
 				}
 			}
@@ -212,17 +212,18 @@ class CloudflareR2 extends Provider {
 	}
 
 	/**
-	 * Get region for signing
+	 * Get the region for signing
+	 *
+	 * Cloudflare R2 always uses 'auto' for signing region
 	 *
 	 * @return string
 	 */
 	public function get_region(): string {
-		// Cloudflare R2 always uses 'auto' for signing region
 		return 'auto';
 	}
 
 	/**
-	 * Check if provider supports public buckets
+	 * Check if the provider supports public buckets
 	 *
 	 * @return bool
 	 */

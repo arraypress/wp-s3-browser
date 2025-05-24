@@ -285,6 +285,81 @@ abstract class Provider implements ProviderInterface {
 	}
 
 	/**
+	 * Get available regions as an associative array of code => label
+	 *
+	 * @return array
+	 */
+	public function get_available_regions(): array {
+		$result = [];
+
+		foreach ( $this->regions as $code => $region ) {
+			if ( is_array( $region ) ) {
+				$result[ $code ] = $region['label'] ?? $code;
+			} else {
+				$result[ $code ] = $region;
+			}
+		}
+
+		return $result;
+	}
+
+	/**
+	 * Check if the provider has integrated CDN
+	 *
+	 * @return bool Default is false, providers can override
+	 */
+	public function has_integrated_cdn(): bool {
+		return false;
+	}
+
+	/**
+	 * Get CDN URL for a bucket (if supported)
+	 *
+	 * @param string $bucket Bucket name
+	 * @param string $object Optional object key
+	 *
+	 * @return string|null CDN URL or null if not supported
+	 */
+	public function get_cdn_url( string $bucket, string $object = '' ): ?string {
+		// Base implementation - providers should override this
+		return null;
+	}
+
+	/**
+	 * Get public URL for a bucket (if configured)
+	 *
+	 * @param string $bucket Bucket name
+	 * @param string $object Optional object key
+	 *
+	 * @return string|null Public URL or null if not configured
+	 */
+	public function get_public_url( string $bucket, string $object = '' ): ?string {
+		// Check if a custom domain is configured
+		$custom_domain = $this->get_param( 'custom_domain_' . $bucket );
+		if ( ! empty( $custom_domain ) ) {
+			return 'https://' . $custom_domain . '/' . ltrim( $object, '/' );
+		}
+
+		// Check if a public bucket URL is configured
+		$public_url = $this->get_param( 'public_url_' . $bucket );
+		if ( ! empty( $public_url ) ) {
+			return rtrim( $public_url, '/' ) . '/' . ltrim( $object, '/' );
+		}
+
+		return null;
+	}
+
+	/**
+	 * Check if account ID is required
+	 * Override in specific providers
+	 *
+	 * @return bool
+	 */
+	public function requires_account_id(): bool {
+		return false;
+	}
+
+	/**
 	 * Get parameter value
 	 *
 	 * @param string $key     Parameter key
@@ -294,6 +369,20 @@ abstract class Provider implements ProviderInterface {
 	 */
 	protected function get_param( string $key, $default = null ) {
 		return $this->params[ $key ] ?? $default;
+	}
+
+	/**
+	 * Set a parameter value
+	 *
+	 * @param string $key   Parameter key
+	 * @param mixed  $value Parameter value
+	 *
+	 * @return self
+	 */
+	public function set_param( string $key, $value ): self {
+		$this->params[ $key ] = $value;
+
+		return $this;
 	}
 
 	/**
@@ -398,7 +487,7 @@ abstract class Provider implements ProviderInterface {
 		}
 
 		// Extract bucket from subdomain
-		$main_endpoint  = $this->get_endpoint();
+		$main_endpoint = $this->get_endpoint();
 		$bucket_pattern = '/^([^.]+)\.' . preg_quote( $main_endpoint, '/' ) . '$/';
 
 		if ( preg_match( $bucket_pattern, $host, $matches ) ) {
@@ -426,8 +515,8 @@ abstract class Provider implements ProviderInterface {
 
 				// Extract object path
 				$domain_length = strlen( $domain );
-				$remaining     = substr( $url_without_protocol, $domain_length );
-				$object        = ltrim( $remaining, '/' );
+				$remaining = substr( $url_without_protocol, $domain_length );
+				$object = ltrim( $remaining, '/' );
 
 				return [
 					'bucket' => $bucket,
