@@ -60,7 +60,7 @@
         /**
          * Load translation strings from PHP
          */
-        loadTranslations: function() {
+        loadTranslations: function () {
             // If s3BrowserConfig.i18n exists, override defaults
             if (typeof s3BrowserConfig !== 'undefined' && s3BrowserConfig.i18n) {
                 $.extend(this.i18n, s3BrowserConfig.i18n);
@@ -79,7 +79,7 @@
         /**
          * Bind click event handlers for navigation and file actions
          */
-        bindClickHandlers: function() {
+        bindClickHandlers: function () {
             var self = this;
 
             // Main click handler for links in the browser
@@ -89,7 +89,7 @@
                 // Handle navigation links
                 if ($link.hasClass('bucket-name') || $link.hasClass('browse-bucket-button')) {
                     e.preventDefault();
-                    self.navigateTo({ bucket: $link.data('bucket') });
+                    self.navigateTo({bucket: $link.data('bucket')});
                     return;
                 }
 
@@ -140,7 +140,7 @@
         /**
          * Bind search input handlers
          */
-        bindSearchHandlers: function() {
+        bindSearchHandlers: function () {
             var self = this;
 
             // Search input with debounce
@@ -167,7 +167,7 @@
         /**
          * Bind load more handler for paginated content
          */
-        bindLoadMoreHandler: function() {
+        bindLoadMoreHandler: function () {
             var self = this;
 
             // Load more button
@@ -295,7 +295,7 @@
          * @param {Window} parent The parent window
          * @return {string} The detected context
          */
-        detectCallingContext: function(parent) {
+        detectCallingContext: function (parent) {
             if (parent.edd_fileurl && parent.edd_filename) {
                 return 'edd';
             } else if (parent.wc_target_input && parent.wc_media_frame_context === 'product_file') {
@@ -311,7 +311,7 @@
          * @param {Window} parent The parent window
          * @param {Object} fileData The selected file data
          */
-        handleEddSelection: function(parent, fileData) {
+        handleEddSelection: function (parent, fileData) {
             parent.jQuery(parent.edd_filename).val(fileData.fileName);
             parent.jQuery(parent.edd_fileurl).val(fileData.url);
             parent.tb_remove();
@@ -322,7 +322,7 @@
          * @param {Window} parent The parent window
          * @param {Object} fileData The selected file data
          */
-        handleWooCommerceSelection: function(parent, fileData) {
+        handleWooCommerceSelection: function (parent, fileData) {
             parent.jQuery(parent.wc_target_input).val(fileData.url);
             var $filenameInput = parent.jQuery(parent.wc_target_input)
                 .closest('tr')
@@ -339,7 +339,7 @@
          * @param {Window} parent The parent window
          * @param {Object} fileData The selected file data
          */
-        handleWordPressEditorSelection: function(parent, fileData) {
+        handleWordPressEditorSelection: function (parent, fileData) {
             try {
                 // Try active editor first
                 if (parent.wp.media.editor.activeEditor) {
@@ -364,6 +364,10 @@
             }
         },
 
+        /**
+         * Delete a file from S3
+         * @param {jQuery} $button The clicked delete button
+         */
         /**
          * Delete a file from S3
          * @param {jQuery} $button The clicked delete button
@@ -406,6 +410,9 @@
                             self.updateTotalCount(false);
                             self.refreshSearch();
                         });
+
+                        // Clear cache to ensure deleted file doesn't reappear
+                        self.clearS3Cache(bucket, key);
                     } else {
                         // Show error notification
                         self.showNotification(response.data.message || self.i18n.deleteError, 'error');
@@ -420,10 +427,44 @@
         },
 
         /**
+         * Clear S3 cache for objects after file operations
+         * @param {string} bucket Bucket name
+         * @param {string} key Object key (optional, used to determine prefix)
+         */
+        clearS3Cache: function (bucket, key) {
+            var self = this;
+
+            // Extract prefix from key (everything before the last slash)
+            var prefix = '';
+            if (key && key.includes('/')) {
+                prefix = key.substring(0, key.lastIndexOf('/') + 1);
+            }
+
+            // Clear cache using the same pattern as uploads
+            $.ajax({
+                url: S3BrowserGlobalConfig.ajaxUrl,
+                type: 'POST',
+                data: {
+                    action: 's3_clear_cache_' + S3BrowserGlobalConfig.providerId,
+                    type: 'objects',
+                    bucket: bucket,
+                    prefix: prefix,
+                    nonce: S3BrowserGlobalConfig.nonce
+                },
+                success: function (response) {
+                    console.log('Cache cleared successfully after file deletion');
+                },
+                error: function () {
+                    console.error('Failed to clear cache after file deletion');
+                }
+            });
+        },
+
+        /**
          * Reset a button to its default state
          * @param {jQuery} $button The button to reset
          */
-        resetButtonState: function($button) {
+        resetButtonState: function ($button) {
             $button.prop('disabled', false)
                 .find('.dashicons').removeClass('spin');
         },
@@ -517,7 +558,7 @@
          * Reset refresh button state
          * @param {jQuery} $button The button to reset
          */
-        resetRefreshButton: function($button) {
+        resetRefreshButton: function ($button) {
             $button.removeClass('refreshing')
                 .find('.dashicons').removeClass('spin');
         },
@@ -578,7 +619,7 @@
          * @param {Object} response AJAX response
          * @param {jQuery} $button Load more button
          */
-        handleLoadMoreSuccess: function(response, $button) {
+        handleLoadMoreSuccess: function (response, $button) {
             var $tbody = $('.wp-list-table tbody');
 
             // Append new rows
@@ -612,7 +653,7 @@
          * @param {jQuery} $button The button to update
          * @param {string} token The new continuation token
          */
-        updateLoadMoreButton: function($button, token) {
+        updateLoadMoreButton: function ($button, token) {
             $button.data('token', token)
                 .find('.s3-button-text').text(this.i18n.loadMoreItems)
                 .end()
@@ -691,7 +732,7 @@
          * @param {jQuery} $stats Stats element
          * @param {string} searchTerm Search term
          */
-        showNoSearchResults: function($tbody, $stats, searchTerm) {
+        showNoSearchResults: function ($tbody, $stats, searchTerm) {
             $stats.text(this.i18n.noMatchesFound);
             var colCount = $('.wp-list-table thead th').length;
 
@@ -844,7 +885,7 @@
          * @param {Object} response AJAX response
          * @param {jQuery} $button The clicked button
          */
-        updateFavoriteButtons: function(response, $button) {
+        updateFavoriteButtons: function (response, $button) {
             var self = this;
 
             // Reset all buttons
