@@ -15,6 +15,8 @@ declare( strict_types=1 );
 
 namespace ArrayPress\S3\Utils;
 
+use ArrayPress\S3\Abstracts\Provider;
+
 /**
  * Class Detect
  *
@@ -69,6 +71,17 @@ class Detect {
 	}
 
 	/**
+	 * Check if a URL belongs to a specific provider
+	 *
+	 * @param string   $url      URL to check
+	 * @param Provider $provider Provider instance
+	 * @return bool
+	 */
+	public static function is_provider_url( string $url, Provider $provider ): bool {
+		return $provider->is_provider_url( $url );
+	}
+
+	/**
 	 * Check if a path has a file extension
 	 *
 	 * @param string $path Full path to check
@@ -103,24 +116,6 @@ class Detect {
 	 */
 	public static function is_directory( string $object ): bool {
 		return ! File::has_extension( $object ) || str_ends_with( $object, '/' );
-	}
-
-	/**
-	 * Check if path is R2 format (bucket/object)
-	 */
-	private function is_r2_path( $path ) {
-		return ! preg_match( '/^https?:\/\//', $path ) &&
-		       ! preg_match( '/^\//', $path ) &&
-		       ! preg_match( '/^\[.*\]$/', $path ) &&
-		       strpos( $path, '/' ) !== false;
-	}
-
-	/**
-	 * Check if URL is an R2 URL
-	 */
-	private function is_r2_url( $url ) {
-		return strpos( $url, 'r2.cloudflarestorage.com' ) !== false ||
-		       strpos( $url, '.r2.dev' ) !== false;
 	}
 
 }

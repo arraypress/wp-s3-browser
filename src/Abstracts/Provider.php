@@ -20,7 +20,7 @@ use ArrayPress\S3\Utils\Encode;
 use InvalidArgumentException;
 
 /**
- * Class AbstractProvider
+ * Class Provider
  */
 abstract class Provider implements ProviderInterface {
 
@@ -37,13 +37,6 @@ abstract class Provider implements ProviderInterface {
 	 * @var string
 	 */
 	protected string $label;
-
-	/**
-	 * Endpoint pattern
-	 *
-	 * @var string
-	 */
-	protected string $endpoint_pattern;
 
 	/**
 	 * Whether to use path-style URLs
@@ -125,6 +118,20 @@ abstract class Provider implements ProviderInterface {
 	}
 
 	/**
+	 * Get provider endpoint
+	 *
+	 * @return string
+	 */
+	abstract public function get_endpoint(): string;
+
+	/**
+	 * Get default region
+	 *
+	 * @return string
+	 */
+	abstract public function get_default_region(): string;
+
+	/**
 	 * Check if the provider uses path-style URLs
 	 *
 	 * @return bool
@@ -190,165 +197,77 @@ abstract class Provider implements ProviderInterface {
 	}
 
 	/**
-	 * Get available regions as an associative array of code => label
+	 * Check if a URL belongs to this provider
 	 *
-	 * @return array
+	 * @param string $url URL to check
+	 *
+	 * @return bool True if URL belongs to this provider
 	 */
-	public function get_available_regions(): array {
-		$result = [];
+	public function is_provider_url( string $url ): bool {
+		if ( empty( $url ) ) {
+			return false;
+		}
 
-		foreach ( $this->regions as $code => $region ) {
-			if ( is_array( $region ) ) {
-				$result[ $code ] = $region['label'] ?? $code;
-			} else {
-				$result[ $code ] = $region;
+		// Remove protocol for easier matching
+		$url_without_protocol = preg_replace( '/^https?:\/\//', '', $url );
+
+		// Check against main endpoint
+		$main_endpoint = $this->get_endpoint();
+		if ( $this->url_matches_endpoint( $url_without_protocol, $main_endpoint ) ) {
+			return true;
+		}
+
+		// Check against alternative endpoints (dev, staging, etc.)
+		$alternative_endpoints = $this->get_alternative_endpoints();
+		foreach ( $alternative_endpoints as $endpoint ) {
+			if ( $this->url_matches_endpoint( $url_without_protocol, $endpoint ) ) {
+				return true;
 			}
 		}
 
-		return $result;
-	}
-
-	/**
-	 * Get list of available region codes
-	 *
-	 * @return array
-	 */
-	public function get_region_codes(): array {
-		return array_keys( $this->regions );
-	}
-
-	/**
-	 * Get comma-separated list of available region codes
-	 *
-	 * @return string
-	 */
-	public function get_region_codes_list(): string {
-		return implode( ', ', $this->get_region_codes() );
-	}
-
-	/**
-	 * Get region data by code
-	 *
-	 * @param string $region_code Region code
-	 *
-	 * @return array|null Region data or null if not found
-	 */
-	public function get_region_data( string $region_code ): ?array {
-		if ( ! isset( $this->regions[ $region_code ] ) ) {
-			return null;
+		// Check against configured custom domains
+		$custom_domains = $this->get_all_custom_domains();
+		foreach ( $custom_domains as $domain ) {
+			if ( str_starts_with( $url_without_protocol, $domain ) ) {
+				return true;
+			}
 		}
 
-		$region = $this->regions[ $region_code ];
-
-		if ( is_array( $region ) ) {
-			return $region;
-		}
-
-		return [
-			'label' => $region,
-			'code'  => $region_code
-		];
-	}
-
-	/**
-	 * Get region attribute value
-	 *
-	 * @param string $region_code   Region code
-	 * @param string $attribute     Attribute name
-	 * @param mixed  $default_value Default value if attribute doesn't exist
-	 *
-	 * @return mixed Attribute value or default
-	 */
-	public function get_region_attribute( string $region_code, string $attribute, $default_value = null ) {
-		$region_data = $this->get_region_data( $region_code );
-		if ( ! $region_data ) {
-			return $default_value;
-		}
-
-		return $region_data[ $attribute ] ?? $default_value;
-	}
-
-	/**
-	 * Get current region's attribute value
-	 *
-	 * @param string $attribute     Attribute name
-	 * @param mixed  $default_value Default value if attribute doesn't exist
-	 *
-	 * @return mixed Attribute value or default
-	 */
-	public function get_current_region_attribute( string $attribute, $default_value = null ) {
-		return $this->get_region_attribute( $this->region, $attribute, $default_value );
-	}
-
-	/**
-	 * Get parameter value
-	 *
-	 * @param string $key     Parameter key
-	 * @param mixed  $default Default value if parameter doesn't exist
-	 *
-	 * @return mixed Parameter value or default
-	 */
-	protected function get_param( string $key, $default = null ) {
-		return $this->params[ $key ] ?? $default;
-	}
-
-	/**
-	 * Check if the provider has integrated CDN
-	 *
-	 * @return bool Default is false, providers can override
-	 */
-	public function has_integrated_cdn(): bool {
 		return false;
 	}
 
 	/**
-	 * Get CDN URL for a bucket (if supported)
+	 * Extract bucket and object from a provider URL
 	 *
-	 * @param string $bucket Bucket name
-	 * @param string $object Optional object key
+	 * @param string $url Provider URL
 	 *
-	 * @return string|null CDN URL or null if not supported
+	 * @return array|null Array with 'bucket' and 'object' keys, or null if invalid
 	 */
-	public function get_cdn_url( string $bucket, string $object = '' ): ?string {
-		if ( ! $this->has_integrated_cdn() ) {
+	public function parse_provider_url( string $url ): ?array {
+		if ( ! $this->is_provider_url( $url ) ) {
 			return null;
 		}
 
-		// Base implementation - providers should override this
-		return $this->format_url( $bucket, $object );
-	}
+		// Remove protocol and query parameters
+		$url_without_protocol = preg_replace( '/^https?:\/\//', '', $url );
+		$url_without_protocol = strtok( $url_without_protocol, '?' );
 
-	/**
-	 * Get public URL for a bucket (if configured)
-	 *
-	 * @param string $bucket Bucket name
-	 * @param string $object Optional object key
-	 *
-	 * @return string|null Public URL or null if not configured
-	 */
-	public function get_public_url( string $bucket, string $object = '' ): ?string {
-		// Check if a custom domain is configured
-		$custom_domain = $this->get_param( 'custom_domain_' . $bucket );
-		if ( ! empty( $custom_domain ) ) {
-			return 'https://' . $custom_domain . '/' . ltrim( $object, '/' );
+		// Try path-style parsing first if this provider uses it
+		if ( $this->uses_path_style() ) {
+			$result = $this->parse_path_style_url( $url_without_protocol );
+			if ( $result ) {
+				return $result;
+			}
 		}
 
-		// Check if a public bucket URL is configured
-		$public_url = $this->get_param( 'public_url_' . $bucket );
-		if ( ! empty( $public_url ) ) {
-			return rtrim( $public_url, '/' ) . '/' . ltrim( $object, '/' );
+		// Try virtual-hosted style parsing
+		$result = $this->parse_virtual_hosted_style_url( $url_without_protocol );
+		if ( $result ) {
+			return $result;
 		}
 
-		return null;
-	}
-
-	/**
-	 * Check if the provider supports public buckets
-	 *
-	 * @return bool Default is false, providers can override
-	 */
-	public function supports_public_buckets(): bool {
-		return false;
+		// Try custom domain parsing
+		return $this->parse_custom_domain_url( $url_without_protocol );
 	}
 
 	/**
@@ -366,31 +285,158 @@ abstract class Provider implements ProviderInterface {
 	}
 
 	/**
-	 * Set public URL for a bucket
+	 * Get parameter value
 	 *
-	 * @param string $bucket     Bucket name
-	 * @param string $public_url Public URL
+	 * @param string $key     Parameter key
+	 * @param mixed  $default Default value if parameter doesn't exist
 	 *
-	 * @return self
+	 * @return mixed Parameter value or default
 	 */
-	public function set_public_url( string $bucket, string $public_url ): self {
-		$this->params[ 'public_url_' . $bucket ] = $public_url;
-
-		return $this;
+	protected function get_param( string $key, $default = null ) {
+		return $this->params[ $key ] ?? $default;
 	}
 
 	/**
-	 * Set a parameter value
+	 * Get alternative endpoints for development/staging
+	 * Override in specific providers
 	 *
-	 * @param string $key   Parameter key
-	 * @param mixed  $value Parameter value
-	 *
-	 * @return self
+	 * @return array Array of alternative endpoint hostnames
 	 */
-	public function set_param( string $key, $value ): self {
-		$this->params[ $key ] = $value;
+	protected function get_alternative_endpoints(): array {
+		return [];
+	}
 
-		return $this;
+	/**
+	 * Get all configured custom domains
+	 *
+	 * @return array Array of custom domains
+	 */
+	protected function get_all_custom_domains(): array {
+		$domains = [];
+
+		foreach ( $this->params as $key => $value ) {
+			if ( str_starts_with( $key, 'custom_domain_' ) && ! empty( $value ) ) {
+				$domains[] = $value;
+			}
+		}
+
+		return $domains;
+	}
+
+	/**
+	 * Check if URL matches an endpoint pattern
+	 *
+	 * @param string $url_without_protocol URL without protocol
+	 * @param string $endpoint             Endpoint to match against
+	 *
+	 * @return bool
+	 */
+	protected function url_matches_endpoint( string $url_without_protocol, string $endpoint ): bool {
+		// Direct match
+		if ( str_starts_with( $url_without_protocol, $endpoint ) ) {
+			return true;
+		}
+
+		// Virtual-hosted style: bucket.endpoint
+		$pattern = '/^[^.]+\.' . preg_quote( $endpoint, '/' ) . '/';
+		if ( preg_match( $pattern, $url_without_protocol ) ) {
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
+	 * Parse path-style URL (host.com/bucket/object)
+	 *
+	 * @param string $url_without_protocol URL without protocol
+	 *
+	 * @return array|null
+	 */
+	protected function parse_path_style_url( string $url_without_protocol ): ?array {
+		// Split by slash
+		$parts = explode( '/', $url_without_protocol );
+
+		if ( count( $parts ) < 2 ) {
+			return null;
+		}
+
+		// Remove the host part
+		array_shift( $parts );
+
+		if ( empty( $parts ) ) {
+			return null;
+		}
+
+		$bucket = array_shift( $parts );
+		$object = implode( '/', $parts );
+
+		return [
+			'bucket' => $bucket,
+			'object' => $object
+		];
+	}
+
+	/**
+	 * Parse virtual-hosted style URL (bucket.host.com/object)
+	 *
+	 * @param string $url_without_protocol URL without protocol
+	 *
+	 * @return array|null
+	 */
+	protected function parse_virtual_hosted_style_url( string $url_without_protocol ): ?array {
+		// Split by slash to separate host from path
+		$first_slash = strpos( $url_without_protocol, '/' );
+
+		if ( $first_slash === false ) {
+			// No path, just host
+			$host = $url_without_protocol;
+			$path = '';
+		} else {
+			$host = substr( $url_without_protocol, 0, $first_slash );
+			$path = substr( $url_without_protocol, $first_slash + 1 );
+		}
+
+		// Extract bucket from subdomain
+		$main_endpoint  = $this->get_endpoint();
+		$bucket_pattern = '/^([^.]+)\.' . preg_quote( $main_endpoint, '/' ) . '$/';
+
+		if ( preg_match( $bucket_pattern, $host, $matches ) ) {
+			return [
+				'bucket' => $matches[1],
+				'object' => $path
+			];
+		}
+
+		return null;
+	}
+
+	/**
+	 * Parse custom domain URL
+	 *
+	 * @param string $url_without_protocol URL without protocol
+	 *
+	 * @return array|null
+	 */
+	protected function parse_custom_domain_url( string $url_without_protocol ): ?array {
+		// Check each custom domain to see which bucket it belongs to
+		foreach ( $this->params as $key => $domain ) {
+			if ( str_starts_with( $key, 'custom_domain_' ) && str_starts_with( $url_without_protocol, $domain ) ) {
+				$bucket = str_replace( 'custom_domain_', '', $key );
+
+				// Extract object path
+				$domain_length = strlen( $domain );
+				$remaining     = substr( $url_without_protocol, $domain_length );
+				$object        = ltrim( $remaining, '/' );
+
+				return [
+					'bucket' => $bucket,
+					'object' => $object ?: ''
+				];
+			}
+		}
+
+		return null;
 	}
 
 }

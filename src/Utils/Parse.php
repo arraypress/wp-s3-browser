@@ -15,6 +15,8 @@ declare( strict_types=1 );
 
 namespace ArrayPress\S3\Utils;
 
+use ArrayPress\S3\Abstracts\Provider;
+
 /**
  * Class Parse
  *
@@ -59,6 +61,20 @@ class Parse {
 			'bucket' => $bucket,
 			'object' => $object
 		];
+	}
+
+	/**
+	 * Parse provider URL into bucket and object components
+	 *
+	 * @param string   $url      URL to parse
+	 * @param Provider $provider Provider instance
+	 *
+	 * @return array|false Array with 'bucket' and 'object' keys or false on failure
+	 */
+	public static function provider_url( string $url, Provider $provider ) {
+		$result = $provider->parse_provider_url( $url );
+
+		return $result ?: false;
 	}
 
 }

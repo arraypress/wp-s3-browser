@@ -15,6 +15,8 @@ declare( strict_types=1 );
 
 namespace ArrayPress\S3\Utils;
 
+use ArrayPress\S3\Abstracts\Provider;
+
 /**
  * Class Build
  *
@@ -54,6 +56,19 @@ class Build {
 	 */
 	public static function url( string $bucket, string $object ): string {
 		return self::path( $bucket, $object, true );
+	}
+
+	/**
+	 * Build provider URL using provider's format_url method
+	 *
+	 * @param string   $bucket   Bucket name
+	 * @param string   $object   Object key
+	 * @param Provider $provider Provider instance
+	 *
+	 * @return string
+	 */
+	public static function provider_url( string $bucket, string $object, Provider $provider ): string {
+		return $provider->format_url( $bucket, $object );
 	}
 
 	/**

@@ -116,6 +116,68 @@ class DigitalOceanSpaces extends Provider {
 	}
 
 	/**
+	 * Get alternative endpoints for DigitalOcean CDN URLs
+	 *
+	 * @return array Array of alternative endpoint patterns
+	 */
+	protected function get_alternative_endpoints(): array {
+		$alternatives = [];
+
+		// DigitalOcean Spaces CDN endpoint
+		$alternatives[] = $this->region . '.cdn.digitaloceanspaces.com';
+
+		// Check for custom CDN domains
+		foreach ( $this->params as $key => $value ) {
+			if ( str_starts_with( $key, 'custom_cdn_' ) && ! empty( $value ) ) {
+				$alternatives[] = $value;
+			}
+		}
+
+		return $alternatives;
+	}
+
+	/**
+	 * Override URL matching to handle CDN URLs
+	 *
+	 * @param string $url_without_protocol URL without protocol
+	 * @param string $endpoint             Endpoint to match against
+	 *
+	 * @return bool
+	 */
+	protected function url_matches_endpoint( string $url_without_protocol, string $endpoint ): bool {
+		// Handle CDN URLs: bucket.region.cdn.digitaloceanspaces.com
+		if ( str_contains( $endpoint, '.cdn.digitaloceanspaces.com' ) ) {
+			$pattern = '/^[^.]+\.' . preg_quote( $endpoint, '/' ) . '/';
+			return preg_match( $pattern, $url_without_protocol );
+		}
+
+		// Use parent logic for standard endpoints and custom CDN domains
+		return parent::url_matches_endpoint( $url_without_protocol, $endpoint );
+	}
+
+	/**
+	 * Parse CDN URLs
+	 *
+	 * @param string $url_without_protocol URL without protocol
+	 *
+	 * @return array|null
+	 */
+	protected function parse_virtual_hosted_style_url( string $url_without_protocol ): ?array {
+		// Parse CDN URLs: bucket.region.cdn.digitaloceanspaces.com/object
+		$cdn_pattern = '/^([^.]+)\.' . preg_quote( $this->region, '/' ) . '\.cdn\.digitaloceanspaces\.com(?:\/(.*))?$/';
+
+		if ( preg_match( $cdn_pattern, $url_without_protocol, $matches ) ) {
+			return [
+				'bucket' => $matches[1],
+				'object' => $matches[2] ?? ''
+			];
+		}
+
+		// Fall back to parent logic for standard virtual-hosted URLs
+		return parent::parse_virtual_hosted_style_url( $url_without_protocol );
+	}
+
+	/**
 	 * Check if account ID is required
 	 *
 	 * @return bool

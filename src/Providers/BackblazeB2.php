@@ -119,6 +119,67 @@ class BackblazeB2 extends Provider {
 	}
 
 	/**
+	 * Get alternative endpoints for Backblaze public download URLs
+	 *
+	 * @return array Array of alternative endpoint patterns
+	 */
+	protected function get_alternative_endpoints(): array {
+		$alternatives = [];
+		$account_id = $this->get_param( 'account_id' );
+
+		if ( $account_id ) {
+			// Backblaze direct download URLs: f{accountId}.backblazeb2.com
+			$alternatives[] = 'f' . $account_id . '.backblazeb2.com';
+		}
+
+		return $alternatives;
+	}
+
+	/**
+	 * Override URL matching to handle Backblaze's download URLs
+	 *
+	 * @param string $url_without_protocol URL without protocol
+	 * @param string $endpoint             Endpoint to match against
+	 *
+	 * @return bool
+	 */
+	protected function url_matches_endpoint( string $url_without_protocol, string $endpoint ): bool {
+		// Handle Backblaze download URLs: f{accountId}.backblazeb2.com/file/bucket/object
+		if ( str_starts_with( $endpoint, 'f' ) && str_ends_with( $endpoint, '.backblazeb2.com' ) ) {
+			return str_starts_with( $url_without_protocol, $endpoint );
+		}
+
+		// Use parent logic for standard endpoints
+		return parent::url_matches_endpoint( $url_without_protocol, $endpoint );
+	}
+
+	/**
+	 * Parse Backblaze download URLs
+	 *
+	 * @param string $url_without_protocol URL without protocol
+	 *
+	 * @return array|null
+	 */
+	protected function parse_path_style_url( string $url_without_protocol ): ?array {
+		$account_id = $this->get_param( 'account_id' );
+
+		if ( $account_id ) {
+			// Parse Backblaze download URLs: f{accountId}.backblazeb2.com/file/bucket/object
+			$download_pattern = '/^f' . preg_quote( $account_id, '/' ) . '\.backblazeb2\.com\/file\/([^\/]+)\/(.*)$/';
+
+			if ( preg_match( $download_pattern, $url_without_protocol, $matches ) ) {
+				return [
+					'bucket' => $matches[1],
+					'object' => $matches[2]
+				];
+			}
+		}
+
+		// Fall back to parent logic for standard path-style URLs
+		return parent::parse_path_style_url( $url_without_protocol );
+	}
+
+	/**
 	 * Check if account ID is required
 	 *
 	 * @return bool
@@ -145,7 +206,7 @@ class BackblazeB2 extends Provider {
 	 * @return string|null Public URL or null if public bucket is not configured
 	 */
 	public function get_public_url( string $bucket, string $object = '' ): ?string {
-		// First try the parent method
+		// First try the parent method for custom domains
 		$url = parent::get_public_url( $bucket, $object );
 		if ( $url ) {
 			return $url;
