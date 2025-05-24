@@ -18,187 +18,110 @@ namespace ArrayPress\S3\Traits\Client;
 use ArrayPress\S3\Interfaces\Response as ResponseInterface;
 use ArrayPress\S3\Responses\ErrorResponse;
 use ArrayPress\S3\Responses\SuccessResponse;
-use ArrayPress\S3\Responses\ObjectsResponse;
 use ArrayPress\S3\Utils\Directory;
 use WP_Error;
-use Generator;
 
 /**
  * Trait ObjectOperations
  */
-trait Objects {
+trait Item {
 
 	/**
-	 * Get objects in a bucket
+	 * Check if multiple objects exist in a bucket
 	 *
-	 * @param string $bucket             Bucket name
-	 * @param int    $max_keys           Maximum number of objects to return
-	 * @param string $prefix             Prefix to filter objects
-	 * @param string $delimiter          Delimiter (e.g., '/' for folder-like structure)
-	 * @param string $continuation_token Continuation token for pagination
-	 * @param bool   $use_cache          Whether to use cache
+	 * @param string $bucket      Bucket name
+	 * @param array  $object_keys Array of object keys to check
+	 * @param bool   $use_cache   Whether to use cache
 	 *
-	 * @return ResponseInterface|WP_Error Response or error
+	 * @return ResponseInterface Response with existence info for all objects
 	 */
-	public function get_objects(
-		string $bucket,
-		int $max_keys = 1000,
-		string $prefix = '',
-		string $delimiter = '/',
-		string $continuation_token = '',
-		bool $use_cache = true
-	) {
-		// Check cache if enabled
-		if ( $use_cache && $this->is_cache_enabled() ) {
-			$cache_key = $this->get_cache_key( 'objects_' . $bucket, [
-				'max_keys'           => $max_keys,
-				'prefix'             => $prefix,
-				'delimiter'          => $delimiter,
-				'continuation_token' => $continuation_token
-			] );
+	public function objects_exist( string $bucket, array $object_keys, bool $use_cache = true ): ResponseInterface {
+		if ( empty( $bucket ) ) {
+			return new ErrorResponse(
+				__( 'Bucket name is required', 'arraypress' ),
+				'invalid_parameters',
+				400
+			);
+		}
 
-			$cached = $this->get_from_cache( $cache_key );
-			if ( $cached !== false ) {
-				return $cached;
+		if ( empty( $object_keys ) ) {
+			return new ErrorResponse(
+				__( 'At least one object key is required', 'arraypress' ),
+				'invalid_parameters',
+				400
+			);
+		}
+
+		$results    = [];
+		$all_exist  = true;
+		$none_exist = true;
+		$errors     = [];
+
+		foreach ( $object_keys as $object_key ) {
+			if ( ! is_string( $object_key ) || empty( $object_key ) ) {
+				$errors[] = sprintf( __( 'Invalid object key: %s', 'arraypress' ), $object_key );
+				continue;
+			}
+
+			$check_result = $this->object_exists( $bucket, $object_key, $use_cache );
+
+			if ( is_wp_error( $check_result ) ) {
+				$errors[]               = sprintf(
+					__( 'Error checking object "%s": %s', 'arraypress' ),
+					$object_key,
+					$check_result->get_error_message()
+				);
+				$results[ $object_key ] = [
+					'exists'   => null,
+					'error'    => $check_result->get_error_message(),
+					'metadata' => null
+				];
+				$all_exist              = false;
+			} else {
+				$data   = $check_result->get_data();
+				$exists = $data['exists'] ?? false;
+
+				$results[ $object_key ] = [
+					'exists'   => $exists,
+					'error'    => null,
+					'metadata' => $exists ? ( $data['metadata'] ?? null ) : null
+				];
+
+				if ( $exists ) {
+					$none_exist = false;
+				} else {
+					$all_exist = false;
+				}
 			}
 		}
 
-		// Use signer to list objects
-		$result = $this->signer->list_objects(
-			$bucket,
-			$max_keys,
-			$prefix,
-			$delimiter,
-			$continuation_token
+		// Determine overall status
+		$status_code = 200;
+		if ( $all_exist && empty( $errors ) ) {
+			$message = sprintf( __( 'All objects exist in bucket "%s"', 'arraypress' ), $bucket );
+		} elseif ( $none_exist && empty( $errors ) ) {
+			$message     = sprintf( __( 'None of the objects exist in bucket "%s"', 'arraypress' ), $bucket );
+			$status_code = 404;
+		} else {
+			$message     = sprintf( __( 'Mixed results for object existence in bucket "%s"', 'arraypress' ), $bucket );
+			$status_code = 207; // Multi-Status
+		}
+
+		return new SuccessResponse(
+			$message,
+			$status_code,
+			[
+				'bucket'  => $bucket,
+				'objects' => $results,
+				'summary' => [
+					'total_checked' => count( $object_keys ),
+					'all_exist'     => $all_exist,
+					'none_exist'    => $none_exist,
+					'error_count'   => count( $errors )
+				],
+				'errors'  => $errors
+			]
 		);
-
-		// Handle errors
-		if ( is_wp_error( $result ) ) {
-			return $result;
-		}
-
-		// Debug logging if enabled
-		if ( $this->debug ) {
-			$this->log_debug( 'Client: Raw result from signer for objects:', $result );
-		}
-
-		// Cache the result if successful
-		if ( $use_cache && $this->is_cache_enabled() && $result->is_successful() ) {
-			$this->save_to_cache( $cache_key, $result );
-		}
-
-		return $result;
-	}
-
-	/**
-	 * Get objects as models
-	 *
-	 * @param string $bucket             Bucket name
-	 * @param int    $max_keys           Maximum number of objects to return
-	 * @param string $prefix             Prefix to filter objects
-	 * @param string $delimiter          Delimiter (e.g., '/' for folder-like structure)
-	 * @param string $continuation_token Continuation token for pagination
-	 * @param bool   $use_cache          Whether to use cache
-	 *
-	 * @return array|WP_Error Array of models or WP_Error
-	 */
-	public function get_object_models(
-		string $bucket,
-		int $max_keys = 1000,
-		string $prefix = '',
-		string $delimiter = '/',
-		string $continuation_token = '',
-		bool $use_cache = true
-	) {
-		// Get regular object response
-		$response = $this->get_objects(
-			$bucket,
-			$max_keys,
-			$prefix,
-			$delimiter,
-			$continuation_token,
-			$use_cache
-		);
-
-		// Handle errors
-		if ( is_wp_error( $response ) ) {
-			return $response;
-		}
-
-		// Check if the response is an ErrorResponse and convert it to WP_Error
-		if ( $response instanceof ErrorResponse ) {
-			return new WP_Error(
-				$response->get_error_code(),
-				$response->get_error_message(),
-				[ 'status' => $response->get_status_code() ]
-			);
-		}
-
-		if ( ! ( $response instanceof ObjectsResponse ) ) {
-			return new WP_Error(
-				'invalid_response',
-				'Expected ObjectsResponse but got ' . get_class( $response )
-			);
-		}
-
-		// Return result using response object's transformation methods
-		return [
-			'objects'            => $response->to_object_models(),
-			'prefixes'           => $response->to_prefix_models(),
-			'truncated'          => $response->is_truncated(),
-			'continuation_token' => $response->get_continuation_token(),
-			'response_object'    => $response  // Return the response object too
-		];
-	}
-
-	/**
-	 * Get objects as models using an iterator for automatic pagination
-	 *
-	 * @param string $bucket    Bucket name
-	 * @param string $prefix    Prefix to filter objects
-	 * @param string $delimiter Delimiter (e.g., '/' for folder-like structure)
-	 * @param int    $max_keys  Maximum number of objects to return per request
-	 * @param bool   $use_cache Whether to use cache
-	 *
-	 * @return Generator|WP_Error Generator yielding models or WP_Error
-	 */
-	public function get_objects_iterator(
-		string $bucket,
-		string $prefix = '',
-		string $delimiter = '/',
-		int $max_keys = 1000,
-		bool $use_cache = true
-	) {
-		$continuation_token = '';
-
-		do {
-			$result = $this->get_object_models(
-				$bucket,
-				$max_keys,
-				$prefix,
-				$delimiter,
-				$continuation_token,
-				$use_cache
-			);
-
-			// Check for errors
-			if ( is_wp_error( $result ) ) {
-				return $result;
-			}
-
-			// Yield the objects and prefixes
-			foreach ( $result['objects'] as $object ) {
-				yield 'object' => $object;
-			}
-
-			foreach ( $result['prefixes'] as $prefix_model ) {
-				yield 'prefix' => $prefix_model;
-			}
-
-			// Update continuation token for the next iteration
-			$continuation_token = $result['truncated'] ? $result['continuation_token'] : '';
-
-		} while ( ! empty( $continuation_token ) );
 	}
 
 	/**
@@ -425,104 +348,6 @@ trait Objects {
 			[
 				'bucket'     => $bucket,
 				'object_key' => $object_key
-			]
-		);
-	}
-
-	/**
-	 * Check if multiple objects exist in a bucket
-	 *
-	 * @param string $bucket      Bucket name
-	 * @param array  $object_keys Array of object keys to check
-	 * @param bool   $use_cache   Whether to use cache
-	 *
-	 * @return ResponseInterface Response with existence info for all objects
-	 */
-	public function objects_exist( string $bucket, array $object_keys, bool $use_cache = true ): ResponseInterface {
-		if ( empty( $bucket ) ) {
-			return new ErrorResponse(
-				__( 'Bucket name is required', 'arraypress' ),
-				'invalid_parameters',
-				400
-			);
-		}
-
-		if ( empty( $object_keys ) ) {
-			return new ErrorResponse(
-				__( 'At least one object key is required', 'arraypress' ),
-				'invalid_parameters',
-				400
-			);
-		}
-
-		$results    = [];
-		$all_exist  = true;
-		$none_exist = true;
-		$errors     = [];
-
-		foreach ( $object_keys as $object_key ) {
-			if ( ! is_string( $object_key ) || empty( $object_key ) ) {
-				$errors[] = sprintf( __( 'Invalid object key: %s', 'arraypress' ), $object_key );
-				continue;
-			}
-
-			$check_result = $this->object_exists( $bucket, $object_key, $use_cache );
-
-			if ( is_wp_error( $check_result ) ) {
-				$errors[]               = sprintf(
-					__( 'Error checking object "%s": %s', 'arraypress' ),
-					$object_key,
-					$check_result->get_error_message()
-				);
-				$results[ $object_key ] = [
-					'exists'   => null,
-					'error'    => $check_result->get_error_message(),
-					'metadata' => null
-				];
-				$all_exist              = false;
-			} else {
-				$data   = $check_result->get_data();
-				$exists = $data['exists'] ?? false;
-
-				$results[ $object_key ] = [
-					'exists'   => $exists,
-					'error'    => null,
-					'metadata' => $exists ? ( $data['metadata'] ?? null ) : null
-				];
-
-				if ( $exists ) {
-					$none_exist = false;
-				} else {
-					$all_exist = false;
-				}
-			}
-		}
-
-		// Determine overall status
-		$status_code = 200;
-		if ( $all_exist && empty( $errors ) ) {
-			$message = sprintf( __( 'All objects exist in bucket "%s"', 'arraypress' ), $bucket );
-		} elseif ( $none_exist && empty( $errors ) ) {
-			$message     = sprintf( __( 'None of the objects exist in bucket "%s"', 'arraypress' ), $bucket );
-			$status_code = 404;
-		} else {
-			$message     = sprintf( __( 'Mixed results for object existence in bucket "%s"', 'arraypress' ), $bucket );
-			$status_code = 207; // Multi-Status
-		}
-
-		return new SuccessResponse(
-			$message,
-			$status_code,
-			[
-				'bucket'  => $bucket,
-				'objects' => $results,
-				'summary' => [
-					'total_checked' => count( $object_keys ),
-					'all_exist'     => $all_exist,
-					'none_exist'    => $none_exist,
-					'error_count'   => count( $errors )
-				],
-				'errors'  => $errors
 			]
 		);
 	}
