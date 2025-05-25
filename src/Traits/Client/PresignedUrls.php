@@ -18,7 +18,7 @@ namespace ArrayPress\S3\Traits\Client;
 use ArrayPress\S3\Interfaces\Response as ResponseInterface;
 
 /**
- * Trait UploadOperations
+ * Trait PresignedUrls
  */
 trait PresignedUrls {
 

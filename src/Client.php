@@ -20,12 +20,9 @@ use ArrayPress\S3\Traits\Client\Buckets;
 use ArrayPress\S3\Traits\Client\Caching;
 use ArrayPress\S3\Traits\Client\Configuration;
 use ArrayPress\S3\Traits\Client\Folders;
-use ArrayPress\S3\Traits\Client\Items;
-use ArrayPress\S3\Traits\Client\Item;
+use ArrayPress\S3\Traits\Client\Objects;
 use ArrayPress\S3\Traits\Client\Permissions;
 use ArrayPress\S3\Traits\Client\PresignedUrls;
-use ArrayPress\S3\Traits\Client\Rename;
-use ArrayPress\S3\Traits\Client\Upload;
 
 /**
  * Class Client
@@ -35,12 +32,9 @@ class Client {
 	use Buckets;
 	use Configuration;
 	use Folders;
-	use Items;
-	use Item;
+	use Objects;
 	use Permissions;
 	use PresignedUrls;
-	use Rename;
-	use Upload;
 
 	/**
 	 * Provider instance

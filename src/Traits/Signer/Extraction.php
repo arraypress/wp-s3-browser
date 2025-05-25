@@ -166,7 +166,7 @@ trait Extraction {
 			}
 		}
 
-		// If truncated, look for next marker
+		// If truncated, look for the next marker
 		if ( $result['truncated'] ) {
 			$possible_marker_paths = [
 				'NextMarker.value',

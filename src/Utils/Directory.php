@@ -126,4 +126,34 @@ class Directory {
 		return str_ends_with( $path, '/' );
 	}
 
+	/**
+	 * Build a full folder key from current prefix and folder name
+	 *
+	 * @param string $current_prefix Current prefix/path
+	 * @param string $folder_name    Folder name to append
+	 *
+	 * @return string Full folder key with trailing slash
+	 */
+	public static function build_folder_key( string $current_prefix, string $folder_name ): string {
+		// Build the full folder key
+		$folder_key = rtrim( $current_prefix, '/' );
+		if ( ! empty( $folder_key ) ) {
+			$folder_key .= '/';
+		}
+		$folder_key .= $folder_name . '/';
+
+		return $folder_key;
+	}
+
+	/**
+	 * Normalize a folder path by ensuring it has a trailing slash
+	 *
+	 * @param string $folder_path Folder path to normalize
+	 *
+	 * @return string Normalized folder path with trailing slash
+	 */
+	public static function normalize( string $folder_path ): string {
+		return rtrim( $folder_path, '/' ) . '/';
+	}
+
 }

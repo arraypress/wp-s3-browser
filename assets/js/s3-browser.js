@@ -165,32 +165,32 @@
         /**
          * Initialize folder creation functionality
          */
-        initFolderCreation: function() {
+        initFolderCreation: function () {
             this.createFolderModal();
         },
 
         /**
          * Bind folder creation events
          */
-        bindFolderEvents: function() {
+        bindFolderEvents: function () {
             var self = this;
 
             // Create folder button
-            $(document).off('click.s3folder').on('click.s3folder', '#s3-create-folder', function(e) {
+            $(document).off('click.s3folder').on('click.s3folder', '#s3-create-folder', function (e) {
                 e.preventDefault();
                 var $button = $(this);
                 self.openCreateFolderModal($button.data('bucket'), $button.data('prefix'));
             });
 
             // Modal close events
-            $(document).off('click.s3modal').on('click.s3modal', '.s3-folder-modal-overlay, .s3-folder-modal-close', function(e) {
+            $(document).off('click.s3modal').on('click.s3modal', '.s3-folder-modal-overlay, .s3-folder-modal-close', function (e) {
                 if (e.target === this) {
                     self.closeFolderModal();
                 }
             });
 
             // Escape key to close modal
-            $(document).off('keydown.s3modal').on('keydown.s3modal', function(e) {
+            $(document).off('keydown.s3modal').on('keydown.s3modal', function (e) {
                 if (e.key === 'Escape' && $('#s3FolderModal').is(':visible')) {
                     self.closeFolderModal();
                 }
@@ -200,7 +200,7 @@
         /**
          * Create folder modal HTML structure
          */
-        createFolderModal: function() {
+        createFolderModal: function () {
             if ($('#s3FolderModal').length > 0) return;
 
             var i18n = this.i18n;
@@ -237,14 +237,20 @@
         /**
          * Bind modal-specific events
          */
-        bindModalEvents: function() {
+        bindModalEvents: function () {
             var self = this;
 
             $('#s3FolderModal')
-                .on('click', '.s3-folder-submit', function() { self.submitFolderForm(); })
-                .on('click', '.s3-folder-cancel', function() { self.closeFolderModal(); })
-                .on('keyup', '#s3FolderNameInput', function(e) { self.validateFolderInput(e); })
-                .on('keydown', '#s3FolderNameInput', function(e) {
+                .on('click', '.s3-folder-submit', function () {
+                    self.submitFolderForm();
+                })
+                .on('click', '.s3-folder-cancel', function () {
+                    self.closeFolderModal();
+                })
+                .on('keyup', '#s3FolderNameInput', function (e) {
+                    self.validateFolderInput(e);
+                })
+                .on('keydown', '#s3FolderNameInput', function (e) {
                     if (e.key === 'Enter') {
                         e.preventDefault();
                         self.submitFolderForm();
@@ -255,7 +261,7 @@
         /**
          * Validate folder name input
          */
-        validateFolderInput: function(e) {
+        validateFolderInput: function (e) {
             var folderName = e.target.value.trim();
             var $submit = $('.s3-folder-submit');
             var $error = $('.s3-folder-error');
@@ -273,32 +279,32 @@
         /**
          * Validate folder name
          */
-        validateFolderName: function(folderName) {
+        validateFolderName: function (folderName) {
             var i18n = this.i18n;
 
             if (folderName.length === 0) {
-                return { valid: false, message: i18n.folderNameRequired };
+                return {valid: false, message: i18n.folderNameRequired};
             }
             if (folderName.length > 63) {
-                return { valid: false, message: i18n.folderNameTooLong };
+                return {valid: false, message: i18n.folderNameTooLong};
             }
             if (!/^[a-zA-Z0-9._-]+$/.test(folderName)) {
-                return { valid: false, message: i18n.folderNameInvalidChars };
+                return {valid: false, message: i18n.folderNameInvalidChars};
             }
             if (['.', '-'].includes(folderName[0]) || ['.', '-'].includes(folderName[folderName.length - 1])) {
-                return { valid: false, message: 'Folder name cannot start or end with dots or hyphens' };
+                return {valid: false, message: 'Folder name cannot start or end with dots or hyphens'};
             }
             if (folderName.includes('..')) {
-                return { valid: false, message: 'Folder name cannot contain consecutive dots' };
+                return {valid: false, message: 'Folder name cannot contain consecutive dots'};
             }
 
-            return { valid: true, message: '' };
+            return {valid: true, message: ''};
         },
 
         /**
          * Submit folder creation form
          */
-        submitFolderForm: function() {
+        submitFolderForm: function () {
             var folderName = $('#s3FolderNameInput').val().trim();
             var validation = this.validateFolderName(folderName);
 
@@ -313,7 +319,7 @@
         /**
          * Create folder via AJAX
          */
-        createFolder: function(folderName) {
+        createFolder: function (folderName) {
             var self = this;
             var $modal = $('#s3FolderModal');
             var $elements = {
@@ -334,15 +340,17 @@
                 prefix: this.currentPrefix,
                 folder_name: folderName
             }, {
-                success: function(response) {
+                success: function (response) {
                     self.showNotification(
                         response.data.message || self.i18n.createFolderSuccess.replace('{name}', folderName),
                         'success'
                     );
                     self.closeFolderModal();
-                    setTimeout(function() { window.location.reload(); }, 1500);
+                    setTimeout(function () {
+                        window.location.reload();
+                    }, 1500);
                 },
-                error: function(message) {
+                error: function (message) {
                     $elements.error.text(message).show();
                     self.resetFolderForm();
                 }
@@ -352,7 +360,7 @@
         /**
          * Reset folder form
          */
-        resetFolderForm: function() {
+        resetFolderForm: function () {
             var $modal = $('#s3FolderModal');
             $modal.find('.s3-folder-submit, .s3-folder-cancel').prop('disabled', false);
             $modal.find('.s3-folder-loading').hide();
@@ -361,7 +369,7 @@
         /**
          * Open the create folder modal
          */
-        openCreateFolderModal: function(bucket, prefix) {
+        openCreateFolderModal: function (bucket, prefix) {
             this.currentBucket = bucket;
             this.currentPrefix = prefix || '';
 
@@ -371,13 +379,15 @@
             $('.s3-folder-loading').hide();
 
             $('#s3FolderModal').fadeIn(200);
-            setTimeout(function() { $('#s3FolderNameInput').focus(); }, 250);
+            setTimeout(function () {
+                $('#s3FolderNameInput').focus();
+            }, 250);
         },
 
         /**
          * Close the folder modal
          */
-        closeFolderModal: function() {
+        closeFolderModal: function () {
             $('#s3FolderModal').fadeOut(200);
         },
 
@@ -399,12 +409,12 @@
 
             var context = this.detectCallingContext(parent);
             var handlers = {
-                'edd': function() {
+                'edd': function () {
                     parent.jQuery(parent.edd_filename).val(fileData.fileName);
                     parent.jQuery(parent.edd_fileurl).val(fileData.url);
                     parent.tb_remove();
                 },
-                'woocommerce_file': function() {
+                'woocommerce_file': function () {
                     parent.jQuery(parent.wc_target_input).val(fileData.url);
                     var $filenameInput = parent.jQuery(parent.wc_target_input)
                         .closest('tr').find('input[name="_wc_file_names[]"]');
@@ -413,7 +423,7 @@
                     }
                     parent.wp.media.frame.close();
                 },
-                'wp_editor': function() {
+                'wp_editor': function () {
                     try {
                         if (parent.wp.media.editor.activeEditor) {
                             parent.wp.media.editor.insert(fileData.url);
@@ -469,7 +479,7 @@
                 bucket: $button.data('bucket'),
                 key: $button.data('key')
             }, {
-                success: function(response) {
+                success: function (response) {
                     self.showNotification(response.data.message || self.i18n.deleteSuccess, 'success');
                     $button.closest('tr').fadeOut(300, function () {
                         $(this).remove();
@@ -478,7 +488,7 @@
                         self.refreshSearch();
                     });
                 },
-                error: function(message) {
+                error: function (message) {
                     self.showNotification(message, 'error');
                     self.setButtonLoading($button, false);
                 }
@@ -497,14 +507,14 @@
                 favorite_action: $button.data('action'),
                 post_type: $button.data('post-type')
             }, {
-                success: function(response) {
+                success: function (response) {
                     self.updateFavoriteButtons(response, $button);
                     self.showNotification(response.data.message, 'success');
                 },
-                error: function(message) {
+                error: function (message) {
                     self.showNotification(message, 'error');
                 },
-                complete: function() {
+                complete: function () {
                     $button.removeClass('s3-processing');
                 }
             });
@@ -562,11 +572,13 @@
                 bucket: $button.data('bucket') || '',
                 prefix: $button.data('prefix') || ''
             }, {
-                success: function(response) {
+                success: function (response) {
                     self.showNotification(response.data.message || self.i18n.cacheRefreshed, 'success');
-                    setTimeout(function () { window.location.reload(); }, 1500);
+                    setTimeout(function () {
+                        window.location.reload();
+                    }, 1500);
                 },
-                error: function(message) {
+                error: function (message) {
                     self.showNotification(message, 'error');
                     $button.removeClass('refreshing').find('.dashicons').removeClass('spin');
                 }
@@ -707,14 +719,14 @@
                 prefix: prefix || '',
                 continuation_token: token
             }, {
-                success: function(response) {
+                success: function (response) {
                     self.handleLoadMoreSuccess(response, $button);
                 },
-                error: function(message) {
+                error: function (message) {
                     self.showError(message);
                     self.resetLoadMoreButton($button);
                 },
-                complete: function() {
+                complete: function () {
                     self.isLoading = false;
                 }
             });
@@ -779,7 +791,9 @@
                 $(this).toggleClass('active', isVisible);
 
                 if (!isVisible && !self.hasActiveUploads) {
-                    setTimeout(function () { $('.s3-upload-list').empty(); }, 300);
+                    setTimeout(function () {
+                        $('.s3-upload-list').empty();
+                    }, 300);
                 }
             });
 
@@ -787,7 +801,9 @@
                 if (!self.hasActiveUploads) {
                     $('#s3-upload-container').slideUp(300);
                     $('#s3-toggle-upload').removeClass('active');
-                    setTimeout(function () { $('.s3-upload-list').empty(); }, 300);
+                    setTimeout(function () {
+                        $('.s3-upload-list').empty();
+                    }, 300);
                 } else {
                     self.showNotification(self.i18n.waitForUploads, 'info');
                 }
@@ -823,7 +839,7 @@
         /**
          * Generic AJAX request handler
          */
-        makeAjaxRequest: function(actionSuffix, data, callbacks) {
+        makeAjaxRequest: function (actionSuffix, data, callbacks) {
             var requestData = $.extend({
                 action: actionSuffix + S3BrowserGlobalConfig.providerId,
                 nonce: S3BrowserGlobalConfig.nonce
@@ -834,14 +850,14 @@
                 type: 'POST',
                 data: requestData,
                 dataType: 'json',
-                success: function(response) {
+                success: function (response) {
                     if (response.success) {
                         callbacks.success && callbacks.success(response);
                     } else {
                         callbacks.error && callbacks.error(response.data.message || 'Unknown error occurred');
                     }
                 },
-                error: function() {
+                error: function () {
                     callbacks.error && callbacks.error('Network error occurred');
                 },
                 complete: callbacks.complete
@@ -851,7 +867,7 @@
         /**
          * Set button loading state
          */
-        setButtonLoading: function($button, isLoading) {
+        setButtonLoading: function ($button, isLoading) {
             $button.prop('disabled', isLoading);
             var $icon = $button.find('.dashicons');
 
@@ -896,7 +912,9 @@
             }
 
             $notice.find('p').text(message).end().show();
-            setTimeout(function () { $notice.fadeOut(); }, 5000);
+            setTimeout(function () {
+                $notice.fadeOut();
+            }, 5000);
         },
 
         /**

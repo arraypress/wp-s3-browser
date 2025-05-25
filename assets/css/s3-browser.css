@@ -331,11 +331,6 @@
     border-radius: 2px;
 }
 
-.s3-folder-modal-close:hover {
-    color: #d63638;
-    background: #f0f0f1;
-}
-
 .s3-folder-modal-body {
     padding: 24px;
 }

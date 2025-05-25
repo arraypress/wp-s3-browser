@@ -15,7 +15,9 @@ declare( strict_types=1 );
 
 namespace ArrayPress\S3\Traits\Browser;
 
+use ArrayPress\S3\Interfaces\Response;
 use ArrayPress\S3\Tables\ObjectsTable;
+use ArrayPress\S3\Utils\Directory;
 
 /**
  * Trait AjaxHandlers
@@ -62,9 +64,9 @@ trait AjaxHandlers {
 			return;
 		}
 
-		// Check if operation was successful using is_successful() method
+		// Check if the operation was successful using is_successful() method
 		// Should always return true for SuccessResponse objects
-		if ( $result instanceof \ArrayPress\S3\Interfaces\Response ) {
+		if ( $result instanceof Response ) {
 			if ( ! $result->is_successful() ) {
 				wp_send_json_error( [ 'message' => __( 'Failed to delete object', 'arraypress' ) ] );
 
@@ -76,6 +78,9 @@ trait AjaxHandlers {
 
 			return;
 		}
+
+		// Clear cache to ensure the new folder appears
+		$this->client->clear_all_cache();
 
 		// Send successful response
 		wp_send_json_success( [
@@ -131,13 +136,16 @@ trait AjaxHandlers {
 		}
 
 		// Generate a pre-signed PUT URL for uploading
-		$response = $this->client->get_presigned_upload_url( $bucket, $object_key, 15 ); // 15 minute expiry
+		$response = $this->client->get_presigned_upload_url( $bucket, $object_key ); // 15 minute expiry
 
 		if ( is_wp_error( $response ) ) {
 			wp_send_json_error( [ 'message' => $response->get_error_message() ] );
 
 			return;
 		}
+
+		// Clear cache to ensure the new file appears
+		$this->client->clear_all_cache();
 
 		// Send back the URL
 		wp_send_json_success( [
@@ -296,11 +304,7 @@ trait AjaxHandlers {
 		}
 
 		// Build the full folder key
-		$folder_key = rtrim( $current_prefix, '/' );
-		if ( ! empty( $folder_key ) ) {
-			$folder_key .= '/';
-		}
-		$folder_key .= $folder_name . '/';
+		$folder_key = Directory::build_folder_key( $current_prefix, $folder_name );
 
 		// Create the folder using the client's create_folder method
 		$result = $this->client->create_folder( $bucket, $folder_key );

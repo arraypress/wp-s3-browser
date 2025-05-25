@@ -22,7 +22,7 @@ use ArrayPress\S3\Responses\ErrorResponse;
 use WP_Error;
 
 /**
- * Trait ClientBucketOperations
+ * Trait Buckets
  */
 trait Buckets {
 
@@ -121,6 +121,92 @@ trait Buckets {
 			'owner'           => $response->get_owner(),
 			'response_object' => $response
 		];
+	}
+
+	/**
+	 * Check if multiple buckets exist
+	 *
+	 * @param array $buckets   Array of bucket names to check
+	 * @param bool  $use_cache Whether to use cache
+	 *
+	 * @return ResponseInterface Response with existence info for all buckets
+	 */
+	public function buckets_exist( array $buckets, bool $use_cache = true ): ResponseInterface {
+		if ( empty( $buckets ) ) {
+			return new ErrorResponse(
+				__( 'At least one bucket name is required', 'arraypress' ),
+				'invalid_parameters',
+				400
+			);
+		}
+
+		$results    = [];
+		$all_exist  = true;
+		$none_exist = true;
+		$errors     = [];
+
+		foreach ( $buckets as $bucket ) {
+			if ( ! is_string( $bucket ) || empty( $bucket ) ) {
+				$errors[] = sprintf( __( 'Invalid bucket name: %s', 'arraypress' ), $bucket );
+				continue;
+			}
+
+			$check_result = $this->bucket_exists( $bucket, $use_cache );
+
+			if ( is_wp_error( $check_result ) ) {
+				$errors[]           = sprintf(
+					__( 'Error checking bucket "%s": %s', 'arraypress' ),
+					$bucket,
+					$check_result->get_error_message()
+				);
+				$results[ $bucket ] = [
+					'exists' => null,
+					'error'  => $check_result->get_error_message()
+				];
+				$all_exist          = false;
+			} else {
+				$data   = $check_result->get_data();
+				$exists = $data['exists'] ?? false;
+
+				$results[ $bucket ] = [
+					'exists' => $exists,
+					'error'  => null
+				];
+
+				if ( $exists ) {
+					$none_exist = false;
+				} else {
+					$all_exist = false;
+				}
+			}
+		}
+
+		// Determine overall status
+		$status_code = 200;
+		if ( $all_exist && empty( $errors ) ) {
+			$message = __( 'All buckets exist', 'arraypress' );
+		} elseif ( $none_exist && empty( $errors ) ) {
+			$message     = __( 'None of the buckets exist', 'arraypress' );
+			$status_code = 404;
+		} else {
+			$message     = __( 'Mixed results for bucket existence', 'arraypress' );
+			$status_code = 207; // Multi-Status
+		}
+
+		return new SuccessResponse(
+			$message,
+			$status_code,
+			[
+				'buckets' => $results,
+				'summary' => [
+					'total_checked' => count( $buckets ),
+					'all_exist'     => $all_exist,
+					'none_exist'    => $none_exist,
+					'error_count'   => count( $errors )
+				],
+				'errors'  => $errors
+			]
+		);
 	}
 
 	/**
@@ -249,92 +335,6 @@ trait Buckets {
 			'bucket_check_failed',
 			400,
 			[ 'bucket' => $bucket ]
-		);
-	}
-
-	/**
-	 * Check if multiple buckets exist
-	 *
-	 * @param array $buckets   Array of bucket names to check
-	 * @param bool  $use_cache Whether to use cache
-	 *
-	 * @return ResponseInterface Response with existence info for all buckets
-	 */
-	public function buckets_exist( array $buckets, bool $use_cache = true ): ResponseInterface {
-		if ( empty( $buckets ) ) {
-			return new ErrorResponse(
-				__( 'At least one bucket name is required', 'arraypress' ),
-				'invalid_parameters',
-				400
-			);
-		}
-
-		$results    = [];
-		$all_exist  = true;
-		$none_exist = true;
-		$errors     = [];
-
-		foreach ( $buckets as $bucket ) {
-			if ( ! is_string( $bucket ) || empty( $bucket ) ) {
-				$errors[] = sprintf( __( 'Invalid bucket name: %s', 'arraypress' ), $bucket );
-				continue;
-			}
-
-			$check_result = $this->bucket_exists( $bucket, $use_cache );
-
-			if ( is_wp_error( $check_result ) ) {
-				$errors[]           = sprintf(
-					__( 'Error checking bucket "%s": %s', 'arraypress' ),
-					$bucket,
-					$check_result->get_error_message()
-				);
-				$results[ $bucket ] = [
-					'exists' => null,
-					'error'  => $check_result->get_error_message()
-				];
-				$all_exist          = false;
-			} else {
-				$data   = $check_result->get_data();
-				$exists = $data['exists'] ?? false;
-
-				$results[ $bucket ] = [
-					'exists' => $exists,
-					'error'  => null
-				];
-
-				if ( $exists ) {
-					$none_exist = false;
-				} else {
-					$all_exist = false;
-				}
-			}
-		}
-
-		// Determine overall status
-		$status_code = 200;
-		if ( $all_exist && empty( $errors ) ) {
-			$message = __( 'All buckets exist', 'arraypress' );
-		} elseif ( $none_exist && empty( $errors ) ) {
-			$message     = __( 'None of the buckets exist', 'arraypress' );
-			$status_code = 404;
-		} else {
-			$message     = __( 'Mixed results for bucket existence', 'arraypress' );
-			$status_code = 207; // Multi-Status
-		}
-
-		return new SuccessResponse(
-			$message,
-			$status_code,
-			[
-				'buckets' => $results,
-				'summary' => [
-					'total_checked' => count( $buckets ),
-					'all_exist'     => $all_exist,
-					'none_exist'    => $none_exist,
-					'error_count'   => count( $errors )
-				],
-				'errors'  => $errors
-			]
 		);
 	}
 
