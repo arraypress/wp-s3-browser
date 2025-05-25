@@ -56,8 +56,6 @@
 }
 
 .s3-icon-button .dashicons {
-    margin-right: 4px;
-    margin-bottom: 3px;
     font-size: 16px;
     width: 16px;
     height: 16px;
@@ -81,11 +79,6 @@
 #s3-toggle-upload.active {
     background-color: #135e96;
     border-color: #135e96;
-}
-
-#s3-create-folder,
-#s3-toggle-upload {
-    margin-bottom: 0;
 }
 
 /* Breadcrumbs */
