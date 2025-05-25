@@ -303,10 +303,8 @@ trait AjaxHandlers {
 		}
 		$folder_key .= $folder_name . '/';
 
-		// Create the folder by uploading an empty object with the folder key
-		$result = $this->client->put_object( $bucket, $folder_key, '', [
-			'ContentType' => 'application/x-directory'
-		] );
+		// Create the folder using the client's create_folder method
+		$result = $this->client->create_folder( $bucket, $folder_key );
 
 		if ( is_wp_error( $result ) ) {
 			wp_send_json_error( [ 'message' => $result->get_error_message() ] );
@@ -320,8 +318,8 @@ trait AjaxHandlers {
 			return;
 		}
 
-		// Clear cache to ensure the new folder appears
-		$this->client->clear_cache( 'objects', $bucket, $current_prefix );
+		// For simplicity, always clear all cache regardless of type
+		$this->client->clear_all_cache();
 
 		wp_send_json_success( [
 			'message'    => sprintf( __( 'Folder "%s" created successfully', 'arraypress' ), $folder_name ),
