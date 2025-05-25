@@ -33,8 +33,6 @@ if ( ! class_exists( 'WP_List_Table' ) ) {
  * S3-compatible storage files directly within the WordPress media uploader.
  */
 class Browser {
-
-	// Use all the traits
 	use AjaxHandlers;
 	use Assets;
 	use ContentRendering;

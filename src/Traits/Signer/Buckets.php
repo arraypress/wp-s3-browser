@@ -65,7 +65,7 @@ trait Buckets {
 			$url .= '?' . http_build_query( $query_params );
 		}
 
-		// Debug the request if callback is set
+		// Debug the request if a callback is set
 		$this->debug( "List Buckets Request URL", $url );
 		$this->debug( "List Buckets Request Headers", $headers );
 
