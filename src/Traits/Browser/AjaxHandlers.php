@@ -252,4 +252,83 @@ trait AjaxHandlers {
 		}
 	}
 
+	/**
+	 * Handle AJAX create folder request
+	 *
+	 * @return void
+	 */
+	public function handle_ajax_create_folder(): void {
+		// Verify nonce and capability
+		if ( ! check_ajax_referer( 's3_browser_nonce_' . $this->provider_id, 'nonce', false ) ) {
+			wp_send_json_error( [ 'message' => __( 'Security check failed', 'arraypress' ) ] );
+
+			return;
+		}
+
+		if ( ! current_user_can( $this->capability ) ) {
+			wp_send_json_error( [ 'message' => __( 'You do not have permission to perform this action', 'arraypress' ) ] );
+
+			return;
+		}
+
+		// Get and validate parameters
+		$bucket         = isset( $_POST['bucket'] ) ? sanitize_text_field( $_POST['bucket'] ) : '';
+		$current_prefix = isset( $_POST['prefix'] ) ? sanitize_text_field( $_POST['prefix'] ) : '';
+		$folder_name    = isset( $_POST['folder_name'] ) ? sanitize_text_field( $_POST['folder_name'] ) : '';
+
+		if ( empty( $bucket ) ) {
+			wp_send_json_error( [ 'message' => __( 'Bucket name is required', 'arraypress' ) ] );
+
+			return;
+		}
+
+		if ( empty( $folder_name ) ) {
+			wp_send_json_error( [ 'message' => __( 'Folder name is required', 'arraypress' ) ] );
+
+			return;
+		}
+
+		// Validate folder name
+		$validation_result = $this->validate_folder_name( $folder_name );
+		if ( ! $validation_result['valid'] ) {
+			wp_send_json_error( [ 'message' => $validation_result['message'] ] );
+
+			return;
+		}
+
+		// Build the full folder key
+		$folder_key = rtrim( $current_prefix, '/' );
+		if ( ! empty( $folder_key ) ) {
+			$folder_key .= '/';
+		}
+		$folder_key .= $folder_name . '/';
+
+		// Create the folder by uploading an empty object with the folder key
+		$result = $this->client->put_object( $bucket, $folder_key, '', [
+			'ContentType' => 'application/x-directory'
+		] );
+
+		if ( is_wp_error( $result ) ) {
+			wp_send_json_error( [ 'message' => $result->get_error_message() ] );
+
+			return;
+		}
+
+		if ( ! $result->is_successful() ) {
+			wp_send_json_error( [ 'message' => __( 'Failed to create folder', 'arraypress' ) ] );
+
+			return;
+		}
+
+		// Clear cache to ensure the new folder appears
+		$this->client->clear_cache( 'objects', $bucket, $current_prefix );
+
+		wp_send_json_success( [
+			'message'    => sprintf( __( 'Folder "%s" created successfully', 'arraypress' ), $folder_name ),
+			'folder_key' => $folder_key,
+			'bucket'     => $bucket,
+			'prefix'     => $current_prefix
+		] );
+	}
+
 }

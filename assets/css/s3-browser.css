@@ -246,6 +246,174 @@
     color: #0073aa;
 }
 
+/* Toolbar Buttons Enhancement */
+.s3-toolbar-buttons {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+    align-items: center;
+}
+
+.s3-toolbar-buttons .button {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+#s3-create-folder {
+    font-weight: 500;
+}
+
+#s3-create-folder:hover {
+    background-color: #f0f0f1;
+    border-color: #8c8f94;
+}
+
+/* Folder Creation Modal Styles */
+.s3-folder-creation-container {
+    padding: 0;
+    min-width: 400px;
+}
+
+.s3-folder-creation-container .s3-modal-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid #ddd;
+    background: #fcfcfc;
+}
+
+.s3-folder-creation-container .s3-modal-header h2 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #23282d;
+}
+
+.s3-folder-creation-container .s3-modal-body {
+    padding: 24px;
+}
+
+.s3-folder-creation-container .s3-modal-footer {
+    padding: 16px 24px;
+    border-top: 1px solid #ddd;
+    background: #fcfcfc;
+    text-align: right;
+}
+
+.s3-folder-creation-container .s3-modal-footer .button {
+    margin-left: 8px;
+}
+
+/* Folder Form Styles */
+.s3-folder-field {
+    margin-bottom: 20px;
+}
+
+.s3-folder-field label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 600;
+    color: #23282d;
+}
+
+.s3-folder-field input[type="text"] {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    font-size: 14px;
+    line-height: 1.4;
+    box-sizing: border-box;
+}
+
+.s3-folder-field input[type="text"]:focus {
+    border-color: #0073aa;
+    box-shadow: 0 0 0 1px #0073aa;
+    outline: none;
+}
+
+.s3-folder-field .description {
+    margin-top: 6px;
+    margin-bottom: 0;
+    font-size: 12px;
+    color: #666;
+    line-height: 1.4;
+}
+
+/* Error Styling */
+.s3-folder-error {
+    background: #fff;
+    border-left: 4px solid #d63638;
+    padding: 12px;
+    margin-bottom: 16px;
+    color: #d63638;
+    font-size: 13px;
+    border-radius: 0 3px 3px 0;
+}
+
+/* Loading State */
+.s3-folder-loading {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #666;
+    font-size: 13px;
+    margin-bottom: 16px;
+}
+
+.s3-folder-loading .spinner {
+    float: none;
+    margin: 0;
+}
+
+/* Button States */
+.s3-create-folder-submit:disabled {
+    background: #ccd0d4 !important;
+    border-color: #ccd0d4 !important;
+    color: #a7aaad !important;
+    cursor: not-allowed !important;
+}
+
+/* WordPress Media Modal Overrides */
+.media-modal .s3-folder-creation-container {
+    background: #fff;
+    border-radius: 3px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.7);
+}
+
+/* Responsive Adjustments */
+@media screen and (max-width: 782px) {
+    .s3-toolbar-buttons {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+
+    .s3-toolbar-buttons .button {
+        justify-content: center;
+        width: 100%;
+    }
+
+    .s3-folder-creation-container {
+        min-width: 280px;
+        max-width: 90vw;
+    }
+
+    .s3-folder-creation-container .s3-modal-header,
+    .s3-folder-creation-container .s3-modal-body,
+    .s3-folder-creation-container .s3-modal-footer {
+        padding: 16px;
+    }
+
+    .s3-folder-creation-container .s3-modal-footer {
+        text-align: center;
+    }
+
+    .s3-folder-creation-container .s3-modal-footer .button {
+        margin: 4px;
+        min-width: 100px;
+    }
+}
+
 @keyframes s3-notification-fadeIn {
     from {
         opacity: 0;

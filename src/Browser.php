@@ -19,6 +19,7 @@ use ArrayPress\S3\Traits\Browser\Assets;
 use ArrayPress\S3\Traits\Browser\ContentRendering;
 use ArrayPress\S3\Traits\Browser\Integrations;
 use ArrayPress\S3\Traits\Browser\MediaLibrary;
+use ArrayPress\S3\Traits\Browser\Validation;
 
 // Load WP_List_Table if not loaded
 if ( ! class_exists( 'WP_List_Table' ) ) {
@@ -39,6 +40,7 @@ class Browser {
 	use ContentRendering;
 	use Integrations;
 	use MediaLibrary;
+	use Validation;
 
 	/**
 	 * S3 Client instance
@@ -174,6 +176,7 @@ class Browser {
 		add_action( 'wp_ajax_s3_clear_cache_' . $this->provider_id, [ $this, 'handle_ajax_clear_cache' ] );
 		add_action( 'wp_ajax_s3_get_upload_url_' . $this->provider_id, [ $this, 'handle_ajax_get_upload_url' ] );
 		add_action( 'wp_ajax_s3_delete_object_' . $this->provider_id, [ $this, 'handle_ajax_delete_object' ] );
+		add_action( 'wp_ajax_s3_create_folder_' . $this->provider_id, [ $this, 'handle_ajax_create_folder' ] );
 
 		// Add plugin integrations
 		$this->add_edd_integration();

@@ -1,6 +1,6 @@
 /**
  * S3 Browser Core Functionality
- * Handles browsing, searching, file operations and integrations with WordPress
+ * Handles browsing, searching, file operations, folder creation and integrations with WordPress
  */
 (function ($) {
     'use strict';
@@ -17,6 +17,8 @@
         totalLoadedItems: 0,
         isLoading: false,
         hasActiveUploads: false,
+        folderModal: null,
+        FolderCreationView: null,
 
         // Translation strings
         i18n: {
@@ -40,7 +42,20 @@
             refreshError: 'Failed to refresh data',
             favoritesError: 'Error updating default bucket',
             setDefault: 'Set Default',
-            defaultText: 'Default'
+            defaultText: 'Default',
+            // Folder creation strings
+            newFolder: 'New Folder',
+            createFolder: 'Create Folder',
+            folderName: 'Folder Name',
+            folderNamePlaceholder: 'Enter folder name',
+            folderNameHelp: 'Enter a name for the new folder. Use only letters, numbers, dots, hyphens, and underscores.',
+            createFolderSuccess: 'Folder "{name}" created successfully',
+            createFolderError: 'Failed to create folder',
+            creatingFolder: 'Creating folder...',
+            folderNameRequired: 'Folder name is required',
+            folderNameTooLong: 'Folder name cannot exceed 63 characters',
+            folderNameInvalidChars: 'Folder name can only contain letters, numbers, dots, hyphens, and underscores',
+            cancel: 'Cancel'
         },
 
         /**
@@ -55,6 +70,7 @@
             this.setupAjaxLoading();
             this.countInitialItems();
             this.initUploadToggle();
+            this.initFolderCreation();
         },
 
         /**
@@ -74,6 +90,7 @@
             this.bindClickHandlers();
             this.bindSearchHandlers();
             this.bindLoadMoreHandler();
+            this.bindFolderEvents();
         },
 
         /**
@@ -183,6 +200,236 @@
                     $button
                 );
             });
+        },
+
+        /**
+         * Initialize folder creation functionality
+         */
+        initFolderCreation: function () {
+            this.createFolderModal();
+        },
+
+        /**
+         * Bind folder creation events
+         */
+        bindFolderEvents: function () {
+            var self = this;
+
+            // Create folder button
+            $(document).off('click.s3createfolder').on('click.s3createfolder', '#s3-create-folder', function (e) {
+                e.preventDefault();
+                var $button = $(this);
+                self.openCreateFolderModal($button.data('bucket'), $button.data('prefix'));
+            });
+        },
+
+        /**
+         * Create folder modal using WordPress media modal framework
+         */
+        createFolderModal: function () {
+            var self = this;
+
+            // Only create if wp.media is available and we haven't created it yet
+            if (typeof wp === 'undefined' || typeof wp.media === 'undefined' || this.folderModal) {
+                return;
+            }
+
+            // Create the modal
+            this.folderModal = new wp.media.view.Modal({
+                controller: {
+                    trigger: function () {
+                    }
+                }
+            });
+
+            // Create content view
+            var FolderCreationView = wp.media.View.extend({
+                className: 's3-folder-creation-view',
+                template: wp.template('s3-folder-creation'),
+
+                events: {
+                    'click .s3-create-folder-submit': 'submitForm',
+                    'click .s3-create-folder-cancel': 'closeModal',
+                    'keyup #s3-folder-name-input': 'validateInput',
+                    'keydown #s3-folder-name-input': 'handleEnterKey'
+                },
+
+                initialize: function (options) {
+                    this.bucket = options.bucket || '';
+                    this.prefix = options.prefix || '';
+                },
+
+                render: function () {
+                    this.$el.html(this.template({
+                        bucket: this.bucket,
+                        prefix: this.prefix,
+                        i18n: window.S3Browser.i18n
+                    }));
+                    return this;
+                },
+
+                validateInput: function (e) {
+                    var folderName = e.target.value.trim();
+                    var $submit = this.$('.s3-create-folder-submit');
+                    var $error = this.$('.s3-folder-error');
+
+                    // Clear previous errors
+                    $error.hide();
+
+                    // Validate folder name
+                    var validation = this.validateFolderName(folderName);
+
+                    if (!validation.valid) {
+                        if (folderName.length > 0) {
+                            $error.text(validation.message).show();
+                        }
+                        $submit.prop('disabled', true);
+                    } else {
+                        $submit.prop('disabled', false);
+                    }
+                },
+
+                validateFolderName: function (folderName) {
+                    var i18n = window.S3Browser.i18n;
+
+                    if (folderName.length === 0) {
+                        return {valid: false, message: i18n.folderNameRequired};
+                    }
+
+                    if (folderName.length > 63) {
+                        return {valid: false, message: i18n.folderNameTooLong};
+                    }
+
+                    if (!/^[a-zA-Z0-9._-]+$/.test(folderName)) {
+                        return {valid: false, message: i18n.folderNameInvalidChars};
+                    }
+
+                    if (['.', '-'].includes(folderName[0]) || ['.', '-'].includes(folderName[folderName.length - 1])) {
+                        return {valid: false, message: 'Folder name cannot start or end with dots or hyphens'};
+                    }
+
+                    if (folderName.includes('..')) {
+                        return {valid: false, message: 'Folder name cannot contain consecutive dots'};
+                    }
+
+                    return {valid: true, message: ''};
+                },
+
+                handleEnterKey: function (e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        this.submitForm();
+                    }
+                },
+
+                submitForm: function () {
+                    var folderName = this.$('#s3-folder-name-input').val().trim();
+                    var validation = this.validateFolderName(folderName);
+
+                    if (!validation.valid) {
+                        this.$('.s3-folder-error').text(validation.message).show();
+                        return;
+                    }
+
+                    this.createFolder(folderName);
+                },
+
+                createFolder: function (folderName) {
+                    var self = this;
+                    var $submit = this.$('.s3-create-folder-submit');
+                    var $cancel = this.$('.s3-create-folder-cancel');
+                    var $loading = this.$('.s3-folder-loading');
+                    var $error = this.$('.s3-folder-error');
+
+                    // Show loading state
+                    $submit.prop('disabled', true);
+                    $cancel.prop('disabled', true);
+                    $loading.show();
+                    $error.hide();
+
+                    // Send AJAX request
+                    $.ajax({
+                        url: S3BrowserGlobalConfig.ajaxUrl,
+                        type: 'POST',
+                        data: {
+                            action: 's3_create_folder_' + S3BrowserGlobalConfig.providerId,
+                            bucket: this.bucket,
+                            prefix: this.prefix,
+                            folder_name: folderName,
+                            nonce: S3BrowserGlobalConfig.nonce
+                        },
+                        success: function (response) {
+                            if (response.success) {
+                                // Show success notification
+                                window.S3Browser.showNotification(
+                                    response.data.message || window.S3Browser.i18n.createFolderSuccess.replace('{name}', folderName),
+                                    'success'
+                                );
+
+                                // Close modal
+                                window.S3Browser.folderModal.close();
+
+                                // Refresh the page to show the new folder
+                                setTimeout(function () {
+                                    window.location.reload();
+                                }, 1500);
+                            } else {
+                                // Show error
+                                $error.text(response.data.message || window.S3Browser.i18n.createFolderError).show();
+                                self.resetForm();
+                            }
+                        },
+                        error: function () {
+                            $error.text(window.S3Browser.i18n.networkError).show();
+                            self.resetForm();
+                        }
+                    });
+                },
+
+                resetForm: function () {
+                    this.$('.s3-create-folder-submit').prop('disabled', false);
+                    this.$('.s3-create-folder-cancel').prop('disabled', false);
+                    this.$('.s3-folder-loading').hide();
+                },
+
+                closeModal: function () {
+                    window.S3Browser.folderModal.close();
+                }
+            });
+
+            // Store the view class for later use
+            this.FolderCreationView = FolderCreationView;
+        },
+
+        /**
+         * Open the create folder modal
+         */
+        openCreateFolderModal: function (bucket, prefix) {
+            if (!this.folderModal) {
+                this.createFolderModal();
+            }
+
+            if (!this.folderModal) {
+                console.error('Could not create folder modal - wp.media not available');
+                return;
+            }
+
+            // Create new content view
+            var contentView = new this.FolderCreationView({
+                bucket: bucket,
+                prefix: prefix || ''
+            });
+
+            // Set modal content
+            this.folderModal.content(contentView);
+
+            // Open modal
+            this.folderModal.open();
+
+            // Focus the input field
+            setTimeout(function () {
+                contentView.$('#s3-folder-name-input').focus();
+            }, 100);
         },
 
         /**
@@ -364,10 +611,6 @@
             }
         },
 
-        /**
-         * Delete a file from S3
-         * @param {jQuery} $button The clicked delete button
-         */
         /**
          * Delete a file from S3
          * @param {jQuery} $button The clicked delete button
@@ -789,7 +1032,7 @@
         },
 
         /**
-         * Show notification message
+         * Show notification message with automatic fade-out
          * @param {string} message Message to display
          * @param {string} type Notification type: 'success', 'error', 'info'
          */
@@ -808,14 +1051,12 @@
                 }, 200);
             }
 
-            // Auto-hide for non-success notifications
-            if (type !== 'success') {
-                setTimeout(function () {
-                    $notification.fadeOut(300, function () {
-                        $(this).remove();
-                    });
-                }, 5000);
-            }
+            // Auto-hide all notifications after 5 seconds
+            setTimeout(function () {
+                $notification.fadeOut(300, function () {
+                    $(this).remove();
+                });
+            }, 5000);
         },
 
         /**

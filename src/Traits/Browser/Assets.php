@@ -220,45 +220,59 @@ trait Assets {
 	private function get_browser_translations(): array {
 		return [
 			// Browser UI strings
-			'uploadFiles'      => __( 'Upload Files', 'arraypress' ),
-			'dropFilesHere'    => __( 'Drop files here to upload', 'arraypress' ),
-			'or'               => __( 'or', 'arraypress' ),
-			'chooseFiles'      => __( 'Choose Files', 'arraypress' ),
-			'waitForUploads'   => __( 'Please wait for uploads to complete before closing', 'arraypress' ),
+			'uploadFiles'            => __( 'Upload Files', 'arraypress' ),
+			'dropFilesHere'          => __( 'Drop files here to upload', 'arraypress' ),
+			'or'                     => __( 'or', 'arraypress' ),
+			'chooseFiles'            => __( 'Choose Files', 'arraypress' ),
+			'waitForUploads'         => __( 'Please wait for uploads to complete before closing', 'arraypress' ),
 
 			// File operation strings
-			'confirmDelete'    => __( 'Are you sure you want to delete "{filename}"?\n\nThis action cannot be undone.', 'arraypress' ),
-			'deleteSuccess'    => __( 'File successfully deleted', 'arraypress' ),
-			'deleteError'      => __( 'Failed to delete file', 'arraypress' ),
+			'confirmDelete'          => __( 'Are you sure you want to delete "{filename}"?\n\nThis action cannot be undone.', 'arraypress' ),
+			'deleteSuccess'          => __( 'File successfully deleted', 'arraypress' ),
+			'deleteError'            => __( 'Failed to delete file', 'arraypress' ),
 
 			// Cache and refresh
-			'cacheRefreshed'   => __( 'Cache refreshed successfully', 'arraypress' ),
-			'refreshError'     => __( 'Failed to refresh data', 'arraypress' ),
+			'cacheRefreshed'         => __( 'Cache refreshed successfully', 'arraypress' ),
+			'refreshError'           => __( 'Failed to refresh data', 'arraypress' ),
 
 			// Loading and errors
-			'loadingText'      => __( 'Loading...', 'arraypress' ),
-			'loadMoreItems'    => __( 'Load More Items', 'arraypress' ),
-			'loadMoreError'    => __( 'Failed to load more items. Please try again.', 'arraypress' ),
-			'networkError'     => __( 'Network error. Please try again.', 'arraypress' ),
-			'networkLoadError' => __( 'Network error. Please check your connection and try again.', 'arraypress' ),
+			'loadingText'            => __( 'Loading...', 'arraypress' ),
+			'loadMoreItems'          => __( 'Load More Items', 'arraypress' ),
+			'loadMoreError'          => __( 'Failed to load more items. Please try again.', 'arraypress' ),
+			'networkError'           => __( 'Network error. Please try again.', 'arraypress' ),
+			'networkLoadError'       => __( 'Network error. Please check your connection and try again.', 'arraypress' ),
 
 			// Search results
-			'noMatchesFound'   => __( 'No matches found', 'arraypress' ),
-			'noFilesFound'     => __( 'No files or folders found matching "{term}"', 'arraypress' ),
-			'itemsMatch'       => __( '{visible} of {total} items match', 'arraypress' ),
+			'noMatchesFound'         => __( 'No matches found', 'arraypress' ),
+			'noFilesFound'           => __( 'No files or folders found matching "{term}"', 'arraypress' ),
+			'itemsMatch'             => __( '{visible} of {total} items match', 'arraypress' ),
 
 			// Item counts
-			'singleItem'       => __( 'item', 'arraypress' ),
-			'multipleItems'    => __( 'items', 'arraypress' ),
-			'moreAvailable'    => __( ' (more available)', 'arraypress' ),
+			'singleItem'             => __( 'item', 'arraypress' ),
+			'multipleItems'          => __( 'items', 'arraypress' ),
+			'moreAvailable'          => __( ' (more available)', 'arraypress' ),
 
 			// Favorites
-			'favoritesError'   => __( 'Error updating default bucket', 'arraypress' ),
-			'setDefault'       => __( 'Set Default', 'arraypress' ),
-			'defaultText'      => __( 'Default', 'arraypress' ),
+			'favoritesError'         => __( 'Error updating default bucket', 'arraypress' ),
+			'setDefault'             => __( 'Set Default', 'arraypress' ),
+			'defaultText'            => __( 'Default', 'arraypress' ),
+
+			// NEW: Folder creation translations
+			'newFolder'              => __( 'New Folder', 'arraypress' ),
+			'createFolder'           => __( 'Create Folder', 'arraypress' ),
+			'folderName'             => __( 'Folder Name', 'arraypress' ),
+			'folderNamePlaceholder'  => __( 'Enter folder name', 'arraypress' ),
+			'folderNameHelp'         => __( 'Enter a name for the new folder. Use only letters, numbers, dots, hyphens, and underscores.', 'arraypress' ),
+			'createFolderSuccess'    => __( 'Folder "{name}" created successfully', 'arraypress' ),
+			'createFolderError'      => __( 'Failed to create folder', 'arraypress' ),
+			'creatingFolder'         => __( 'Creating folder...', 'arraypress' ),
+			'folderNameRequired'     => __( 'Folder name is required', 'arraypress' ),
+			'folderNameTooLong'      => __( 'Folder name cannot exceed 63 characters', 'arraypress' ),
+			'folderNameInvalidChars' => __( 'Folder name can only contain letters, numbers, dots, hyphens, and underscores', 'arraypress' ),
+			'cancel'                 => __( 'Cancel', 'arraypress' ),
 
 			// Upload specific translations
-			'upload'           => [
+			'upload'                 => [
 				'cancelUploadConfirm' => __( 'Are you sure you want to cancel "{filename}"?', 'arraypress' ),
 				'uploadFailed'        => __( 'Upload failed:', 'arraypress' ),
 				'uploadComplete'      => __( 'Uploads completed. Refreshing file listing...', 'arraypress' ),
