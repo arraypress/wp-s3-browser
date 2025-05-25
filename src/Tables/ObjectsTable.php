@@ -408,14 +408,14 @@ class ObjectsTable extends WP_List_Table {
 			], remove_query_arg( [ 'continuation_token' ] ) );
 
 			return sprintf(
-				'<a href="%s" class="button s3-icon-button"><span class="dashicons dashicons-external"></span> %s</a>',
+				'<a href="%s" class="button s3-icon-button"><span class="dashicons dashicons-external"></span>%s</a>',
 				esc_url( $url ),
 				esc_html__( 'Open', 'arraypress' )
 			);
 		} else {
 			// Actions for files
 			$actions = sprintf(
-				'<a href="#" class="button s3-icon-button s3-select-file" data-filename="%s" data-bucket="%s" data-key="%s"><span class="dashicons dashicons-insert"></span> %s</a>',
+				'<a href="#" class="button s3-icon-button s3-select-file" data-filename="%s" data-bucket="%s" data-key="%s"><span class="dashicons dashicons-insert"></span>%s</a>',
 				esc_attr( $item['name'] ),
 				esc_attr( $this->bucket ),
 				esc_attr( $item['key'] ),
@@ -427,7 +427,7 @@ class ObjectsTable extends WP_List_Table {
 				$presigned_url = $item['object']->get_presigned_url( $this->client, $this->bucket, 60 );
 				if ( ! is_wp_error( $presigned_url ) ) {
 					$actions .= sprintf(
-						' <a href="#" class="button s3-icon-button s3-download-file" data-url="%s"><span class="dashicons dashicons-download"></span> %s</a>',
+						' <a href="#" class="button s3-icon-button s3-download-file" data-url="%s"><span class="dashicons dashicons-download"></span>%s</a>',
 						esc_attr( $presigned_url ),
 						esc_html__( 'Download', 'arraypress' )
 					);
@@ -436,7 +436,7 @@ class ObjectsTable extends WP_List_Table {
 
 			// Add delete button
 			$actions .= sprintf(
-				' <a href="#" class="button s3-icon-button s3-delete-file button-delete" data-filename="%s" data-bucket="%s" data-key="%s"><span class="dashicons dashicons-trash"></span> %s</a>',
+				' <a href="#" class="button s3-icon-button s3-delete-file button-delete" data-filename="%s" data-bucket="%s" data-key="%s"><span class="dashicons dashicons-trash"></span>%s</a>',
 				esc_attr( $item['name'] ),
 				esc_attr( $this->bucket ),
 				esc_attr( $item['key'] ),

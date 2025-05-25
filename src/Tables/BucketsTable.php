@@ -175,7 +175,7 @@ class BucketsTable extends WP_List_Table {
 						<?php
 						printf(
 							'<button type="button" class="button s3-icon-button s3-refresh-button" data-type="buckets" data-provider="%s">
-							<span class="dashicons dashicons-update"></span> %s
+							<span class="dashicons dashicons-update"></span>%s
 						</button>',
 							esc_attr( $this->provider_id ),
 							esc_html__( 'Refresh', 'arraypress' )
