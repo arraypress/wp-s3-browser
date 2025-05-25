@@ -82,53 +82,7 @@ trait ContentRendering {
 			$this->display_objects_view( $bucket, $prefix );
 		}
 
-		if ( $view === 'objects' ) {
-			$this->add_folder_creation_template();
-		}
-
 		echo '</div>';
-	}
-
-	/**
-	 * Add folder creation template to admin footer
-	 * Call this from your render_tab_content() method at the end
-	 */
-	private function add_folder_creation_template(): void {
-		?>
-        <script type="text/html" id="tmpl-s3-folder-creation">
-            <div class="s3-folder-creation-container">
-                <div class="s3-modal-header">
-                    <h2>{{ data.i18n.newFolder }}</h2>
-                </div>
-
-                <div class="s3-modal-body">
-                    <div class="s3-folder-error" style="display: none;"></div>
-
-                    <div class="s3-folder-field">
-                        <label for="s3-folder-name-input">{{ data.i18n.folderName }}</label>
-                        <input type="text"
-                               id="s3-folder-name-input"
-                               placeholder="{{ data.i18n.folderNamePlaceholder }}"
-                               maxlength="63"
-                               autocomplete="off">
-                        <p class="description">{{ data.i18n.folderNameHelp }}</p>
-                    </div>
-
-                    <div class="s3-folder-loading" style="display: none;">
-                        <span class="spinner is-active"></span>
-                        {{ data.i18n.creatingFolder }}
-                    </div>
-                </div>
-
-                <div class="s3-modal-footer">
-                    <button type="button" class="button s3-create-folder-cancel">{{ data.i18n.cancel }}</button>
-                    <button type="button" class="button button-primary s3-create-folder-submit" disabled>{{
-                        data.i18n.createFolder }}
-                    </button>
-                </div>
-            </div>
-        </script>
-		<?php
 	}
 
 	/**

@@ -269,37 +269,92 @@
     border-color: #8c8f94;
 }
 
-/* Folder Creation Modal Styles */
-.s3-folder-creation-container {
-    padding: 0;
-    min-width: 400px;
+/* Simple Modal Styles */
+.s3-folder-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 100000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.s3-folder-creation-container .s3-modal-header {
+.s3-folder-modal {
+    background: #fff;
+    border-radius: 3px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.7);
+    max-width: 500px;
+    width: 90%;
+    max-height: 90vh;
+    overflow: hidden;
+    position: relative;
+    animation: s3FolderModalSlideIn 0.2s ease-out;
+}
+
+@keyframes s3FolderModalSlideIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9) translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.s3-folder-modal-header {
     padding: 20px 24px;
     border-bottom: 1px solid #ddd;
     background: #fcfcfc;
+    position: relative;
 }
 
-.s3-folder-creation-container .s3-modal-header h2 {
+.s3-folder-modal-header h2 {
     margin: 0;
     font-size: 18px;
     font-weight: 600;
     color: #23282d;
 }
 
-.s3-folder-creation-container .s3-modal-body {
+.s3-folder-modal-close {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: #666;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 2px;
+}
+
+.s3-folder-modal-close:hover {
+    color: #d63638;
+    background: #f0f0f1;
+}
+
+.s3-folder-modal-body {
     padding: 24px;
 }
 
-.s3-folder-creation-container .s3-modal-footer {
+.s3-folder-modal-footer {
     padding: 16px 24px;
     border-top: 1px solid #ddd;
     background: #fcfcfc;
     text-align: right;
 }
 
-.s3-folder-creation-container .s3-modal-footer .button {
+.s3-folder-modal-footer .button {
     margin-left: 8px;
 }
 
@@ -366,18 +421,11 @@
 }
 
 /* Button States */
-.s3-create-folder-submit:disabled {
+.s3-folder-submit:disabled {
     background: #ccd0d4 !important;
     border-color: #ccd0d4 !important;
     color: #a7aaad !important;
     cursor: not-allowed !important;
-}
-
-/* WordPress Media Modal Overrides */
-.media-modal .s3-folder-creation-container {
-    background: #fff;
-    border-radius: 3px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.7);
 }
 
 /* Responsive Adjustments */
@@ -393,22 +441,22 @@
         width: 100%;
     }
 
-    .s3-folder-creation-container {
+    .s3-folder-modal {
         min-width: 280px;
         max-width: 90vw;
     }
 
-    .s3-folder-creation-container .s3-modal-header,
-    .s3-folder-creation-container .s3-modal-body,
-    .s3-folder-creation-container .s3-modal-footer {
+    .s3-folder-modal-header,
+    .s3-folder-modal-body,
+    .s3-folder-modal-footer {
         padding: 16px;
     }
 
-    .s3-folder-creation-container .s3-modal-footer {
+    .s3-folder-modal-footer {
         text-align: center;
     }
 
-    .s3-folder-creation-container .s3-modal-footer .button {
+    .s3-folder-modal-footer .button {
         margin: 4px;
         min-width: 100px;
     }
