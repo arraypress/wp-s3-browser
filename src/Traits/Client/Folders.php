@@ -1,9 +1,8 @@
 <?php
 /**
- * Client Folder Operations Trait
+ * Client Advanced Operations Trait
  *
- * Handles folder/prefix-related operations for the S3 Client.
- * Note: S3 doesn't have true folders, but we can simulate them using prefixes.
+ * Handles advanced/complex operations for the S3 Client.
  *
  * @package     ArrayPress\S3\Traits
  * @copyright   Copyright (c) 2025, ArrayPress Limited
@@ -19,11 +18,78 @@ namespace ArrayPress\S3\Traits\Client;
 use ArrayPress\S3\Interfaces\Response as ResponseInterface;
 use ArrayPress\S3\Responses\ErrorResponse;
 use ArrayPress\S3\Responses\SuccessResponse;
+use ArrayPress\S3\Utils\Directory;
 
 /**
- * Trait Folders
+ * Trait RenameOperations
  */
 trait Folders {
+
+	/**
+	 * Check if a folder (prefix) exists
+	 *
+	 * @param string $bucket      Bucket name
+	 * @param string $folder_path Folder path
+	 *
+	 * @return ResponseInterface Response with existence info or error
+	 */
+	public function folder_exists( string $bucket, string $folder_path ): ResponseInterface {
+		if ( empty( $bucket ) || empty( $folder_path ) ) {
+			return new ErrorResponse(
+				__( 'Bucket and folder path are required', 'arraypress' ),
+				'invalid_parameters',
+				400
+			);
+		}
+
+		// Normalize the folder path
+		$normalized_path = Directory::normalize( $folder_path );
+
+
+		// Check by listing objects with this prefix (limit to 1 for efficiency)
+		$objects_result = $this->get_object_models( $bucket, 1, $normalized_path, '/', '', false );
+
+		if ( is_wp_error( $objects_result ) ) {
+			return new ErrorResponse(
+				__( 'Failed to check folder existence', 'arraypress' ),
+				'folder_check_error',
+				400,
+				[ 'error' => $objects_result->get_error_message() ]
+			);
+		}
+
+		$has_objects  = ! empty( $objects_result['objects'] );
+		$has_prefixes = ! empty( $objects_result['prefixes'] );
+		$exists       = $has_objects || $has_prefixes;
+
+		// Check if there's a direct placeholder object
+		$has_placeholder = false;
+		if ( $has_objects ) {
+			foreach ( $objects_result['objects'] as $object ) {
+				if ( $object->get_key() === $normalized_path ) {
+					$has_placeholder = true;
+					break;
+				}
+			}
+		}
+
+		return new SuccessResponse(
+			$exists ?
+				sprintf( __( 'Folder "%s" exists', 'arraypress' ), $normalized_path ) :
+				sprintf( __( 'Folder "%s" does not exist', 'arraypress' ), $normalized_path ),
+			200,
+			[
+				'bucket'          => $bucket,
+				'folder_path'     => $normalized_path,
+				'exists'          => $exists,
+				'has_placeholder' => $has_placeholder,
+				'has_objects'     => $has_objects,
+				'has_subfolders'  => $has_prefixes,
+				'object_count'    => count( $objects_result['objects'] ),
+				'subfolder_count' => count( $objects_result['prefixes'] )
+			]
+		);
+	}
 
 	/**
 	 * Create a folder (prefix) by uploading a placeholder object
@@ -43,7 +109,7 @@ trait Folders {
 		}
 
 		// Normalize the folder path to ensure it ends with /
-		$normalized_path = rtrim( $folder_path, '/' ) . '/';
+		$normalized_path = Directory::normalize( $folder_path );
 
 		// Check if folder already exists by listing objects with this prefix
 		$existing_check = $this->get_objects( $bucket, 1, $normalized_path, '/', '', false );
@@ -57,7 +123,7 @@ trait Folders {
 			);
 		}
 
-		// Check if we got any objects or prefixes - if so, folder effectively exists
+		// Check if we got any objects or prefixes - if so, the folder effectively exists
 		$models_result = $this->get_object_models( $bucket, 1, $normalized_path, '/', '', false );
 		if ( ! is_wp_error( $models_result ) ) {
 			$has_objects  = ! empty( $models_result['objects'] );
@@ -81,7 +147,7 @@ trait Folders {
 		$placeholder_content = '';
 
 		// Upload the placeholder
-		$upload_result = $this->upload_file(
+		$upload_result = $this->put_object(
 			$bucket,
 			$normalized_path,
 			$placeholder_content,
@@ -119,6 +185,131 @@ trait Folders {
 	}
 
 	/**
+	 * Rename a prefix (folder) in a bucket
+	 *
+	 * @param string $bucket        Bucket name
+	 * @param string $source_prefix Current prefix
+	 * @param string $target_prefix New prefix
+	 * @param bool   $recursive     Whether to process recursively
+	 *
+	 * @return ResponseInterface Response or error
+	 */
+	public function rename_folder(
+		string $bucket,
+		string $source_prefix,
+		string $target_prefix,
+		bool $recursive = true
+	): ResponseInterface {
+		// 1. Ensure prefixes end with a slash
+		$source_prefix = Directory::normalize( $source_prefix );
+		$target_prefix = Directory::normalize( $target_prefix );
+
+		// 2. Get all objects in the source prefix
+		$objects_result = $this->get_object_models( $bucket, 1000, $source_prefix, $recursive ? '' : '/' );
+
+		if ( is_wp_error( $objects_result ) ) {
+			return new ErrorResponse(
+				__( 'Failed to list objects in source prefix', 'arraypress' ),
+				'list_objects_error',
+				400,
+				[ 'error' => $objects_result->get_error_message() ]
+			);
+		}
+
+		// 3. Check if there are objects to move
+		$objects       = $objects_result['objects'];
+		$total_objects = count( $objects );
+
+		if ( $total_objects === 0 ) {
+			return new SuccessResponse(
+				__( 'No objects found to rename', 'arraypress' ),
+				200,
+				[
+					'source_prefix' => $source_prefix,
+					'target_prefix' => $target_prefix
+				]
+			);
+		}
+
+		// 4. Track success and failure counts
+		$success_count = 0;
+		$failure_count = 0;
+		$failures      = [];
+
+		// 5. Process each object
+		foreach ( $objects as $object ) {
+			$source_key    = $object->get_key();
+			$relative_path = substr( $source_key, strlen( $source_prefix ) );
+			$target_key    = $target_prefix . $relative_path;
+
+			// Copy the object to the new location
+			$copy_result = $this->copy_object( $bucket, $source_key, $bucket, $target_key );
+
+			if ( is_wp_error( $copy_result ) || ! $copy_result->is_successful() ) {
+				$failure_count ++;
+				$failures[] = [
+					'source_key' => $source_key,
+					'target_key' => $target_key,
+					'error'      => is_wp_error( $copy_result ) ?
+						$copy_result->get_error_message() :
+						'Copy operation failed'
+				];
+				continue;
+			}
+
+			// Delete the original object
+			$delete_result = $this->delete_object( $bucket, $source_key );
+
+			if ( is_wp_error( $delete_result ) || ! $delete_result->is_successful() ) {
+				// Count as partial success if copy worked but delete failed
+				$failures[] = [
+					'source_key' => $source_key,
+					'target_key' => $target_key,
+					'warning'    => 'Object copied but original not deleted'
+				];
+			}
+
+			$success_count ++;
+		}
+
+		// 6. Create an appropriate response based on results
+		if ( $failure_count === 0 ) {
+			return new SuccessResponse(
+				__( 'Prefix renamed successfully', 'arraypress' ),
+				200,
+				[
+					'source_prefix'     => $source_prefix,
+					'target_prefix'     => $target_prefix,
+					'objects_processed' => $total_objects
+				]
+			);
+		} elseif ( $success_count > 0 ) {
+			return new SuccessResponse(
+				__( 'Prefix partially renamed with some failures', 'arraypress' ),
+				207, // Multi-Status
+				[
+					'source_prefix' => $source_prefix,
+					'target_prefix' => $target_prefix,
+					'success_count' => $success_count,
+					'failure_count' => $failure_count,
+					'failures'      => $failures
+				]
+			);
+		} else {
+			return new ErrorResponse(
+				__( 'Failed to rename prefix', 'arraypress' ),
+				'rename_prefix_error',
+				400,
+				[
+					'source_prefix' => $source_prefix,
+					'target_prefix' => $target_prefix,
+					'failures'      => $failures
+				]
+			);
+		}
+	}
+
+	/**
 	 * Delete a folder (prefix) and optionally all its contents
 	 *
 	 * @param string $bucket      Bucket name
@@ -143,7 +334,7 @@ trait Folders {
 		}
 
 		// Normalize the folder path
-		$normalized_path = rtrim( $folder_path, '/' ) . '/';
+		$normalized_path = Directory::normalize( $folder_path );
 
 		// Get all objects in this folder
 		$objects_result = $this->get_object_models( $bucket, 1000, $normalized_path, $recursive ? '' : '/' );
@@ -297,238 +488,6 @@ trait Folders {
 				]
 			);
 		}
-	}
-
-	/**
-	 * Check if a folder (prefix) exists
-	 *
-	 * @param string $bucket      Bucket name
-	 * @param string $folder_path Folder path
-	 *
-	 * @return ResponseInterface Response with existence info or error
-	 */
-	public function folder_exists( string $bucket, string $folder_path ): ResponseInterface {
-		if ( empty( $bucket ) || empty( $folder_path ) ) {
-			return new ErrorResponse(
-				__( 'Bucket and folder path are required', 'arraypress' ),
-				'invalid_parameters',
-				400
-			);
-		}
-
-		// Normalize the folder path
-		$normalized_path = rtrim( $folder_path, '/' ) . '/';
-
-		// Check by listing objects with this prefix (limit to 1 for efficiency)
-		$objects_result = $this->get_object_models( $bucket, 1, $normalized_path, '/', '', false );
-
-		if ( is_wp_error( $objects_result ) ) {
-			return new ErrorResponse(
-				__( 'Failed to check folder existence', 'arraypress' ),
-				'folder_check_error',
-				400,
-				[ 'error' => $objects_result->get_error_message() ]
-			);
-		}
-
-		$has_objects  = ! empty( $objects_result['objects'] );
-		$has_prefixes = ! empty( $objects_result['prefixes'] );
-		$exists       = $has_objects || $has_prefixes;
-
-		// Check if there's a direct placeholder object
-		$has_placeholder = false;
-		if ( $has_objects ) {
-			foreach ( $objects_result['objects'] as $object ) {
-				if ( $object->get_key() === $normalized_path ) {
-					$has_placeholder = true;
-					break;
-				}
-			}
-		}
-
-		return new SuccessResponse(
-			$exists ?
-				sprintf( __( 'Folder "%s" exists', 'arraypress' ), $normalized_path ) :
-				sprintf( __( 'Folder "%s" does not exist', 'arraypress' ), $normalized_path ),
-			200,
-			[
-				'bucket'          => $bucket,
-				'folder_path'     => $normalized_path,
-				'exists'          => $exists,
-				'has_placeholder' => $has_placeholder,
-				'has_objects'     => $has_objects,
-				'has_subfolders'  => $has_prefixes,
-				'object_count'    => count( $objects_result['objects'] ),
-				'subfolder_count' => count( $objects_result['prefixes'] )
-			]
-		);
-	}
-
-	/**
-	 * Rename a folder (this uses the existing rename_prefix method)
-	 *
-	 * @param string $bucket       Bucket name
-	 * @param string $current_path Current folder path
-	 * @param string $new_path     New folder path
-	 * @param bool   $recursive    Whether to rename recursively
-	 *
-	 * @return ResponseInterface Response or error
-	 */
-	public function rename_folder(
-		string $bucket,
-		string $current_path,
-		string $new_path,
-		bool $recursive = true
-	): ResponseInterface {
-		if ( empty( $bucket ) || empty( $current_path ) || empty( $new_path ) ) {
-			return new ErrorResponse(
-				__( 'Bucket, current path, and new path are required', 'arraypress' ),
-				'invalid_parameters',
-				400
-			);
-		}
-
-		// Normalize paths
-		$normalized_current = rtrim( $current_path, '/' ) . '/';
-		$normalized_new     = rtrim( $new_path, '/' ) . '/';
-
-		// Check if source folder exists
-		$exists_check = $this->folder_exists( $bucket, $normalized_current );
-		if ( is_wp_error( $exists_check ) ) {
-			return $exists_check;
-		}
-
-		$exists_data = $exists_check->get_data();
-		if ( ! $exists_data['exists'] ) {
-			return new ErrorResponse(
-				sprintf( __( 'Source folder "%s" does not exist', 'arraypress' ), $normalized_current ),
-				'source_folder_not_found',
-				404
-			);
-		}
-
-		// Check if target folder already exists
-		$target_exists_check = $this->folder_exists( $bucket, $normalized_new );
-		if ( ! is_wp_error( $target_exists_check ) ) {
-			$target_exists_data = $target_exists_check->get_data();
-			if ( $target_exists_data['exists'] ) {
-				return new ErrorResponse(
-					sprintf( __( 'Target folder "%s" already exists', 'arraypress' ), $normalized_new ),
-					'target_folder_exists',
-					409 // Conflict
-				);
-			}
-		}
-
-		// Use the existing rename_prefix method
-		$rename_result = $this->rename_prefix( $bucket, $normalized_current, $normalized_new, $recursive );
-
-		// Enhance the response message for folder context
-		if ( $rename_result->is_successful() ) {
-			$data                   = $rename_result->get_data();
-			$data['renamed_folder'] = true;
-			$data['source_folder']  = $normalized_current;
-			$data['target_folder']  = $normalized_new;
-
-			return new SuccessResponse(
-				sprintf(
-					__( 'Folder renamed from "%s" to "%s" successfully', 'arraypress' ),
-					$normalized_current,
-					$normalized_new
-				),
-				$rename_result->get_status_code(),
-				$data
-			);
-		}
-
-		return $rename_result;
-	}
-
-	/**
-	 * Get folder information including size and object count
-	 *
-	 * @param string $bucket      Bucket name
-	 * @param string $folder_path Folder path
-	 * @param bool   $recursive   Whether to include subfolders in the count
-	 *
-	 * @return ResponseInterface Response with folder info or error
-	 */
-	public function get_folder_info( string $bucket, string $folder_path, bool $recursive = false ): ResponseInterface {
-		if ( empty( $bucket ) || empty( $folder_path ) ) {
-			return new ErrorResponse(
-				__( 'Bucket and folder path are required', 'arraypress' ),
-				'invalid_parameters',
-				400
-			);
-		}
-
-		// Normalize the folder path
-		$normalized_path = rtrim( $folder_path, '/' ) . '/';
-
-		// Check if folder exists first
-		$exists_check = $this->folder_exists( $bucket, $normalized_path );
-		if ( is_wp_error( $exists_check ) ) {
-			return $exists_check;
-		}
-
-		$exists_data = $exists_check->get_data();
-		if ( ! $exists_data['exists'] ) {
-			return new ErrorResponse(
-				sprintf( __( 'Folder "%s" does not exist', 'arraypress' ), $normalized_path ),
-				'folder_not_found',
-				404
-			);
-		}
-
-		// Get objects in the folder
-		$delimiter      = $recursive ? '' : '/';
-		$objects_result = $this->get_object_models( $bucket, 1000, $normalized_path, $delimiter );
-
-		if ( is_wp_error( $objects_result ) ) {
-			return new ErrorResponse(
-				__( 'Failed to get folder information', 'arraypress' ),
-				'folder_info_error',
-				400,
-				[ 'error' => $objects_result->get_error_message() ]
-			);
-		}
-
-		$objects  = $objects_result['objects'];
-		$prefixes = $objects_result['prefixes'];
-
-		// Calculate totals
-		$total_size   = 0;
-		$object_count = 0;
-		$folder_count = count( $prefixes );
-
-		foreach ( $objects as $object ) {
-			// Skip the folder placeholder itself
-			if ( $object->get_key() !== $normalized_path ) {
-				$total_size += $object->get_size();
-				$object_count ++;
-			}
-		}
-
-		// If we're doing recursive counting and there are subfolders, we'd need to iterate
-		// For now, we'll note if the results are truncated
-		$is_complete = ! $objects_result['truncated'];
-
-		return new SuccessResponse(
-			sprintf( __( 'Folder information for "%s"', 'arraypress' ), $normalized_path ),
-			200,
-			[
-				'bucket'          => $bucket,
-				'folder_path'     => $normalized_path,
-				'object_count'    => $object_count,
-				'subfolder_count' => $folder_count,
-				'total_size'      => $total_size,
-				'formatted_size'  => size_format( $total_size ),
-				'recursive'       => $recursive,
-				'is_complete'     => $is_complete,
-				'has_placeholder' => $exists_data['has_placeholder'],
-				'truncated'       => $objects_result['truncated']
-			]
-		);
 	}
 
 }

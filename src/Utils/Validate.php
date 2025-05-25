@@ -28,8 +28,9 @@ class Validate {
 	/**
 	 * Validate bucket name
 	 *
-	 * @param string $bucket Bucket name to validate
+	 * @param string        $bucket   Bucket name to validate
 	 * @param Provider|null $provider Optional provider for specific validation
+	 *
 	 * @return bool
 	 */
 	public static function bucket( string $bucket, ?Provider $provider = null ): bool {
@@ -53,8 +54,9 @@ class Validate {
 	/**
 	 * Validate object key
 	 *
-	 * @param string $object Object key to validate
+	 * @param string        $object   Object key to validate
 	 * @param Provider|null $provider Optional provider for specific validation
+	 *
 	 * @return bool
 	 */
 	public static function object( string $object, ?Provider $provider = null ): bool {
@@ -78,8 +80,9 @@ class Validate {
 	/**
 	 * Validate complete S3 path
 	 *
-	 * @param string $path Path to validate
+	 * @param string        $path     Path to validate
 	 * @param Provider|null $provider Optional provider for validation
+	 *
 	 * @return bool
 	 */
 	public static function path( string $path, ?Provider $provider = null ): bool {
@@ -104,9 +107,10 @@ class Validate {
 	/**
 	 * Validate bucket and object together
 	 *
-	 * @param string $bucket Bucket name
-	 * @param string $object Object key
+	 * @param string        $bucket   Bucket name
+	 * @param string        $object   Object key
 	 * @param Provider|null $provider Optional provider
+	 *
 	 * @return bool
 	 */
 	public static function bucket_and_object(
@@ -121,8 +125,9 @@ class Validate {
 	/**
 	 * Validate and parse S3 path in one step
 	 *
-	 * @param string $path Path to validate and parse
+	 * @param string        $path     Path to validate and parse
 	 * @param Provider|null $provider Optional provider
+	 *
 	 * @return array|false Array with 'bucket' and 'object' keys or false if invalid
 	 */
 	public static function and_parse( string $path, ?Provider $provider = null ) {
@@ -148,6 +153,7 @@ class Validate {
 	 * Basic bucket validation (S3 standard rules)
 	 *
 	 * @param string $bucket Bucket name
+	 *
 	 * @return bool
 	 */
 	private static function bucket_basic( string $bucket ): bool {
@@ -181,6 +187,7 @@ class Validate {
 	 * Basic object key validation (S3 standard rules)
 	 *
 	 * @param string $object Object key
+	 *
 	 * @return bool
 	 */
 	private static function object_basic( string $object ): bool {
