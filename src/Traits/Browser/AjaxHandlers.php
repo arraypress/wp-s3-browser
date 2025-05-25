@@ -258,14 +258,20 @@ trait AjaxHandlers {
 	 * @return void
 	 */
 	public function handle_ajax_create_folder(): void {
+		// ADD THIS DEBUG LINE:
+		error_log( '=== S3 Create Folder AJAX Handler Called ===' );
+		error_log( 'POST data: ' . print_r( $_POST, true ) );
+
 		// Verify nonce and capability
 		if ( ! check_ajax_referer( 's3_browser_nonce_' . $this->provider_id, 'nonce', false ) ) {
+			error_log( 'S3 Create Folder: Nonce check failed' );
 			wp_send_json_error( [ 'message' => __( 'Security check failed', 'arraypress' ) ] );
 
 			return;
 		}
 
 		if ( ! current_user_can( $this->capability ) ) {
+			error_log( 'S3 Create Folder: Capability check failed' );
 			wp_send_json_error( [ 'message' => __( 'You do not have permission to perform this action', 'arraypress' ) ] );
 
 			return;
@@ -276,13 +282,17 @@ trait AjaxHandlers {
 		$current_prefix = isset( $_POST['prefix'] ) ? sanitize_text_field( $_POST['prefix'] ) : '';
 		$folder_name    = isset( $_POST['folder_name'] ) ? sanitize_text_field( $_POST['folder_name'] ) : '';
 
+		error_log( "Bucket: '$bucket', Prefix: '$current_prefix', Folder: '$folder_name'" );
+
 		if ( empty( $bucket ) ) {
+			error_log( 'S3 Create Folder: Bucket name is empty' );
 			wp_send_json_error( [ 'message' => __( 'Bucket name is required', 'arraypress' ) ] );
 
 			return;
 		}
 
 		if ( empty( $folder_name ) ) {
+			error_log( 'S3 Create Folder: Folder name is empty' );
 			wp_send_json_error( [ 'message' => __( 'Folder name is required', 'arraypress' ) ] );
 
 			return;
@@ -291,6 +301,7 @@ trait AjaxHandlers {
 		// Validate folder name
 		$validation_result = $this->validate_folder_name( $folder_name );
 		if ( ! $validation_result['valid'] ) {
+			error_log( 'S3 Create Folder: Validation failed - ' . $validation_result['message'] );
 			wp_send_json_error( [ 'message' => $validation_result['message'] ] );
 
 			return;
@@ -303,24 +314,59 @@ trait AjaxHandlers {
 		}
 		$folder_key .= $folder_name . '/';
 
+		error_log( "Final folder key: '$folder_key'" );
+
 		// Create the folder using the client's create_folder method
+		error_log( 'Calling client->create_folder()...' );
 		$result = $this->client->create_folder( $bucket, $folder_key );
 
+		// ADD DETAILED LOGGING:
+		error_log( 'create_folder() result type: ' . gettype( $result ) );
 		if ( is_wp_error( $result ) ) {
+			error_log( 'Result is WP_Error: ' . $result->get_error_message() );
+			error_log( 'Error code: ' . $result->get_error_code() );
+			error_log( 'Error data: ' . print_r( $result->get_error_data(), true ) );
 			wp_send_json_error( [ 'message' => $result->get_error_message() ] );
 
 			return;
 		}
 
-		if ( ! $result->is_successful() ) {
-			wp_send_json_error( [ 'message' => __( 'Failed to create folder', 'arraypress' ) ] );
+		if ( is_object( $result ) ) {
+			error_log( 'Result is object of class: ' . get_class( $result ) );
+			if ( method_exists( $result, 'is_successful' ) ) {
+				$is_successful = $result->is_successful();
+				error_log( 'is_successful(): ' . ( $is_successful ? 'TRUE' : 'FALSE' ) );
 
-			return;
+				if ( method_exists( $result, 'get_data' ) ) {
+					error_log( 'Result data: ' . print_r( $result->get_data(), true ) );
+				}
+
+				if ( ! $is_successful ) {
+					$error_message = 'Failed to create folder';
+					if ( method_exists( $result, 'get_error_message' ) ) {
+						$error_message = $result->get_error_message();
+					} elseif ( method_exists( $result, 'get_data' ) ) {
+						$data = $result->get_data();
+						if ( isset( $data['message'] ) ) {
+							$error_message = $data['message'];
+						}
+					}
+					error_log( 'Error message: ' . $error_message );
+					wp_send_json_error( [ 'message' => $error_message ] );
+
+					return;
+				}
+			}
+		} else {
+			error_log( 'Result is not an object: ' . print_r( $result, true ) );
 		}
 
-		// For simplicity, always clear all cache regardless of type
+		// Clear cache to ensure the new folder appears
+//		$this->client->clear_cache( 'objects', $bucket, $current_prefix );
+
 		$this->client->clear_all_cache();
 
+		error_log( 'Sending success response' );
 		wp_send_json_success( [
 			'message'    => sprintf( __( 'Folder "%s" created successfully', 'arraypress' ), $folder_name ),
 			'folder_key' => $folder_key,

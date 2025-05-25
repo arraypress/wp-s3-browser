@@ -19,7 +19,6 @@ namespace ArrayPress\S3\Traits\Client;
 use ArrayPress\S3\Interfaces\Response as ResponseInterface;
 use ArrayPress\S3\Responses\ErrorResponse;
 use ArrayPress\S3\Responses\SuccessResponse;
-use ArrayPress\S3\Utils\Directory;
 
 /**
  * Trait Folders
@@ -35,7 +34,11 @@ trait Folders {
 	 * @return ResponseInterface Response or error
 	 */
 	public function create_folder( string $bucket, string $folder_path ): ResponseInterface {
+		error_log("=== S3 create_folder() called ===");
+		error_log("Input - Bucket: '$bucket', Folder path: '$folder_path'");
+
 		if ( empty( $bucket ) || empty( $folder_path ) ) {
+			error_log("ERROR: Empty bucket or folder path");
 			return new ErrorResponse(
 				__( 'Bucket and folder path are required', 'arraypress' ),
 				'invalid_parameters',
@@ -45,11 +48,14 @@ trait Folders {
 
 		// Normalize the folder path to ensure it ends with /
 		$normalized_path = rtrim( $folder_path, '/' ) . '/';
+		error_log("Normalized path: '$normalized_path'");
 
 		// Check if folder already exists by listing objects with this prefix
+		error_log("Checking if folder already exists...");
 		$existing_check = $this->get_objects( $bucket, 1, $normalized_path, '/', '', false );
 
 		if ( is_wp_error( $existing_check ) ) {
+			error_log("ERROR: Failed to check if folder exists - " . $existing_check->get_error_message());
 			return new ErrorResponse(
 				__( 'Failed to check if folder exists', 'arraypress' ),
 				'folder_check_error',
@@ -58,13 +64,20 @@ trait Folders {
 			);
 		}
 
+		error_log("Existing check completed successfully");
+
 		// Check if we got any objects or prefixes - if so, folder effectively exists
+		error_log("Getting object models to check for existing content...");
 		$models_result = $this->get_object_models( $bucket, 1, $normalized_path, '/', '', false );
 		if ( ! is_wp_error( $models_result ) ) {
 			$has_objects  = ! empty( $models_result['objects'] );
 			$has_prefixes = ! empty( $models_result['prefixes'] );
 
+			error_log("Has objects: " . ($has_objects ? 'YES' : 'NO'));
+			error_log("Has prefixes: " . ($has_prefixes ? 'YES' : 'NO'));
+
 			if ( $has_objects || $has_prefixes ) {
+				error_log("Folder already exists, returning success");
 				return new SuccessResponse(
 					sprintf( __( 'Folder "%s" already exists', 'arraypress' ), $normalized_path ),
 					200,
@@ -75,13 +88,23 @@ trait Folders {
 					]
 				);
 			}
+		} else {
+			error_log("WARNING: get_object_models returned WP_Error: " . $models_result->get_error_message());
 		}
 
 		// Create a placeholder object to represent the folder
 		// This is a common S3 pattern - create an empty object with the folder name + /
 		$placeholder_content = '';
+		error_log("Creating folder placeholder with empty content");
 
 		// Upload the placeholder
+		error_log("About to call upload_file with:");
+		error_log("  Bucket: '$bucket'");
+		error_log("  Path: '$normalized_path'");
+		error_log("  Content: (empty string, length: " . strlen($placeholder_content) . ")");
+		error_log("  Is path: false");
+		error_log("  Content type: 'application/x-directory'");
+
 		$upload_result = $this->upload_file(
 			$bucket,
 			$normalized_path,
@@ -90,7 +113,14 @@ trait Folders {
 			'application/x-directory' // MIME type for directories
 		);
 
+		error_log("upload_file returned type: " . gettype($upload_result));
+
 		if ( is_wp_error( $upload_result ) ) {
+			error_log("ERROR: upload_file returned WP_Error");
+			error_log("  Error code: " . $upload_result->get_error_code());
+			error_log("  Error message: " . $upload_result->get_error_message());
+			error_log("  Error data: " . print_r($upload_result->get_error_data(), true));
+
 			return new ErrorResponse(
 				sprintf( __( 'Failed to create folder "%s"', 'arraypress' ), $normalized_path ),
 				'folder_creation_error',
@@ -99,15 +129,54 @@ trait Folders {
 			);
 		}
 
-		if ( ! $upload_result->is_successful() ) {
-			return new ErrorResponse(
-				sprintf( __( 'Failed to create folder "%s"', 'arraypress' ), $normalized_path ),
-				'folder_creation_error',
-				400,
-				[ 'upload_result' => $upload_result ]
-			);
+		if ( is_object( $upload_result ) ) {
+			error_log("upload_result is object of class: " . get_class($upload_result));
+
+			if ( method_exists( $upload_result, 'is_successful' ) ) {
+				$is_successful = $upload_result->is_successful();
+				error_log("upload_result->is_successful(): " . ($is_successful ? 'TRUE' : 'FALSE'));
+
+				if ( method_exists( $upload_result, 'get_status_code' ) ) {
+					error_log("upload_result status code: " . $upload_result->get_status_code());
+				}
+
+				if ( method_exists( $upload_result, 'get_data' ) ) {
+					error_log("upload_result data: " . print_r($upload_result->get_data(), true));
+				}
+
+				if ( method_exists( $upload_result, 'get_error_message' ) ) {
+					error_log("upload_result error message: " . $upload_result->get_error_message());
+				}
+
+				if ( ! $is_successful ) {
+					error_log("ERROR: upload_file was not successful");
+
+					// Try to get more detailed error info
+					$error_message = sprintf( __( 'Failed to create folder "%s"', 'arraypress' ), $normalized_path );
+					$error_data = [ 'upload_result' => $upload_result ];
+
+					if ( method_exists( $upload_result, 'get_error_message' ) ) {
+						$detailed_error = $upload_result->get_error_message();
+						if ( !empty( $detailed_error ) ) {
+							$error_message .= ': ' . $detailed_error;
+						}
+					}
+
+					return new ErrorResponse(
+						$error_message,
+						'folder_creation_error',
+						400,
+						$error_data
+					);
+				}
+			} else {
+				error_log("WARNING: upload_result object does not have is_successful method");
+			}
+		} else {
+			error_log("WARNING: upload_result is not an object: " . print_r($upload_result, true));
 		}
 
+		error_log("SUCCESS: Folder creation completed successfully");
 		return new SuccessResponse(
 			sprintf( __( 'Folder "%s" created successfully', 'arraypress' ), $normalized_path ),
 			201,
