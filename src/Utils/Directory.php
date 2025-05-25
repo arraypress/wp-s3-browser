@@ -127,7 +127,7 @@ class Directory {
 	}
 
 	/**
-	 * Build a full folder key from current prefix and folder name
+	 * Build a full folder key from the current prefix and folder name
 	 *
 	 * @param string $current_prefix Current prefix/path
 	 * @param string $folder_name    Folder name to append
