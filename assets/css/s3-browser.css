@@ -78,14 +78,14 @@
 }
 
 /* Upload Toggle */
-#s3-toggle-upload {
-    font-weight: 500;
-    margin-bottom: 10px;
-}
-
 #s3-toggle-upload.active {
     background-color: #135e96;
     border-color: #135e96;
+}
+
+#s3-create-folder,
+#s3-toggle-upload {
+    margin-bottom: 0;
 }
 
 /* Breadcrumbs */
