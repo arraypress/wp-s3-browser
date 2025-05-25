@@ -59,6 +59,8 @@
     font-size: 16px;
     width: 16px;
     height: 16px;
+    margin-bottom: 2px;
+    margin-right: 2px;
 }
 
 .button-delete {
@@ -166,6 +168,7 @@
     font-style: italic;
     color: #666;
 }
+
 
 /* Refresh Button */
 .s3-refresh-button.refreshing .dashicons {
