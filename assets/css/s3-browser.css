@@ -137,26 +137,6 @@
     min-width: 500px;
 }
 
-/* WordPress Standard Tablenav Structure - Don't Override */
-.s3-browser-container .tablenav {
-    /* Let WordPress handle the default styling */
-}
-
-.s3-browser-container .tablenav-pages {
-    /* Let WordPress handle the default styling */
-}
-
-.s3-browser-container .displaying-num {
-    /* Let WordPress handle the default styling */
-}
-
-.s3-browser-container .pagination-links {
-    /* Let WordPress handle the default styling */
-}
-
-/* Remove Custom Bottom Nav Styling That Conflicts */
-/* .s3-bottom-nav - REMOVED to prevent conflicts */
-
 /* Load More Specific Styling */
 #s3-load-more:disabled {
     opacity: 0.6;
@@ -169,6 +149,9 @@
     color: #666;
 }
 
+#s3-create-folder .dashicons {
+    margin-bottom: 0;
+}
 
 /* Refresh Button */
 .s3-refresh-button.refreshing .dashicons {

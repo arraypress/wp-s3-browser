@@ -201,7 +201,7 @@ abstract class Provider implements ProviderInterface {
 	 *
 	 * @param string $url URL to check
 	 *
-	 * @return bool True if URL belongs to this provider
+	 * @return bool True if the URL belongs to this provider
 	 */
 	public function is_provider_url( string $url ): bool {
 		if ( empty( $url ) ) {
@@ -211,7 +211,7 @@ abstract class Provider implements ProviderInterface {
 		// Remove protocol for easier matching
 		$url_without_protocol = preg_replace( '/^https?:\/\//', '', $url );
 
-		// Check against main endpoint
+		// Check against the main endpoint
 		$main_endpoint = $this->get_endpoint();
 		if ( $this->url_matches_endpoint( $url_without_protocol, $main_endpoint ) ) {
 			return true;
@@ -315,13 +315,14 @@ abstract class Provider implements ProviderInterface {
 	/**
 	 * Get CDN URL for a bucket (if supported)
 	 *
+	 * Base implementation - providers should override this
+	 *
 	 * @param string $bucket Bucket name
 	 * @param string $object Optional object key
 	 *
 	 * @return string|null CDN URL or null if not supported
 	 */
 	public function get_cdn_url( string $bucket, string $object = '' ): ?string {
-		// Base implementation - providers should override this
 		return null;
 	}
 
