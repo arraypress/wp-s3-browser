@@ -20,11 +20,12 @@ use ArrayPress\S3\Interfaces\Signer as SignerInterface;
 use ArrayPress\S3\Traits\Signer\XmlParser;
 use ArrayPress\S3\Traits\Signer\Authentication;
 use ArrayPress\S3\Traits\Signer\Buckets;
-use ArrayPress\S3\Traits\Signer\Debug;
 use ArrayPress\S3\Traits\Signer\Extraction;
 use ArrayPress\S3\Traits\Signer\Formatter;
 use ArrayPress\S3\Traits\Signer\Objects;
 use ArrayPress\S3\Traits\Signer\PresignedUrls;
+use ArrayPress\S3\Traits\Signer\ErrorHandling;
+use ArrayPress\S3\Traits\Common\Debug;
 
 /**
  * Class Signer
@@ -33,11 +34,12 @@ class Signer implements SignerInterface {
 	use XmlParser;
 	use Authentication;
 	use Buckets;
-	use Debug;
+	use ErrorHandling;
 	use Objects;
 	use PresignedUrls;
 	use Extraction;
 	use Formatter;
+	use Debug;
 
 	/**
 	 * Provider instance
@@ -82,19 +84,6 @@ class Signer implements SignerInterface {
 		$this->provider   = $provider;
 		$this->access_key = trim( $access_key );
 		$this->secret_key = trim( $secret_key );
-	}
-
-	/**
-	 * Set debug callback
-	 *
-	 * @param callable $callback Debug callback function
-	 *
-	 * @return self
-	 */
-	public function set_debug_callback( callable $callback ): self {
-		$this->debug_callback = $callback;
-
-		return $this;
 	}
 
 }

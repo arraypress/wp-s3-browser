@@ -82,7 +82,7 @@ trait Objects {
 			$url .= '?' . http_build_query( $query_params );
 		}
 
-		// Debug the request if callback is set
+		// Debug the request
 		$this->debug( "List Objects Request URL", $url );
 		$this->debug( "List Objects Request Headers", $headers );
 
@@ -100,7 +100,7 @@ trait Objects {
 		$status_code = wp_remote_retrieve_response_code( $response );
 		$body        = wp_remote_retrieve_body( $response );
 
-		// Debug the response if callback is set
+		// Debug the response
 		$this->debug( "List Objects Response Status", $status_code );
 		$this->debug( "List Objects Response Body", $body );
 
@@ -111,9 +111,8 @@ trait Objects {
 
 		// Parse XML response
 		$xml = $this->parse_xml_response( $body );
-
-		if ( is_wp_error( $xml ) ) {
-			return ErrorResponse::from_wp_error( $xml, $status_code );
+		if ( $xml instanceof ErrorResponse ) {
+			return $xml;
 		}
 
 		$objects            = [];
@@ -207,7 +206,7 @@ trait Objects {
 		// Build the URL
 		$url = $this->provider->format_url( $bucket, $object_key );
 
-		// Debug the request if callback is set
+		// Debug the request
 		$this->debug( "Get Object Request URL", $url );
 		$this->debug( "Get Object Request Headers", $headers );
 
@@ -226,25 +225,13 @@ trait Objects {
 		$body             = wp_remote_retrieve_body( $response );
 		$response_headers = wp_remote_retrieve_headers( $response );
 
-		// Debug the response status if callback is set
+		// Debug the response
 		$this->debug( "Get Object Response Status", $status_code );
 		$this->debug( "Get Object Response Headers", $response_headers );
 
 		// Check for error status code
 		if ( $status_code < 200 || $status_code >= 300 ) {
-			// Try to parse an error message from XML if available
-			if ( strpos( $body, '<?xml' ) !== false ) {
-				$error_xml = $this->parse_xml_response( $body, false );
-				if ( ! is_wp_error( $error_xml ) && isset( $error_xml['Error'] ) ) {
-					$error_info    = $error_xml['Error'];
-					$error_message = $error_info['Message']['value'] ?? 'Unknown error';
-					$error_code    = $error_info['Code']['value'] ?? 'unknown_error';
-
-					return new ErrorResponse( $error_message, $error_code, $status_code );
-				}
-			}
-
-			return new ErrorResponse( 'Failed to retrieve object', 'request_failed', $status_code );
+			return $this->handle_error_response( $status_code, $body, 'Failed to retrieve object' );
 		}
 
 		// Extract metadata
@@ -292,7 +279,7 @@ trait Objects {
 		// Build the URL
 		$url = $this->provider->format_url( $bucket, $object_key );
 
-		// Debug the request if callback is set
+		// Debug the request
 		$this->debug( "Head Object Request URL", $url );
 		$this->debug( "Head Object Request Headers", $headers );
 
@@ -310,7 +297,7 @@ trait Objects {
 		$status_code      = wp_remote_retrieve_response_code( $response );
 		$response_headers = wp_remote_retrieve_headers( $response );
 
-		// Debug the response status if callback is set
+		// Debug the response
 		$this->debug( "Head Object Response Status", $status_code );
 		$this->debug( "Head Object Response Headers", $response_headers );
 
@@ -454,7 +441,7 @@ trait Objects {
 		// Build the URL
 		$url = $this->provider->format_url( $target_bucket, $encoded_target_key );
 
-		// Debug the request if a callback is set
+		// Debug the request
 		$this->debug( "Copy Object Request URL", $url );
 		$this->debug( "Copy Object Request Headers", $headers );
 
@@ -475,7 +462,7 @@ trait Objects {
 		$status_code = wp_remote_retrieve_response_code( $response );
 		$body        = wp_remote_retrieve_body( $response );
 
-		// Debug the response if callback is set
+		// Debug the response
 		$this->debug( "Copy Object Response Status", $status_code );
 		$this->debug( "Copy Object Response Body", $body );
 
@@ -494,7 +481,7 @@ trait Objects {
 
 		// Parse XML response for metadata
 		$xml_data = $this->parse_xml_response( $body );
-		if ( is_wp_error( $xml_data ) ) {
+		if ( $xml_data instanceof ErrorResponse ) {
 			// Even if we can't parse the XML, the operation was successful
 			return new SuccessResponse(
 				sprintf(

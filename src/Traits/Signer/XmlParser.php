@@ -4,7 +4,7 @@
  *
  * Provides S3-specific XML parsing functionality.
  *
- * @package     ArrayPress\S3\Traits
+ * @package     ArrayPress\S3\Traits\Signer
  * @copyright   Copyright (c) 2025, ArrayPress Limited
  * @license     GPL2+
  * @version     1.0.0
@@ -16,7 +16,7 @@ declare( strict_types=1 );
 namespace ArrayPress\S3\Traits\Signer;
 
 use ArrayPress\S3\Utils\Xml;
-use WP_Error;
+use ArrayPress\S3\Responses\ErrorResponse;
 
 /**
  * Trait XmlParser
@@ -29,11 +29,11 @@ trait XmlParser {
 	 * @param string $xml_string XML string to parse
 	 * @param bool   $log_errors Whether to log parsing errors
 	 *
-	 * @return array|WP_Error Parsed array or WP_Error on failure
+	 * @return array|ErrorResponse Parsed array or ErrorResponse on failure
 	 */
 	protected function parse_xml_response( string $xml_string, bool $log_errors = true ) {
 		if ( empty( $xml_string ) ) {
-			return new WP_Error( 'empty_response', 'Empty response received' );
+			return new ErrorResponse( 'Empty response received', 'empty_response', 400 );
 		}
 
 		// Store previous error handling state
@@ -51,14 +51,15 @@ trait XmlParser {
 			libxml_use_internal_errors( $previous_state );
 
 			// Log errors if requested
-			if ( $log_errors && ! empty( $errors ) && $this->debug_logger_exists() ) {
+			if ( $log_errors && ! empty( $errors ) ) {
 				$this->debug_log_xml_errors( $errors, $xml_string );
 			}
 
-			// Return WP_Error with details
-			return new WP_Error(
+			// Return ErrorResponse with details
+			return new ErrorResponse(
+				! empty( $errors ) ? trim( $errors[0]->message ) : 'Failed to parse XML response',
 				'xml_parse_error',
-				! empty( $errors ) ? $errors[0]->message : 'Failed to parse XML response',
+				400,
 				[
 					'errors'       => $errors,
 					'xml_fragment' => mb_substr( $xml_string, 0, 200 ) . ( mb_strlen( $xml_string ) > 200 ? '...' : '' )
@@ -85,12 +86,10 @@ trait XmlParser {
 	protected function xml_to_array( \SimpleXMLElement $xml, int $depth = 0, int $max_depth = 100 ): array {
 		// Prevent infinite recursion
 		if ( $depth >= $max_depth ) {
-			if ( $this->debug_logger_exists() ) {
-				$this->debug( 'Maximum XML recursion depth reached', [
-					'max_depth' => $max_depth,
-					'node_name' => $xml->getName()
-				] );
-			}
+			$this->debug( 'Maximum XML recursion depth reached', [
+				'max_depth' => $max_depth,
+				'node_name' => $xml->getName()
+			] );
 
 			return [ 'value' => 'ERROR: Maximum recursion depth reached' ];
 		}
@@ -328,17 +327,6 @@ trait XmlParser {
 			default:
 				return 'Unknown';
 		}
-	}
-
-	/**
-	 * Check if debug logger exists
-	 *
-	 * @return bool True if debug logger exists
-	 */
-	private function debug_logger_exists(): bool {
-		return method_exists( $this, 'log_debug' ) ||
-		       method_exists( $this, 'debug' ) ||
-		       ( isset( $this->debug_logger ) && is_callable( $this->debug_logger ) );
 	}
 
 }

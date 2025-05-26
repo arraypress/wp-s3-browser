@@ -18,11 +18,11 @@ namespace ArrayPress\S3;
 use ArrayPress\S3\Abstracts\Provider;
 use ArrayPress\S3\Traits\Client\Buckets;
 use ArrayPress\S3\Traits\Client\Caching;
-use ArrayPress\S3\Traits\Client\Configuration;
 use ArrayPress\S3\Traits\Client\Folders;
 use ArrayPress\S3\Traits\Client\Objects;
 use ArrayPress\S3\Traits\Client\Permissions;
 use ArrayPress\S3\Traits\Client\PresignedUrls;
+use ArrayPress\S3\Traits\Common\Debug;
 
 /**
  * Class Client
@@ -30,11 +30,11 @@ use ArrayPress\S3\Traits\Client\PresignedUrls;
 class Client {
 	use Caching;
 	use Buckets;
-	use Configuration;
 	use Folders;
 	use Objects;
 	use Permissions;
 	use PresignedUrls;
+	use Debug;
 
 	/**
 	 * Provider instance
@@ -86,6 +86,15 @@ class Client {
 		$this->signer   = new Signer( $provider, $access_key, $secret_key );
 		$this->init_cache( $use_cache, $cache_ttl );
 		$this->debug = $debug;
+	}
+
+	/**
+	 * Get the provider instance
+	 *
+	 * @return Provider
+	 */
+	public function get_provider(): Provider {
+		return $this->provider;
 	}
 
 }

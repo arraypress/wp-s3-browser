@@ -53,7 +53,7 @@ trait PresignedUrls {
 		// Use our special encoding method to properly handle special characters
 		$encoded_key = Encode::object_key( $object_key );
 
-		// Get endpoint from provider
+		// Get endpoint from the provider
 		$host = $this->provider->get_endpoint();
 
 		// Format the canonical URI - this specific format is required for signing
@@ -156,7 +156,7 @@ trait PresignedUrls {
 		$credential_scope = $datestamp . '/' . $this->provider->get_region() . '/s3/aws4_request';
 		$credential       = $this->access_key . '/' . $credential_scope;
 
-		// Create the query parameters - specify PUT method for upload
+		// Create the query parameters - specify a PUT method for upload
 		$query_params = [
 			'X-Amz-Algorithm'     => 'AWS4-HMAC-SHA256',
 			'X-Amz-Credential'    => $credential,

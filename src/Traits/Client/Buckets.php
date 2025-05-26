@@ -19,7 +19,6 @@ use ArrayPress\S3\Interfaces\Response as ResponseInterface;
 use ArrayPress\S3\Responses\BucketsResponse;
 use ArrayPress\S3\Responses\SuccessResponse;
 use ArrayPress\S3\Responses\ErrorResponse;
-use WP_Error;
 
 /**
  * Trait Buckets
@@ -34,14 +33,14 @@ trait Buckets {
 	 * @param string $marker    Marker for pagination
 	 * @param bool   $use_cache Whether to use cache
 	 *
-	 * @return ResponseInterface|WP_Error Response or error
+	 * @return ResponseInterface Response
 	 */
 	public function get_buckets(
 		int $max_keys = 1000,
 		string $prefix = '',
 		string $marker = '',
 		bool $use_cache = true
-	) {
+	): ResponseInterface {
 		// Check cache if enabled
 		if ( $use_cache && $this->is_cache_enabled() ) {
 			$cache_key = $this->get_cache_key( 'buckets', [
@@ -59,15 +58,8 @@ trait Buckets {
 		// Use signer to list buckets
 		$result = $this->signer->list_buckets( $max_keys, $prefix, $marker );
 
-		// Handle errors
-		if ( is_wp_error( $result ) ) {
-			return $result;
-		}
-
 		// Debug logging if enabled
-		if ( $this->debug ) {
-			$this->log_debug( 'Client: Raw result from signer:', $result );
-		}
+		$this->debug( 'Client: Raw result from signer:', $result );
 
 		// Cache the result if successful
 		if ( $use_cache && $this->is_cache_enabled() && $result->is_successful() ) {
@@ -85,42 +77,37 @@ trait Buckets {
 	 * @param string $marker    Marker for pagination
 	 * @param bool   $use_cache Whether to use cache
 	 *
-	 * @return array|WP_Error Array of bucket models or WP_Error
+	 * @return ResponseInterface Response with bucket models
 	 */
 	public function get_bucket_models(
 		int $max_keys = 1000,
 		string $prefix = '',
 		string $marker = '',
 		bool $use_cache = true
-	) {
+	): ResponseInterface {
 		// Get buckets response
-		$response = $this->get_buckets(
-			$max_keys,
-			$prefix,
-			$marker,
-			$use_cache
-		);
-
-		// Handle errors
-		if ( is_wp_error( $response ) ) {
-			return $response;
-		}
+		$response = $this->get_buckets( $max_keys, $prefix, $marker, $use_cache );
 
 		if ( ! ( $response instanceof BucketsResponse ) ) {
-			return new WP_Error(
+			return new ErrorResponse(
+				'Expected BucketsResponse but got ' . get_class( $response ),
 				'invalid_response',
-				'Expected BucketsResponse but got ' . get_class( $response )
+				400
 			);
 		}
 
-		// Return result using response object's transformation method
-		return [
-			'buckets'         => $response->to_bucket_models(),
-			'truncated'       => $response->is_truncated(),
-			'next_marker'     => $response->get_next_marker(),
-			'owner'           => $response->get_owner(),
-			'response_object' => $response
-		];
+		// Return success response with transformed data
+		return new SuccessResponse(
+			'Bucket models retrieved successfully',
+			200,
+			[
+				'buckets'         => $response->to_bucket_models(),
+				'truncated'       => $response->is_truncated(),
+				'next_marker'     => $response->get_next_marker(),
+				'owner'           => $response->get_owner(),
+				'response_object' => $response
+			]
+		);
 	}
 
 	/**
@@ -153,7 +140,7 @@ trait Buckets {
 
 			$check_result = $this->bucket_exists( $bucket, $use_cache );
 
-			if ( is_wp_error( $check_result ) ) {
+			if ( ! $check_result->is_successful() ) {
 				$errors[]           = sprintf(
 					__( 'Error checking bucket "%s": %s', 'arraypress' ),
 					$bucket,
@@ -215,7 +202,7 @@ trait Buckets {
 	 * @param string $bucket    Bucket name to check
 	 * @param bool   $use_cache Whether to use cache
 	 *
-	 * @return ResponseInterface Response with existence info or error
+	 * @return ResponseInterface Response with existence info
 	 */
 	public function bucket_exists( string $bucket, bool $use_cache = true ): ResponseInterface {
 		if ( empty( $bucket ) ) {
@@ -235,12 +222,11 @@ trait Buckets {
 			}
 		}
 
-		// Try to list objects in the bucket with limit 1 - this is more reliable than HEAD bucket
-		// because some S3 providers don't support HEAD bucket properly
+		// Try to list objects in the bucket with limit 1
 		$result = $this->get_objects( $bucket, 1, '', '', '', false );
 
 		// If we get a successful response, bucket exists
-		if ( ! is_wp_error( $result ) && $result->is_successful() ) {
+		if ( $result->is_successful() ) {
 			$response = new SuccessResponse(
 				sprintf( __( 'Bucket "%s" exists', 'arraypress' ), $bucket ),
 				200,
@@ -259,12 +245,12 @@ trait Buckets {
 			return $response;
 		}
 
-		// If we get a WP_Error, check the error type
-		if ( is_wp_error( $result ) ) {
+		// Check error response
+		if ( $result instanceof ErrorResponse ) {
 			$error_code    = $result->get_error_code();
 			$error_message = $result->get_error_message();
 
-			// Common error codes that indicate bucket don't exist
+			// Common error codes that indicate bucket doesn't exist
 			$not_found_codes = [ 'NoSuchBucket', 'bucket_not_found', 'not_found' ];
 
 			if ( in_array( $error_code, $not_found_codes, true ) ||
@@ -282,7 +268,7 @@ trait Buckets {
 					]
 				);
 
-				// Cache the negative result (with shorter TTL)
+				// Cache the negative result
 				if ( $use_cache && $this->is_cache_enabled() ) {
 					$this->save_to_cache( $cache_key, $response );
 				}
@@ -290,7 +276,7 @@ trait Buckets {
 				return $response;
 			}
 
-			// For other errors (like access denied), we can't determine existence
+			// For other errors, we can't determine existence
 			return new ErrorResponse(
 				sprintf( __( 'Unable to determine if bucket "%s" exists: %s', 'arraypress' ), $bucket, $error_message ),
 				'bucket_check_failed',
@@ -301,32 +287,6 @@ trait Buckets {
 					'original_message' => $error_message
 				]
 			);
-		}
-
-		// If result is not successful but not a WP_Error
-		if ( method_exists( $result, 'get_error_code' ) ) {
-			$error_code    = $result->get_error_code();
-			$error_message = $result->get_error_message();
-
-			// Check for bucket not found errors
-			if ( in_array( $error_code, [ 'NoSuchBucket', 'bucket_not_found' ], true ) ) {
-				$response = new SuccessResponse(
-					sprintf( __( 'Bucket "%s" does not exist', 'arraypress' ), $bucket ),
-					404,
-					[
-						'bucket'     => $bucket,
-						'exists'     => false,
-						'error_code' => $error_code,
-						'method'     => 'list_objects'
-					]
-				);
-
-				if ( $use_cache && $this->is_cache_enabled() ) {
-					$this->save_to_cache( $cache_key, $response );
-				}
-
-				return $response;
-			}
 		}
 
 		// Fallback - unable to determine

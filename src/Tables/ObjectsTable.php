@@ -297,7 +297,7 @@ class ObjectsTable extends WP_List_Table {
 			wp_send_json_error( [ 'message' => 'Bucket parameter is required' ] );
 		}
 
-		// Create temporary table instance
+		// Create a temporary table instance
 		$table = new self( [
 			'client'      => $client,
 			'bucket'      => $bucket,

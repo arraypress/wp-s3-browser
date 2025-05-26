@@ -19,7 +19,6 @@ use ArrayPress\S3\Traits\Browser\Assets;
 use ArrayPress\S3\Traits\Browser\ContentRendering;
 use ArrayPress\S3\Traits\Browser\Integrations;
 use ArrayPress\S3\Traits\Browser\MediaLibrary;
-use ArrayPress\S3\Traits\Browser\Validation;
 
 // Load WP_List_Table if not loaded
 if ( ! class_exists( 'WP_List_Table' ) ) {
@@ -38,7 +37,6 @@ class Browser {
 	use ContentRendering;
 	use Integrations;
 	use MediaLibrary;
-	use Validation;
 
 	/**
 	 * S3 Client instance

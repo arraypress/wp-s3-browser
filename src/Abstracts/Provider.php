@@ -488,7 +488,7 @@ abstract class Provider implements ProviderInterface {
 		}
 
 		// Extract bucket from subdomain
-		$main_endpoint = $this->get_endpoint();
+		$main_endpoint  = $this->get_endpoint();
 		$bucket_pattern = '/^([^.]+)\.' . preg_quote( $main_endpoint, '/' ) . '$/';
 
 		if ( preg_match( $bucket_pattern, $host, $matches ) ) {
@@ -516,8 +516,8 @@ abstract class Provider implements ProviderInterface {
 
 				// Extract object path
 				$domain_length = strlen( $domain );
-				$remaining = substr( $url_without_protocol, $domain_length );
-				$object = ltrim( $remaining, '/' );
+				$remaining     = substr( $url_without_protocol, $domain_length );
+				$object        = ltrim( $remaining, '/' );
 
 				return [
 					'bucket' => $bucket,

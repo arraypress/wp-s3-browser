@@ -21,11 +21,10 @@ use ArrayPress\S3\Responses\ObjectsResponse;
 use ArrayPress\S3\Responses\SuccessResponse;
 use ArrayPress\S3\Utils\Directory;
 use ArrayPress\S3\Utils\File;
-use WP_Error;
 use Generator;
 
 /**
- * Trait ObjectOperations
+ * Trait Objects
  */
 trait Objects {
 
@@ -39,7 +38,7 @@ trait Objects {
 	 * @param string $continuation_token Continuation token for pagination
 	 * @param bool   $use_cache          Whether to use cache
 	 *
-	 * @return ResponseInterface|WP_Error Response or error
+	 * @return ResponseInterface Response
 	 */
 	public function get_objects(
 		string $bucket,
@@ -48,7 +47,7 @@ trait Objects {
 		string $delimiter = '/',
 		string $continuation_token = '',
 		bool $use_cache = true
-	) {
+	): ResponseInterface {
 		// Check cache if enabled
 		if ( $use_cache && $this->is_cache_enabled() ) {
 			$cache_key = $this->get_cache_key( 'objects_' . $bucket, [
@@ -73,15 +72,8 @@ trait Objects {
 			$continuation_token
 		);
 
-		// Handle errors
-		if ( is_wp_error( $result ) ) {
-			return $result;
-		}
-
 		// Debug logging if enabled
-		if ( $this->debug ) {
-			$this->log_debug( 'Client: Raw result from signer for objects:', $result );
-		}
+		$this->debug( 'Client: Raw result from signer for objects:', $result );
 
 		// Cache the result if successful
 		if ( $use_cache && $this->is_cache_enabled() && $result->is_successful() ) {
@@ -101,7 +93,7 @@ trait Objects {
 	 * @param string $continuation_token Continuation token for pagination
 	 * @param bool   $use_cache          Whether to use cache
 	 *
-	 * @return array|WP_Error Array of models or WP_Error
+	 * @return ResponseInterface Response with object models
 	 */
 	public function get_object_models(
 		string $bucket,
@@ -110,7 +102,7 @@ trait Objects {
 		string $delimiter = '/',
 		string $continuation_token = '',
 		bool $use_cache = true
-	) {
+	): ResponseInterface {
 		// Get regular object response
 		$response = $this->get_objects(
 			$bucket,
@@ -121,35 +113,26 @@ trait Objects {
 			$use_cache
 		);
 
-		// Handle errors
-		if ( is_wp_error( $response ) ) {
-			return $response;
-		}
-
-		// Check if the response is an ErrorResponse and convert it to WP_Error
-		if ( $response instanceof ErrorResponse ) {
-			return new WP_Error(
-				$response->get_error_code(),
-				$response->get_error_message(),
-				[ 'status' => $response->get_status_code() ]
-			);
-		}
-
 		if ( ! ( $response instanceof ObjectsResponse ) ) {
-			return new WP_Error(
+			return new ErrorResponse(
+				'Expected ObjectsResponse but got ' . get_class( $response ),
 				'invalid_response',
-				'Expected ObjectsResponse but got ' . get_class( $response )
+				400
 			);
 		}
 
-		// Return result using response object's transformation methods
-		return [
-			'objects'            => $response->to_object_models(),
-			'prefixes'           => $response->to_prefix_models(),
-			'truncated'          => $response->is_truncated(),
-			'continuation_token' => $response->get_continuation_token(),
-			'response_object'    => $response  // Return the response object too
-		];
+		// Return success response with transformed data
+		return new SuccessResponse(
+			'Object models retrieved successfully',
+			200,
+			[
+				'objects'            => $response->to_object_models(),
+				'prefixes'           => $response->to_prefix_models(),
+				'truncated'          => $response->is_truncated(),
+				'continuation_token' => $response->get_continuation_token(),
+				'response_object'    => $response
+			]
+		);
 	}
 
 	/**
@@ -161,7 +144,7 @@ trait Objects {
 	 * @param int    $max_keys  Maximum number of objects to return per request
 	 * @param bool   $use_cache Whether to use cache
 	 *
-	 * @return Generator|WP_Error Generator yielding models or WP_Error
+	 * @return Generator Generator yielding models
 	 */
 	public function get_objects_iterator(
 		string $bucket,
@@ -169,7 +152,7 @@ trait Objects {
 		string $delimiter = '/',
 		int $max_keys = 1000,
 		bool $use_cache = true
-	) {
+	): Generator {
 		$continuation_token = '';
 
 		do {
@@ -183,21 +166,23 @@ trait Objects {
 			);
 
 			// Check for errors
-			if ( is_wp_error( $result ) ) {
-				return $result;
+			if ( ! $result->is_successful() ) {
+				return;
 			}
 
+			$data = $result->get_data();
+
 			// Yield the objects and prefixes
-			foreach ( $result['objects'] as $object ) {
+			foreach ( $data['objects'] as $object ) {
 				yield 'object' => $object;
 			}
 
-			foreach ( $result['prefixes'] as $prefix_model ) {
+			foreach ( $data['prefixes'] as $prefix_model ) {
 				yield 'prefix' => $prefix_model;
 			}
 
 			// Update continuation token for the next iteration
-			$continuation_token = $result['truncated'] ? $result['continuation_token'] : '';
+			$continuation_token = $data['truncated'] ? $data['continuation_token'] : '';
 
 		} while ( ! empty( $continuation_token ) );
 	}
@@ -241,7 +226,7 @@ trait Objects {
 
 			$check_result = $this->object_exists( $bucket, $object_key, $use_cache );
 
-			if ( is_wp_error( $check_result ) ) {
+			if ( ! $check_result->is_successful() ) {
 				$errors[]               = sprintf(
 					__( 'Error checking object "%s": %s', 'arraypress' ),
 					$object_key,
@@ -307,7 +292,7 @@ trait Objects {
 	 * @param string $object_key Object key
 	 * @param bool   $use_cache  Whether to use cache
 	 *
-	 * @return ResponseInterface Response with existence info or error
+	 * @return ResponseInterface Response with existence info
 	 */
 	public function object_exists( string $bucket, string $object_key, bool $use_cache = true ): ResponseInterface {
 		if ( empty( $bucket ) || empty( $object_key ) ) {
@@ -330,10 +315,10 @@ trait Objects {
 			}
 		}
 
-		// Use HEAD request to check object existence - more efficient than GET
+		// Use HEAD request to check object existence
 		$head_result = $this->signer->head_object( $bucket, $object_key );
 
-		if ( ! is_wp_error( $head_result ) && $head_result->is_successful() ) {
+		if ( $head_result->is_successful() ) {
 			// Object exists - get metadata from the response
 			$metadata = $head_result->get_metadata();
 
@@ -357,15 +342,17 @@ trait Objects {
 			return $response;
 		}
 
-		// Handle WP_Error
-		if ( is_wp_error( $head_result ) ) {
+		// Handle error response
+		if ( $head_result instanceof ErrorResponse ) {
 			$error_code    = $head_result->get_error_code();
 			$error_message = $head_result->get_error_message();
+			$status_code   = $head_result->get_status_code();
 
 			// Common error codes that indicate object doesn't exist
 			$not_found_codes = [ 'NoSuchKey', 'object_not_found', 'not_found', '404' ];
 
-			if ( in_array( $error_code, $not_found_codes, true ) ||
+			if ( $status_code === 404 ||
+			     in_array( $error_code, $not_found_codes, true ) ||
 			     strpos( $error_message, 'does not exist' ) !== false ||
 			     strpos( $error_message, 'not found' ) !== false ||
 			     strpos( $error_message, 'NoSuchKey' ) !== false ) {
@@ -382,7 +369,7 @@ trait Objects {
 					]
 				);
 
-				// Cache the negative result (with shorter TTL)
+				// Cache the negative result
 				if ( $use_cache && $this->is_cache_enabled() ) {
 					$this->save_to_cache( $cache_key, $response );
 				}
@@ -390,7 +377,7 @@ trait Objects {
 				return $response;
 			}
 
-			// For other errors (like access denied), we can't determine existence
+			// For other errors, we can't determine existence
 			return new ErrorResponse(
 				sprintf(
 					__( 'Unable to determine if object "%s" exists in bucket "%s": %s', 'arraypress' ),
@@ -407,33 +394,6 @@ trait Objects {
 					'original_message' => $error_message
 				]
 			);
-		}
-
-		// If result is not successful but not a WP_Error
-		if ( method_exists( $head_result, 'get_error_code' ) ) {
-			$error_code  = $head_result->get_error_code();
-			$status_code = $head_result->get_status_code();
-
-			// Check for 404 or NoSuchKey errors
-			if ( $status_code === 404 || in_array( $error_code, [ 'NoSuchKey', 'object_not_found' ], true ) ) {
-				$response = new SuccessResponse(
-					sprintf( __( 'Object "%s" does not exist in bucket "%s"', 'arraypress' ), $object_key, $bucket ),
-					404,
-					[
-						'bucket'     => $bucket,
-						'object_key' => $object_key,
-						'exists'     => false,
-						'error_code' => $error_code,
-						'method'     => 'head_object'
-					]
-				);
-
-				if ( $use_cache && $this->is_cache_enabled() ) {
-					$this->save_to_cache( $cache_key, $response );
-				}
-
-				return $response;
-			}
 		}
 
 		// Fallback - unable to determine
@@ -454,21 +414,14 @@ trait Objects {
 	 * @param string $bucket     Bucket name
 	 * @param string $object_key Object key
 	 *
-	 * @return ResponseInterface|WP_Error Response or error
+	 * @return ResponseInterface Response
 	 */
-	public function delete_object( string $bucket, string $object_key ) {
+	public function delete_object( string $bucket, string $object_key ): ResponseInterface {
 		// Use signer to delete object
 		$result = $this->signer->delete_object( $bucket, $object_key );
 
-		// Handle errors
-		if ( is_wp_error( $result ) ) {
-			return $result;
-		}
-
 		// Debug logging if enabled
-		if ( $this->debug ) {
-			$this->log_debug( 'Client: Raw result from signer for delete operation:', $result );
-		}
+		$this->debug( 'Client: Raw result from signer for delete operation:', $result );
 
 		// If we're caching, we need to bust the cache for this bucket/prefix
 		if ( $this->is_cache_enabled() ) {
@@ -495,21 +448,14 @@ trait Objects {
 	 * @param string $target_bucket Target bucket name
 	 * @param string $target_key    Target object key
 	 *
-	 * @return ResponseInterface|WP_Error Response or error
+	 * @return ResponseInterface Response
 	 */
-	public function copy_object( string $source_bucket, string $source_key, string $target_bucket, string $target_key ) {
+	public function copy_object( string $source_bucket, string $source_key, string $target_bucket, string $target_key ): ResponseInterface {
 		// Use signer to copy object
 		$result = $this->signer->copy_object( $source_bucket, $source_key, $target_bucket, $target_key );
 
-		// Handle errors
-		if ( is_wp_error( $result ) ) {
-			return $result;
-		}
-
 		// Debug logging if enabled
-		if ( $this->debug ) {
-			$this->log_debug( 'Client: Raw result from signer for copy operation:', $result );
-		}
+		$this->debug( 'Client: Raw result from signer for copy operation:', $result );
 
 		// Clear cache for target bucket/prefix
 		if ( $this->is_cache_enabled() ) {
@@ -535,7 +481,7 @@ trait Objects {
 	 * @param string $object_key Object key
 	 * @param bool   $use_cache  Whether to use cache
 	 *
-	 * @return ResponseInterface Response with object info or error
+	 * @return ResponseInterface Response with object info
 	 */
 	public function get_object_info( string $bucket, string $object_key, bool $use_cache = true ): ResponseInterface {
 		if ( empty( $bucket ) || empty( $object_key ) ) {
@@ -549,7 +495,7 @@ trait Objects {
 		// Use the object_exists method which already uses HEAD and includes metadata
 		$exists_result = $this->object_exists( $bucket, $object_key, $use_cache );
 
-		if ( is_wp_error( $exists_result ) ) {
+		if ( ! $exists_result->is_successful() ) {
 			return $exists_result;
 		}
 
@@ -605,18 +551,14 @@ trait Objects {
 	 * @param string $source_key Current object key
 	 * @param string $target_key New object key
 	 *
-	 * @return ResponseInterface Response or error
+	 * @return ResponseInterface Response
 	 */
 	public function rename_object( string $bucket, string $source_key, string $target_key ): ResponseInterface {
 		// 1. Copy the object to the new key
 		$copy_result = $this->copy_object( $bucket, $source_key, $bucket, $target_key );
 
 		// If copy failed, return the error
-		if ( is_wp_error( $copy_result ) || ! $copy_result->is_successful() ) {
-			if ( is_wp_error( $copy_result ) ) {
-				return $copy_result;
-			}
-
+		if ( ! $copy_result->is_successful() ) {
 			return new ErrorResponse(
 				__( 'Failed to copy object during rename operation', 'arraypress' ),
 				'rename_error',
@@ -629,8 +571,7 @@ trait Objects {
 		$delete_result = $this->delete_object( $bucket, $source_key );
 
 		// If delete failed, return a warning but still consider the operation successful
-		// since the object was copied successfully
-		if ( is_wp_error( $delete_result ) || ! $delete_result->is_successful() ) {
+		if ( ! $delete_result->is_successful() ) {
 			return new SuccessResponse(
 				__( 'Object renamed, but failed to delete the original', 'arraypress' ),
 				207, // 207 Multi-Status
@@ -663,7 +604,7 @@ trait Objects {
 	 * @param string $content_type      Optional content type
 	 * @param array  $additional_params Optional additional parameters
 	 *
-	 * @return ResponseInterface Response or error
+	 * @return ResponseInterface Response
 	 */
 	public function put_object(
 		string $bucket,
@@ -675,10 +616,6 @@ trait Objects {
 	): ResponseInterface {
 		// 1. Get a presigned upload URL
 		$upload_url_response = $this->get_presigned_upload_url( $bucket, $target_key, 15 );
-
-		if ( is_wp_error( $upload_url_response ) ) {
-			return $upload_url_response;
-		}
 
 		if ( ! $upload_url_response->is_successful() ) {
 			return new ErrorResponse(

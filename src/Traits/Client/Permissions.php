@@ -1,8 +1,8 @@
 <?php
 /**
- * Client Advanced Operations Trait
+ * Client Permissions Operations Trait
  *
- * Handles advanced/complex operations for the S3 Client.
+ * Handles permission checking for the S3 Client.
  *
  * @package     ArrayPress\S3\Traits
  * @copyright   Copyright (c) 2025, ArrayPress Limited
@@ -15,14 +15,11 @@ declare( strict_types=1 );
 
 namespace ArrayPress\S3\Traits\Client;
 
-use ArrayPress\S3\Interfaces\Response as ResponseInterface;
-use ArrayPress\S3\Responses\ErrorResponse;
-use ArrayPress\S3\Responses\ObjectsResponse;
 use ArrayPress\S3\Responses\SuccessResponse;
 use Exception;
 
 /**
- * Trait ClientAdvancedOperations
+ * Trait Permissions
  */
 trait Permissions {
 
@@ -44,15 +41,14 @@ trait Permissions {
 		// 1. Test READ permission with a list operation
 		try {
 			$list_result         = $this->get_objects( $bucket, 1 );
-			$permissions['read'] = ( $list_result instanceof ObjectsResponse &&
-			                         $list_result->is_successful() );
+			$permissions['read'] = $list_result->is_successful();
 		} catch ( Exception $e ) {
 			$permissions['errors']['read'] = $e->getMessage();
 		}
 
 		// 2. Test WRITE permission with a temporary file
 		if ( $permissions['read'] ) {
-			$test_key     = 'permissions-test-' . bin2hex( random_bytes( 8 ) ) . '.txt';
+			$test_key     = 'permissions-test-' . wp_generate_password( 16, false ) . '.txt';
 			$test_content = 'This is a test file to check permissions. It can be safely deleted.';
 
 			try {

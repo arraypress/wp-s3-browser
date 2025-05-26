@@ -20,19 +20,7 @@ use ArrayPress\S3\Responses\ErrorResponse;
 /**
  * Trait Utilities
  */
-trait Debug {
-
-	/**
-	 * Log debug information if callback is set
-	 *
-	 * @param string $title Debug title
-	 * @param mixed $data Debug data
-	 */
-	private function debug( string $title, $data ): void {
-		if ( is_callable( $this->debug_callback ) ) {
-			call_user_func( $this->debug_callback, $title, $data );
-		}
-	}
+trait ErrorHandling {
 
 	/**
 	 * Handle error responses

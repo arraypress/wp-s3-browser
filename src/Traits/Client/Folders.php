@@ -1,8 +1,8 @@
 <?php
 /**
- * Client Advanced Operations Trait
+ * Client Folder Operations Trait
  *
- * Handles advanced/complex operations for the S3 Client.
+ * Handles folder-related operations for the S3 Client.
  *
  * @package     ArrayPress\S3\Traits
  * @copyright   Copyright (c) 2025, ArrayPress Limited
@@ -21,7 +21,7 @@ use ArrayPress\S3\Responses\SuccessResponse;
 use ArrayPress\S3\Utils\Directory;
 
 /**
- * Trait RenameOperations
+ * Trait Folders
  */
 trait Folders {
 
@@ -31,7 +31,7 @@ trait Folders {
 	 * @param string $bucket      Bucket name
 	 * @param string $folder_path Folder path
 	 *
-	 * @return ResponseInterface Response with existence info or error
+	 * @return ResponseInterface Response with existence info
 	 */
 	public function folder_exists( string $bucket, string $folder_path ): ResponseInterface {
 		if ( empty( $bucket ) || empty( $folder_path ) ) {
@@ -45,11 +45,10 @@ trait Folders {
 		// Normalize the folder path
 		$normalized_path = Directory::normalize( $folder_path );
 
-
 		// Check by listing objects with this prefix (limit to 1 for efficiency)
 		$objects_result = $this->get_object_models( $bucket, 1, $normalized_path, '/', '', false );
 
-		if ( is_wp_error( $objects_result ) ) {
+		if ( ! $objects_result->is_successful() ) {
 			return new ErrorResponse(
 				__( 'Failed to check folder existence', 'arraypress' ),
 				'folder_check_error',
@@ -58,14 +57,15 @@ trait Folders {
 			);
 		}
 
-		$has_objects  = ! empty( $objects_result['objects'] );
-		$has_prefixes = ! empty( $objects_result['prefixes'] );
+		$data         = $objects_result->get_data();
+		$has_objects  = ! empty( $data['objects'] );
+		$has_prefixes = ! empty( $data['prefixes'] );
 		$exists       = $has_objects || $has_prefixes;
 
 		// Check if there's a direct placeholder object
 		$has_placeholder = false;
 		if ( $has_objects ) {
-			foreach ( $objects_result['objects'] as $object ) {
+			foreach ( $data['objects'] as $object ) {
 				if ( $object->get_key() === $normalized_path ) {
 					$has_placeholder = true;
 					break;
@@ -85,8 +85,8 @@ trait Folders {
 				'has_placeholder' => $has_placeholder,
 				'has_objects'     => $has_objects,
 				'has_subfolders'  => $has_prefixes,
-				'object_count'    => count( $objects_result['objects'] ),
-				'subfolder_count' => count( $objects_result['prefixes'] )
+				'object_count'    => count( $data['objects'] ),
+				'subfolder_count' => count( $data['prefixes'] )
 			]
 		);
 	}
@@ -97,7 +97,7 @@ trait Folders {
 	 * @param string $bucket      Bucket name
 	 * @param string $folder_path Folder path (will be normalized to end with /)
 	 *
-	 * @return ResponseInterface Response or error
+	 * @return ResponseInterface Response
 	 */
 	public function create_folder( string $bucket, string $folder_path ): ResponseInterface {
 		if ( empty( $bucket ) || empty( $folder_path ) ) {
@@ -111,10 +111,10 @@ trait Folders {
 		// Normalize the folder path to ensure it ends with /
 		$normalized_path = Directory::normalize( $folder_path );
 
-		// Check if folder already exists by listing objects with this prefix
+		// Check if folder already exists
 		$existing_check = $this->get_objects( $bucket, 1, $normalized_path, '/', '', false );
 
-		if ( is_wp_error( $existing_check ) ) {
+		if ( ! $existing_check->is_successful() ) {
 			return new ErrorResponse(
 				__( 'Failed to check if folder exists', 'arraypress' ),
 				'folder_check_error',
@@ -123,11 +123,12 @@ trait Folders {
 			);
 		}
 
-		// Check if we got any objects or prefixes - if so, the folder effectively exists
+		// Check if we got any objects or prefixes
 		$models_result = $this->get_object_models( $bucket, 1, $normalized_path, '/', '', false );
-		if ( ! is_wp_error( $models_result ) ) {
-			$has_objects  = ! empty( $models_result['objects'] );
-			$has_prefixes = ! empty( $models_result['prefixes'] );
+		if ( $models_result->is_successful() ) {
+			$data         = $models_result->get_data();
+			$has_objects  = ! empty( $data['objects'] );
+			$has_prefixes = ! empty( $data['prefixes'] );
 
 			if ( $has_objects || $has_prefixes ) {
 				return new SuccessResponse(
@@ -143,7 +144,6 @@ trait Folders {
 		}
 
 		// Create a placeholder object to represent the folder
-		// This is a common S3 pattern - create an empty object with the folder name + /
 		$placeholder_content = '';
 
 		// Upload the placeholder
@@ -155,21 +155,12 @@ trait Folders {
 			'application/x-directory' // MIME type for directories
 		);
 
-		if ( is_wp_error( $upload_result ) ) {
-			return new ErrorResponse(
-				sprintf( __( 'Failed to create folder "%s"', 'arraypress' ), $normalized_path ),
-				'folder_creation_error',
-				400,
-				[ 'upload_error' => $upload_result->get_error_message() ]
-			);
-		}
-
 		if ( ! $upload_result->is_successful() ) {
 			return new ErrorResponse(
 				sprintf( __( 'Failed to create folder "%s"', 'arraypress' ), $normalized_path ),
 				'folder_creation_error',
 				400,
-				[ 'upload_result' => $upload_result ]
+				[ 'upload_error' => $upload_result->get_error_message() ]
 			);
 		}
 
@@ -192,7 +183,7 @@ trait Folders {
 	 * @param string $target_prefix New prefix
 	 * @param bool   $recursive     Whether to process recursively
 	 *
-	 * @return ResponseInterface Response or error
+	 * @return ResponseInterface Response
 	 */
 	public function rename_folder(
 		string $bucket,
@@ -207,7 +198,7 @@ trait Folders {
 		// 2. Get all objects in the source prefix
 		$objects_result = $this->get_object_models( $bucket, 1000, $source_prefix, $recursive ? '' : '/' );
 
-		if ( is_wp_error( $objects_result ) ) {
+		if ( ! $objects_result->is_successful() ) {
 			return new ErrorResponse(
 				__( 'Failed to list objects in source prefix', 'arraypress' ),
 				'list_objects_error',
@@ -217,7 +208,8 @@ trait Folders {
 		}
 
 		// 3. Check if there are objects to move
-		$objects       = $objects_result['objects'];
+		$data          = $objects_result->get_data();
+		$objects       = $data['objects'];
 		$total_objects = count( $objects );
 
 		if ( $total_objects === 0 ) {
@@ -245,14 +237,12 @@ trait Folders {
 			// Copy the object to the new location
 			$copy_result = $this->copy_object( $bucket, $source_key, $bucket, $target_key );
 
-			if ( is_wp_error( $copy_result ) || ! $copy_result->is_successful() ) {
+			if ( ! $copy_result->is_successful() ) {
 				$failure_count ++;
 				$failures[] = [
 					'source_key' => $source_key,
 					'target_key' => $target_key,
-					'error'      => is_wp_error( $copy_result ) ?
-						$copy_result->get_error_message() :
-						'Copy operation failed'
+					'error'      => $copy_result->get_error_message()
 				];
 				continue;
 			}
@@ -260,7 +250,7 @@ trait Folders {
 			// Delete the original object
 			$delete_result = $this->delete_object( $bucket, $source_key );
 
-			if ( is_wp_error( $delete_result ) || ! $delete_result->is_successful() ) {
+			if ( ! $delete_result->is_successful() ) {
 				// Count as partial success if copy worked but delete failed
 				$failures[] = [
 					'source_key' => $source_key,
@@ -317,7 +307,7 @@ trait Folders {
 	 * @param bool   $recursive   Whether to delete all contents recursively
 	 * @param bool   $force       Force deletion even if folder has contents (when recursive is false)
 	 *
-	 * @return ResponseInterface Response or error
+	 * @return ResponseInterface Response
 	 */
 	public function delete_folder(
 		string $bucket,
@@ -338,7 +328,7 @@ trait Folders {
 
 		// Get all objects in this folder
 		$objects_result = $this->get_object_models( $bucket, 1000, $normalized_path, $recursive ? '' : '/' );
-		if ( is_wp_error( $objects_result ) ) {
+		if ( ! $objects_result->is_successful() ) {
 			return new ErrorResponse(
 				__( 'Failed to list folder contents', 'arraypress' ),
 				'folder_list_error',
@@ -347,8 +337,9 @@ trait Folders {
 			);
 		}
 
-		$objects       = $objects_result['objects'];
-		$prefixes      = $objects_result['prefixes'];
+		$data          = $objects_result->get_data();
+		$objects       = $data['objects'];
+		$prefixes      = $data['prefixes'];
 		$total_objects = count( $objects );
 		$total_folders = count( $prefixes );
 
@@ -391,13 +382,11 @@ trait Folders {
 			foreach ( $objects as $object ) {
 				$delete_result = $this->delete_object( $bucket, $object->get_key() );
 
-				if ( is_wp_error( $delete_result ) || ! $delete_result->is_successful() ) {
+				if ( ! $delete_result->is_successful() ) {
 					$failed_count ++;
 					$failures[] = [
 						'key'   => $object->get_key(),
-						'error' => is_wp_error( $delete_result ) ?
-							$delete_result->get_error_message() :
-							'Delete operation failed'
+						'error' => $delete_result->get_error_message()
 					];
 				} else {
 					$deleted_count ++;
@@ -409,13 +398,11 @@ trait Folders {
 				foreach ( $prefixes as $prefix ) {
 					$subfolder_result = $this->delete_folder( $bucket, $prefix, true, true );
 
-					if ( is_wp_error( $subfolder_result ) || ! $subfolder_result->is_successful() ) {
+					if ( ! $subfolder_result->is_successful() ) {
 						$failed_count ++;
 						$failures[] = [
 							'key'   => $prefix,
-							'error' => is_wp_error( $subfolder_result ) ?
-								$subfolder_result->get_error_message() :
-								'Subfolder deletion failed'
+							'error' => $subfolder_result->get_error_message()
 						];
 					}
 				}
@@ -428,13 +415,11 @@ trait Folders {
 					$placeholder_found = true;
 					$delete_result     = $this->delete_object( $bucket, $object->get_key() );
 
-					if ( is_wp_error( $delete_result ) || ! $delete_result->is_successful() ) {
+					if ( ! $delete_result->is_successful() ) {
 						$failed_count ++;
 						$failures[] = [
 							'key'   => $object->get_key(),
-							'error' => is_wp_error( $delete_result ) ?
-								$delete_result->get_error_message() :
-								'Delete operation failed'
+							'error' => $delete_result->get_error_message()
 						];
 					} else {
 						$deleted_count ++;

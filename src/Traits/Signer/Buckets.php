@@ -20,7 +20,7 @@ use ArrayPress\S3\Responses\BucketsResponse;
 use ArrayPress\S3\Responses\ErrorResponse;
 
 /**
- * Trait BucketOperations
+ * Trait Buckets
  */
 trait Buckets {
 
@@ -65,7 +65,7 @@ trait Buckets {
 			$url .= '?' . http_build_query( $query_params );
 		}
 
-		// Debug the request if a callback is set
+		// Debug the request
 		$this->debug( "List Buckets Request URL", $url );
 		$this->debug( "List Buckets Request Headers", $headers );
 
@@ -94,8 +94,8 @@ trait Buckets {
 
 		// Parse XML response
 		$xml = $this->parse_xml_response( $body );
-		if ( is_wp_error( $xml ) ) {
-			return ErrorResponse::from_wp_error( $xml, $status_code );
+		if ( $xml instanceof ErrorResponse ) {
+			return $xml;
 		}
 
 		// Debug the parsed XML structure
