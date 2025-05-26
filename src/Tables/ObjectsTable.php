@@ -81,7 +81,7 @@ class ObjectsTable extends WP_List_Table {
 		$this->bucket      = $args['bucket'];
 		$this->prefix      = $args['prefix'] ?? '';
 		$this->provider_id = $args['provider_id'];
-		$this->per_page    = $args['per_page'] ?? 1000;
+		$this->per_page    = $args['per_page'] ?? 100;
 	}
 
 	/**
@@ -300,7 +300,7 @@ class ObjectsTable extends WP_List_Table {
 			'bucket'      => $bucket,
 			'prefix'      => $prefix,
 			'provider_id' => $provider_id,
-			'per_page'    => 1000
+			'per_page'    => 100
 		] );
 
 		$_REQUEST['continuation_token'] = $continuation_token;
