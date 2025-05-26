@@ -1,50 +1,26 @@
 /**
  * S3 Browser Upload Functionality
- * This script handles direct browser uploads to S3 buckets using presigned URLs
- * with added cancel functionality
+ * Handles direct browser uploads to S3 buckets using presigned URLs
  */
 (function ($) {
     'use strict';
 
-    // Extend the S3Browser object with upload functionality
     if (typeof window.S3Browser === 'undefined') {
         window.S3Browser = {};
     }
 
     window.S3Browser.uploads = {
-        // Store active XHR requests for cancellation
         activeUploads: {},
-        // Track active upload count
         activeUploadCount: 0,
-
-        // Translation strings
-        i18n: {
-            // Default strings (fallbacks)
-            cancelUploadConfirm: 'Are you sure you want to cancel "{filename}"?',
-            uploadFailed: 'Upload failed:',
-            uploadComplete: 'Uploads completed. Refreshing file listing...',
-            corsError: 'CORS configuration error - Your bucket needs proper CORS settings to allow uploads from this domain.',
-            networkError: 'Network error detected. Please check your internet connection and try again.',
-            failedPresignedUrl: 'Failed to get upload URL',
-            uploadFailedStatus: 'Upload failed with status',
-            uploadCancelled: 'Upload cancelled'
-        },
+        i18n: {},
 
         init: function () {
             this.loadTranslations();
             this.bindEvents();
         },
 
-        /**
-         * Load translation strings from PHP
-         */
-        loadTranslations: function() {
-            // If s3BrowserConfig.i18n.upload exists, override defaults
-            if (typeof s3BrowserConfig !== 'undefined' &&
-                s3BrowserConfig.i18n &&
-                s3BrowserConfig.i18n.upload) {
-                $.extend(this.i18n, s3BrowserConfig.i18n.upload);
-            }
+        loadTranslations: function () {
+            this.i18n = s3BrowserConfig?.i18n?.upload || {};
         },
 
         bindEvents: function () {
@@ -52,7 +28,7 @@
             const $dropzone = $('.s3-upload-zone');
             const $fileInput = $('.s3-file-input');
 
-            // Handle drag and drop events
+            // Drag and drop
             $dropzone.on({
                 dragover: function (e) {
                     e.preventDefault();
@@ -78,18 +54,17 @@
                 }
             });
 
-            // Handle file input selection
+            // File input
             $fileInput.on('change', function () {
                 if (this.files.length) {
                     const bucket = $dropzone.data('bucket');
                     const prefix = $dropzone.data('prefix') || '';
                     self.uploadFiles(this.files, bucket, prefix);
-                    // Reset input to allow selecting the same file again
                     this.value = '';
                 }
             });
 
-            // Handle cancel button clicks (delegated event)
+            // Cancel uploads
             $('.s3-upload-list').on('click', '.s3-cancel-upload', function (e) {
                 e.preventDefault();
                 const uploadId = $(this).data('upload-id');
@@ -97,17 +72,13 @@
             });
         },
 
-        showUploadError: function(message) {
-            // Remove any existing error notices
+        showUploadError: function (message) {
             $('.s3-upload-notice').remove();
-
-            // Create and insert the error notice
             const $notice = $(`<div class="s3-upload-notice">${message}</div>`);
             $('.s3-upload-list').before($notice);
 
-            // Auto-remove after 8 seconds
             setTimeout(() => {
-                $notice.fadeOut(500, function() {
+                $notice.fadeOut(500, function () {
                     $(this).remove();
                 });
             }, 8000);
@@ -118,22 +89,14 @@
             const $uploadList = $('.s3-upload-list');
             const uploadPromises = [];
 
-            // Show the upload list container
             $uploadList.show();
-
-            // Before starting uploads, trigger the starting event
             $(document).trigger('s3UploadStarted');
 
             Array.from(files).forEach(file => {
-                // Create a unique key that preserves the file name
-                // Ensure prefix ends with a slash if not empty
                 const normalizedPrefix = prefix ? (prefix.endsWith('/') ? prefix : prefix + '/') : '';
                 const objectKey = normalizedPrefix + file.name;
-
-                // Create unique upload ID
                 const uploadId = 'upload_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
 
-                // Create progress element with cancel button
                 const $progress = $(`
                     <div class="s3-upload-item" id="${uploadId}">
                         <div class="s3-upload-item-info">
@@ -156,105 +119,82 @@
                 `);
 
                 $uploadList.append($progress);
-
-                // Increment active upload count
                 self.activeUploadCount++;
 
-                // Start upload process
                 const uploadPromise = self.getPresignedUrl(bucket, objectKey)
                     .then(url => self.uploadToS3(file, url, $progress, uploadId))
                     .then(() => {
                         $progress.addClass('s3-upload-success');
                         $progress.find('.s3-upload-status').html('<span class="dashicons dashicons-yes"></span>');
-
-                        // Remove from active uploads
-                        delete self.activeUploads[uploadId];
-
-                        // Decrement active upload count
-                        self.activeUploadCount--;
-                        if (self.activeUploadCount === 0) {
-                            $(document).trigger('s3AllUploadsComplete');
-                        }
-
-                        // Trigger upload complete event
-                        $(document).trigger('s3UploadComplete', [true]); // true = success
+                        self.handleUploadComplete(uploadId, true);
                     })
                     .catch(error => {
                         console.error('Upload error:', error);
-
-                        // Check if this was a cancellation
-                        if (error.message === self.i18n.uploadCancelled) {
-                            $progress.addClass('s3-upload-cancelled');
-                            $progress.find('.s3-upload-status').html('<span class="dashicons dashicons-no"></span>');
-
-                            // Fade out and remove after 3 seconds
-                            setTimeout(function () {
-                                $progress.fadeOut(800, function () {
-                                    $(this).remove();
-                                });
-                            }, 3000);
-                        } else {
-                            // For other errors, just show a simple error indicator in the row
-                            $progress.addClass('s3-upload-error');
-                            $progress.find('.s3-upload-status').html('<span class="dashicons dashicons-warning"></span>');
-
-                            // Show error notice at the top (only place with detailed message)
-                            const errorMsg = error.message || self.i18n.uploadFailed;
-
-                            if (error.message.includes('CORS')) {
-                                self.showUploadError(self.i18n.corsError);
-                            } else if (error.message.includes('network error')) {
-                                self.showUploadError(self.i18n.networkError);
-                            } else {
-                                self.showUploadError(self.i18n.uploadFailed + ' ' + errorMsg);
-                            }
-                        }
-
-                        // Remove from active uploads
-                        delete self.activeUploads[uploadId];
-
-                        // Decrement active upload count
-                        self.activeUploadCount--;
-                        if (self.activeUploadCount === 0) {
-                            $(document).trigger('s3AllUploadsComplete');
-                        }
-
-                        // Trigger upload complete event
-                        $(document).trigger('s3UploadComplete', [false]); // false = failure
+                        self.handleUploadError(error, $progress, uploadId);
                     });
 
                 uploadPromises.push(uploadPromise);
             });
 
-            // When all uploads complete, refresh the file listing
+            this.handleAllUploadsComplete(uploadPromises);
+        },
+
+        handleUploadComplete: function (uploadId, success) {
+            delete this.activeUploads[uploadId];
+            this.activeUploadCount--;
+
+            if (this.activeUploadCount === 0) {
+                $(document).trigger('s3AllUploadsComplete');
+            }
+            $(document).trigger('s3UploadComplete', [success]);
+        },
+
+        handleUploadError: function (error, $progress, uploadId) {
+            if (error.message === this.i18n.uploadCancelled) {
+                $progress.addClass('s3-upload-cancelled');
+                $progress.find('.s3-upload-status').html('<span class="dashicons dashicons-no"></span>');
+                setTimeout(() => {
+                    $progress.fadeOut(800, function () {
+                        $(this).remove();
+                    });
+                }, 3000);
+            } else {
+                $progress.addClass('s3-upload-error');
+                $progress.find('.s3-upload-status').html('<span class="dashicons dashicons-warning"></span>');
+
+                const errorMsg = error.message || this.i18n.uploadFailed;
+                if (errorMsg.includes('CORS') || errorMsg.includes('403') || errorMsg.includes('401')) {
+                    this.showUploadError(this.i18n.corsError);
+                } else if (errorMsg.includes('network')) {
+                    this.showUploadError(this.i18n.networkError);
+                } else {
+                    this.showUploadError(this.i18n.uploadFailed + ' ' + errorMsg);
+                }
+            }
+
+            this.handleUploadComplete(uploadId, false);
+        },
+
+        handleAllUploadsComplete: function (uploadPromises) {
+            const self = this;
             Promise.allSettled(uploadPromises).then(() => {
                 setTimeout(() => {
-                    // Only reload if there are successful uploads
                     const hasSuccessfulUploads = $('.s3-upload-success').length > 0;
-
                     if (hasSuccessfulUploads) {
-                        // Show notification
                         if (typeof S3Browser.showNotification === 'function') {
                             S3Browser.showNotification(self.i18n.uploadComplete, 'success');
                         }
-
-                        // First try to clear cache through the API
-                        self.clearCache(() => {
-                            // Then reload the page to show new files
-                            window.location.reload();
-                        });
+                        self.clearCache(() => window.location.reload());
                     }
                 }, 3000);
             });
         },
 
-        clearCache: function(callback) {
-            // Get current bucket and prefix from URL or data attributes
+        clearCache: function (callback) {
             const urlParams = new URLSearchParams(window.location.search);
             const bucket = urlParams.get('bucket') || $('.s3-upload-zone').data('bucket');
             const prefix = urlParams.get('prefix') || $('.s3-upload-zone').data('prefix') || '';
 
-            // Only proceed if we have a bucket
             if (!bucket) {
                 if (callback) callback();
                 return;
@@ -270,11 +210,11 @@
                     prefix: prefix,
                     nonce: S3BrowserGlobalConfig.nonce
                 },
-                success: function(response) {
+                success: () => {
                     console.log('Cache cleared successfully');
                     if (callback) callback();
                 },
-                error: function() {
+                error: () => {
                     console.error('Failed to clear cache');
                     if (callback) callback();
                 }
@@ -294,14 +234,18 @@
                         nonce: S3BrowserGlobalConfig.nonce
                     },
                     success: function (response) {
-                        if (response.success && response.data && response.data.url) {
+                        if (response.success && response.data?.url) {
                             resolve(response.data.url);
                         } else {
                             reject(new Error(response.data?.message || self.i18n.failedPresignedUrl));
                         }
                     },
                     error: function (xhr, status, error) {
-                        reject(new Error(error || self.i18n.networkError));
+                        if (xhr.status === 403 || xhr.status === 401) {
+                            reject(new Error('Authentication failed - check S3 credentials'));
+                        } else {
+                            reject(new Error(error || self.i18n.networkError));
+                        }
                     }
                 });
             });
@@ -309,46 +253,36 @@
 
         uploadToS3: function (file, presignedUrl, $progress, uploadId) {
             const self = this;
-
             return new Promise((resolve, reject) => {
                 const xhr = new XMLHttpRequest();
                 let lastLoaded = 0;
                 let lastTime = Date.now();
-                let uploadSpeed = 0;
 
-                // Store the XHR object for potential cancellation
                 self.activeUploads[uploadId] = xhr;
 
-                // Track upload progress
                 xhr.upload.addEventListener('progress', function (e) {
                     if (e.lengthComputable) {
-                        // Calculate percentage
                         const percentComplete = Math.round((e.loaded / e.total) * 100);
                         $progress.find('.s3-progress').css('width', percentComplete + '%');
                         $progress.find('.s3-progress-text').text(percentComplete + '%');
 
-                        // Calculate upload speed
                         const currentTime = Date.now();
-                        const timeDiff = (currentTime - lastTime) / 1000; // in seconds
+                        const timeDiff = (currentTime - lastTime) / 1000;
 
-                        if (timeDiff > 0.5) { // Update every half second
-                            const loadedDiff = e.loaded - lastLoaded; // bytes transferred since last update
-                            uploadSpeed = loadedDiff / timeDiff; // bytes per second
+                        if (timeDiff > 0.5) {
+                            const loadedDiff = e.loaded - lastLoaded;
+                            const uploadSpeed = loadedDiff / timeDiff;
 
-                            // Display transferred data and speed
                             const transferred = self.formatFileSize(e.loaded) + ' / ' + self.formatFileSize(e.total);
                             const speed = self.formatFileSize(uploadSpeed) + '/s';
-
                             $progress.find('.s3-transfer-data').text(transferred + ' • ' + speed);
 
-                            // Update for next calculation
                             lastLoaded = e.loaded;
                             lastTime = currentTime;
                         }
                     }
                 });
 
-                // Handle completion
                 xhr.addEventListener('load', function () {
                     if (xhr.status >= 200 && xhr.status < 300) {
                         resolve(xhr.response);
@@ -357,9 +291,7 @@
                     }
                 });
 
-                // Better error handling
                 xhr.addEventListener('error', function (e) {
-                    // Check for CORS errors
                     if (e.target.status === 0) {
                         reject(new Error(self.i18n.corsError));
                     } else {
@@ -371,7 +303,6 @@
                     reject(new Error(self.i18n.uploadCancelled));
                 });
 
-                // Start upload - PUT for pre-signed URLs
                 xhr.open('PUT', presignedUrl, true);
                 xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
                 xhr.send(file);
@@ -379,32 +310,19 @@
         },
 
         cancelUpload: function (uploadId) {
-            const self = this;
-
-            // Get the filename from the UI element
             const $uploadItem = $('#' + uploadId);
             const filename = $uploadItem.find('.s3-filename').text();
-
-            // Show confirmation dialog with translated string
             const confirmMessage = this.i18n.cancelUploadConfirm.replace('{filename}', filename);
-            if (confirm(confirmMessage)) {
-                // Check if this upload is active
-                if (self.activeUploads[uploadId]) {
-                    // Abort the XHR request
-                    self.activeUploads[uploadId].abort();
 
-                    // Add visual feedback immediately (red text)
-                    $uploadItem.addClass('s3-upload-cancelled');
-
-                    // Fade out and remove after 3 seconds
-                    setTimeout(function () {
-                        $uploadItem.fadeOut(800, function () {
-                            $(this).remove();
-                        });
-                    }, 3000);
-
-                    console.log('Upload cancelled:', uploadId);
-                }
+            if (confirm(confirmMessage) && this.activeUploads[uploadId]) {
+                this.activeUploads[uploadId].abort();
+                $uploadItem.addClass('s3-upload-cancelled');
+                setTimeout(() => {
+                    $uploadItem.fadeOut(800, function () {
+                        $(this).remove();
+                    });
+                }, 3000);
+                console.log('Upload cancelled:', uploadId);
             }
         },
 
@@ -417,7 +335,6 @@
         }
     };
 
-    // Initialize uploads when the document is ready
     $(document).ready(function () {
         S3Browser.uploads.init();
     });
