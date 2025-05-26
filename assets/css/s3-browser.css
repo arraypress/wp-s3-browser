@@ -158,9 +158,6 @@
 /* Bottom navigation */
 .tablenav.bottom {
     padding: 12px 0;
-    border-top: 1px solid #ddd;
-    background-color: #fafafa;
-    margin-top: 10px;
 }
 
 .tablenav-pages {
@@ -173,7 +170,6 @@
 .pagination-links {
     display: flex;
     align-items: center;
-    gap: 10px;
 }
 
 .s3-load-status {
