@@ -359,7 +359,7 @@ class Objects extends WP_List_Table {
 	 *
 	 * @return string Column content
 	 */
-	public function column_default( array $item, string $column_name ): string {
+	public function column_default( $item, $column_name ): string {
 		return $item[ $column_name ] ?? '';
 	}
 
