@@ -72,7 +72,7 @@ class Build {
 	}
 
 	/**
-	 * Normalize S3 path to simple bucket/object format
+	 * Normalize S3 path to a simple bucket / object format
 	 *
 	 * @param string $path Path to normalize
 	 *

@@ -23,7 +23,7 @@ namespace ArrayPress\S3\Utils;
 class File {
 
 	/**
-	 * Get file extension from filename or object key
+	 * Get file extension from the filename or object key
 	 *
 	 * @param string $filename Filename or object key
 	 *
@@ -34,9 +34,9 @@ class File {
 	}
 
 	/**
-	 * Get filename from object key
+	 * Get filename from a filename or object key
 	 *
-	 * @param string $object_key Object key
+	 * @param string $object_key Filename or object key
 	 *
 	 * @return string Filename
 	 */

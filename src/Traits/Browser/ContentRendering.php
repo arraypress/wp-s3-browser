@@ -17,8 +17,8 @@ namespace ArrayPress\S3\Traits\Browser;
 
 use ArrayPress\S3\Components\Notice;
 use ArrayPress\S3\Components\Breadcrumb;
-use ArrayPress\S3\Tables\BucketsTable;
-use ArrayPress\S3\Tables\ObjectsTable;
+use ArrayPress\S3\Tables\Buckets;
+use ArrayPress\S3\Tables\Objects;
 use Exception;
 
 /**
@@ -67,7 +67,7 @@ trait ContentRendering {
 			}
 		}
 
-		// Determine view type
+		// Determine a view type
 		$view = ( $view === 'buckets' || empty( $bucket ) ) ? 'buckets' : 'objects';
 
 		// Output content
@@ -227,7 +227,7 @@ trait ContentRendering {
 	 */
 	private function display_buckets_list(): void {
 		// Create and prepare the list table
-		$list_table = new BucketsTable( [
+		$list_table = new Buckets( [
 			'client'      => $this->client,
 			'provider_id' => $this->provider_id
 		] );
@@ -259,7 +259,7 @@ trait ContentRendering {
 	 */
 	private function display_objects_list( string $bucket, string $prefix = '' ): void {
 		// Create and prepare the list table
-		$list_table = new ObjectsTable( [
+		$list_table = new Objects( [
 			'client'      => $this->client,
 			'bucket'      => $bucket,
 			'prefix'      => $prefix,

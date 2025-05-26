@@ -175,14 +175,57 @@ class S3Object {
 	}
 
 	/**
+	 * Get file category (image, video, audio, document, archive, other)
+	 *
+	 * @return string
+	 */
+	public function get_category(): string {
+		return File::category( $this->get_filename() );
+	}
+
+	/**
 	 * Check if object is an image
 	 *
 	 * @return bool
 	 */
 	public function is_image(): bool {
-		$mime = $this->get_mime_type();
+		return File::is_image( $this->get_filename() );
+	}
 
-		return strpos( $mime, 'image/' ) === 0;
+	/**
+	 * Check if object is a video
+	 *
+	 * @return bool
+	 */
+	public function is_video(): bool {
+		return File::is_video( $this->get_filename() );
+	}
+
+	/**
+	 * Check if object is audio
+	 *
+	 * @return bool
+	 */
+	public function is_audio(): bool {
+		return File::is_audio( $this->get_filename() );
+	}
+
+	/**
+	 * Check if object is a document
+	 *
+	 * @return bool
+	 */
+	public function is_document(): bool {
+		return File::is_document( $this->get_filename() );
+	}
+
+	/**
+	 * Check if file type is allowed by WordPress
+	 *
+	 * @return bool
+	 */
+	public function is_allowed_type(): bool {
+		return File::is_allowed_type( $this->get_filename() );
 	}
 
 	/**
@@ -191,21 +234,22 @@ class S3Object {
 	 * @return string Dashicon class
 	 */
 	public function get_dashicon_class(): string {
-		$mime_type = $this->get_mime_type();
+		$category = $this->get_category();
 
-		if ( strpos( $mime_type, 'image/' ) === 0 ) {
-			return 'dashicons-format-image';
-		} elseif ( strpos( $mime_type, 'text/' ) === 0 || strpos( $mime_type, 'application/pdf' ) === 0 ) {
-			return 'dashicons-media-document';
-		} elseif ( strpos( $mime_type, 'application/zip' ) === 0 || strpos( $mime_type, 'application/x-rar' ) === 0 ) {
-			return 'dashicons-media-archive';
-		} elseif ( strpos( $mime_type, 'audio/' ) === 0 ) {
-			return 'dashicons-media-audio';
-		} elseif ( strpos( $mime_type, 'video/' ) === 0 ) {
-			return 'dashicons-media-video';
+		switch ( $category ) {
+			case 'image':
+				return 'dashicons-format-image';
+			case 'video':
+				return 'dashicons-media-video';
+			case 'audio':
+				return 'dashicons-media-audio';
+			case 'document':
+				return 'dashicons-media-document';
+			case 'archive':
+				return 'dashicons-media-archive';
+			default:
+				return 'dashicons-media-default';
 		}
-
-		return 'dashicons-media-default';
 	}
 
 	/**
@@ -214,21 +258,22 @@ class S3Object {
 	 * @return string CSS class
 	 */
 	public function get_icon_class(): string {
-		$mime_type = $this->get_mime_type();
+		$category = $this->get_category();
 
-		if ( strpos( $mime_type, 'image/' ) === 0 ) {
-			return 's3-image-icon';
-		} elseif ( strpos( $mime_type, 'text/' ) === 0 || strpos( $mime_type, 'application/pdf' ) === 0 ) {
-			return 's3-document-icon';
-		} elseif ( strpos( $mime_type, 'application/zip' ) === 0 || strpos( $mime_type, 'application/x-rar' ) === 0 ) {
-			return 's3-archive-icon';
-		} elseif ( strpos( $mime_type, 'audio/' ) === 0 ) {
-			return 's3-audio-icon';
-		} elseif ( strpos( $mime_type, 'video/' ) === 0 ) {
-			return 's3-video-icon';
+		switch ( $category ) {
+			case 'image':
+				return 's3-image-icon';
+			case 'video':
+				return 's3-video-icon';
+			case 'audio':
+				return 's3-audio-icon';
+			case 'document':
+				return 's3-document-icon';
+			case 'archive':
+				return 's3-archive-icon';
+			default:
+				return '';
 		}
-
-		return '';
 	}
 
 	/**
@@ -241,33 +286,16 @@ class S3Object {
 	 * @return string|WP_Error Presigned URL or error
 	 */
 	public function get_presigned_url( Client $client, string $bucket, int $expires = 60 ) {
-		// If we already have a cached presigned URL that's not expired, use it
-		if ( ! empty( $this->presigned_url ) ) {
-			if ( $this->presigned_url instanceof PresignedUrlResponse ) {
-				if ( ! $this->presigned_url->has_expired() ) {
-					return $this->presigned_url->get_url();
-				}
-			} elseif ( is_string( $this->presigned_url ) ) {
-				// If it's a string, we assume it's not expired (legacy support)
-				return $this->presigned_url;
-			}
+		// Check cache
+		if ( $this->presigned_url instanceof PresignedUrlResponse && ! $this->presigned_url->has_expired() ) {
+			return $this->presigned_url->get_url();
 		}
 
-		// Get a new presigned URL
-		$response = $client->get_presigned_url( $bucket, $this->key, $expires );
-
-		// Cache it for later use
+		// Get new URL and cache
+		$response            = $client->get_presigned_url( $bucket, $this->key, $expires );
 		$this->presigned_url = $response;
 
-		// Return the URL or error
-		if ( is_wp_error( $response ) ) {
-			return $response;
-		} elseif ( $response instanceof PresignedUrlResponse ) {
-			return $response->get_url();
-		} else {
-			// Legacy compatibility - if it's already a string URL
-			return $response;
-		}
+		return $response instanceof PresignedUrlResponse ? $response->get_url() : $response;
 	}
 
 	/**
@@ -339,8 +367,20 @@ class S3Object {
 			'.svn',
 			'.tmp',
 			'.gitignore',
-			'.gitkeep'
+			'.gitkeep',
+			'desktop.ini',
+			'Icon\r',
+			'.localized',
+			'__MACOSX',
+			'.fseventsd',
+			'.Spotlight-V100',
+			'.Trashes',
+			'._.DS_Store',
+			'$RECYCLE.BIN'
 		];
+
+		// Make hidden files list filterable
+		$hidden_files = apply_filters( 's3_object_hidden_files', $hidden_files, $this->key, $current_prefix );
 
 		if ( in_array( $filename, $hidden_files, true ) ) {
 			return true;
@@ -370,7 +410,8 @@ class S3Object {
 			'FormattedSize' => $this->get_formatted_size(),
 			'StorageClass'  => $this->storage_class,
 			'Type'          => $this->get_file_type(),
-			'MimeType'      => $this->get_mime_type()
+			'MimeType'      => $this->get_mime_type(),
+			'Category'      => $this->get_category()
 		];
 	}
 

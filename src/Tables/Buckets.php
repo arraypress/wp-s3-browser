@@ -18,7 +18,7 @@ use WP_List_Table;
 /**
  * S3 Buckets List Table
  */
-class BucketsTable extends WP_List_Table {
+class Buckets extends WP_List_Table {
 
 	/**
 	 * Client instance

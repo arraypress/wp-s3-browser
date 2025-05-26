@@ -201,7 +201,7 @@ class ObjectsResponse extends Response {
 	 * @param string $admin_url  Base admin URL (required)
 	 * @param array  $query_args Additional query args to add
 	 *
-	 * @return string|null URL for next page or null if not truncated
+	 * @return string|null URL for the next page or null if not truncated
 	 */
 	public function get_next_page_url( string $bucket, string $prefix, string $admin_url, array $query_args = [] ): ?string {
 		// Add bucket and prefix to query args
@@ -234,4 +234,5 @@ class ObjectsResponse extends Response {
 
 		return $array;
 	}
+
 }

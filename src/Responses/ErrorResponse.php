@@ -67,7 +67,7 @@ class ErrorResponse extends Response {
 	}
 
 	/**
-	 * Get error message
+	 * Get an error message
 	 *
 	 * @return string
 	 */

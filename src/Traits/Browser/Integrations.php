@@ -30,7 +30,7 @@ trait Integrations {
 	 * @return bool True if integration should be enabled, false otherwise
 	 */
 	private function should_enable_integration_for_post_type( string $post_type ): bool {
-		// Check if post type is allowed
+		// Check if post-type is allowed
 		if ( ! empty( $this->allowed_post_types ) && ! in_array( $post_type, $this->allowed_post_types, true ) ) {
 			return false;
 		}
@@ -39,12 +39,12 @@ trait Integrations {
 	}
 
 	/**
-	 * Check if current screen is for a specific post type
+	 * Check if the current screen is for a specific post type
 	 *
 	 * @param string $hook_suffix Current admin page hook suffix
 	 * @param string $post_type   Post type to check for
 	 *
-	 * @return bool True if on correct screen and post type, false otherwise
+	 * @return bool True if on correct screen- and post-type, false otherwise
 	 */
 	private function is_post_type_admin_screen( string $hook_suffix, string $post_type ): bool {
 		// Only apply on post editing screens
@@ -57,26 +57,26 @@ trait Integrations {
 			return false;
 		}
 
-		// Check screen post type
+		// Check screen post-type
 		$screen = get_current_screen();
 		if ( ! $screen || $screen->post_type !== $post_type ) {
 			return false;
 		}
 
-		// Additional check for allowed post types
+		// Additional check for allowed post-types
 		return $this->should_enable_integration_for_post_type( $post_type );
 	}
 
 	/**
-	 * Check if current screen is for a specific post type
+	 * Check if the current screen is for a specific post type
 	 *
 	 * @param WP_Screen|null $screen    The WordPress screen object
 	 * @param string         $post_type Post type to check for
 	 *
-	 * @return bool True if on correct screen and post type, false otherwise
+	 * @return bool True if on correct screen and post-type, false otherwise
 	 */
 	private function is_post_type_screen( ?WP_Screen $screen, string $post_type ): bool {
-		// Check screen post type
+		// Check screen post-type
 		if ( ! $screen || $screen->post_type !== $post_type ) {
 			return false;
 		}
@@ -86,7 +86,7 @@ trait Integrations {
 			return false;
 		}
 
-		// Additional check for allowed post types
+		// Additional check for allowed post-types
 		return $this->should_enable_integration_for_post_type( $post_type );
 	}
 
