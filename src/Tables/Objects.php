@@ -213,7 +213,7 @@ class Objects extends WP_List_Table {
 	 *
 	 * @return void
 	 */
-	protected function display_tablenav( string $which ): void {
+	protected function display_tablenav( $which ): void {
 		?>
         <div class="tablenav <?php echo esc_attr( $which ); ?>">
 			<?php if ( $which === 'top' ): ?>
