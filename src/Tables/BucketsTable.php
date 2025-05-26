@@ -60,6 +60,9 @@ class BucketsTable extends WP_List_Table {
 	/**
 	 * Prepare items
 	 */
+	/**
+	 * Prepare items
+	 */
 	public function prepare_items() {
 		$this->_column_headers = [ $this->get_columns(), [], [] ];
 
@@ -68,14 +71,14 @@ class BucketsTable extends WP_List_Table {
 		// Get buckets (1000 is the maximum)
 		$result = $this->client->get_bucket_models( 1000, '', $marker, true );
 
-		if ( is_wp_error( $result ) ) {
+		if ( ! $result->is_successful() ) {
 			echo '<div class="notice notice-error"><p>' . esc_html( $result->get_error_message() ) . '</p></div>';
 			$this->items = [];
-
 			return;
 		}
 
-		$buckets = $result['buckets'];
+		$data = $result->get_data();
+		$buckets = $data['buckets'];
 		$items   = [];
 
 		foreach ( $buckets as $bucket ) {
@@ -90,14 +93,14 @@ class BucketsTable extends WP_List_Table {
 
 		// Store pagination info
 		$this->set_pagination_args( [
-			'total_items' => count( $items ), // We don't know the real count from S3
+			'total_items' => count( $items ),
 			'per_page'    => 1000,
-			'total_pages' => $result['truncated'] ? 2 : 1, // Just indicate if there's more
+			'total_pages' => $data['truncated'] ? 2 : 1,
 		] );
 
 		// Store the marker for next page link
-		if ( $result['truncated'] && ! empty( $result['next_marker'] ) ) {
-			$this->_pagination_args['marker'] = $result['next_marker'];
+		if ( $data['truncated'] && ! empty( $data['next_marker'] ) ) {
+			$this->_pagination_args['marker'] = $data['next_marker'];
 		}
 	}
 

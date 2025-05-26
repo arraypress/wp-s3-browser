@@ -120,9 +120,14 @@ class ObjectsTable extends WP_List_Table {
 			$continuation_token
 		);
 
-		$this->api_result = $result;
+		// Check if successful and extract data
+		if ( $result->is_successful() ) {
+			$this->api_result = $result->get_data();
+		} else {
+			$this->api_result = new \WP_Error( $result->get_error_code(), $result->get_error_message() );
+		}
 
-		return $result;
+		return $this->api_result;
 	}
 
 	/**
