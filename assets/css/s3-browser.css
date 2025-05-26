@@ -8,16 +8,6 @@
     margin-top: 15px;
 }
 
-.wp-list-table th {
-    position: relative;
-    white-space: nowrap;
-}
-
-.wp-list-table td {
-    word-wrap: break-word;
-    vertical-align: top;
-}
-
 /* Column Widths */
 .wp-list-table th.column-name, .wp-list-table td.column-name {
     width: 20%;
@@ -51,16 +41,12 @@
 }
 
 /* Button Styling */
-.s3-icon-button, .button .dashicons, .s3-select-file .dashicons, .s3-download-file .dashicons {
-    vertical-align: middle;
-}
-
 .s3-icon-button .dashicons {
     font-size: 16px;
     width: 16px;
     height: 16px;
-    margin-bottom: 2px;
-    margin-right: 2px;
+    margin-right: 4px;
+    vertical-align: middle;
 }
 
 .button-delete {
@@ -137,20 +123,63 @@
     min-width: 500px;
 }
 
-/* Load More Specific Styling */
+/* Load More Button */
+#s3-load-more {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    font-weight: 500;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+#s3-load-more .dashicons {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    margin: 0;
+}
+
+#s3-load-more:hover:not(:disabled) {
+    background-color: #f0f6fc;
+    border-color: #0969da;
+    color: #0969da;
+}
+
 #s3-load-more:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+    background-color: #f6f8fa;
+    border-color: #d1d9e0;
+    color: #656d76;
+}
+
+/* Bottom navigation */
+.tablenav.bottom {
+    padding: 12px 0;
+    border-top: 1px solid #ddd;
+    background-color: #fafafa;
+    margin-top: 10px;
+}
+
+.tablenav-pages {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+}
+
+.pagination-links {
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
 .s3-load-status {
-    margin-left: 10px;
+    font-size: 12px;
+    color: #646970;
     font-style: italic;
-    color: #666;
-}
-
-#s3-create-folder .dashicons {
-    margin-bottom: 0;
 }
 
 /* Refresh Button */
@@ -225,7 +254,18 @@
     color: #0073aa;
 }
 
-/* Toolbar Buttons Enhancement */
+@keyframes s3-notification-fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Toolbar Buttons */
 .s3-toolbar-buttons {
     display: flex;
     gap: 8px;
@@ -239,16 +279,7 @@
     gap: 4px;
 }
 
-#s3-create-folder {
-    font-weight: 500;
-}
-
-#s3-create-folder:hover {
-    background-color: #f0f0f1;
-    border-color: #8c8f94;
-}
-
-/* Simple Modal Styles */
+/* Folder Modal */
 .s3-folder-modal-overlay {
     position: fixed;
     top: 0;
@@ -332,7 +363,7 @@
     margin-left: 8px;
 }
 
-/* Folder Form Styles */
+/* Folder Form */
 .s3-folder-field {
     margin-bottom: 20px;
 }
@@ -368,7 +399,6 @@
     line-height: 1.4;
 }
 
-/* Error Styling */
 .s3-folder-error {
     background: #fff;
     border-left: 4px solid #d63638;
@@ -379,7 +409,6 @@
     border-radius: 0 3px 3px 0;
 }
 
-/* Loading State */
 .s3-folder-loading {
     display: flex;
     align-items: center;
@@ -394,7 +423,6 @@
     margin: 0;
 }
 
-/* Button States */
 .s3-folder-submit:disabled {
     background: #ccd0d4 !important;
     border-color: #ccd0d4 !important;
@@ -402,8 +430,23 @@
     cursor: not-allowed !important;
 }
 
-/* Responsive Adjustments */
+/* Mobile Responsiveness */
 @media screen and (max-width: 782px) {
+    .s3-browser-container {
+        padding: 8px;
+    }
+
+    .s3-top-nav {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+
+    #s3-js-search {
+        min-width: auto;
+        width: 100%;
+    }
+
     .s3-toolbar-buttons {
         flex-direction: column;
         align-items: stretch;
@@ -413,6 +456,18 @@
     .s3-toolbar-buttons .button {
         justify-content: center;
         width: 100%;
+    }
+
+    .tablenav-pages {
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+    }
+
+    #s3-load-more {
+        width: 100%;
+        justify-content: center;
+        padding: 10px 16px;
     }
 
     .s3-folder-modal {
@@ -433,38 +488,5 @@
     .s3-folder-modal-footer .button {
         margin: 4px;
         min-width: 100px;
-    }
-}
-
-@keyframes s3-notification-fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-/* Mobile Responsiveness */
-@media screen and (max-width: 782px) {
-    .s3-browser-container {
-        padding: 8px;
-    }
-
-    .s3-top-nav {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 10px;
-    }
-
-    #s3-js-search {
-        min-width: auto;
-        width: 100%;
-    }
-
-    .s3-search-container {
-        max-width: 100%;
     }
 }

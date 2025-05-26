@@ -262,14 +262,15 @@ class ObjectsTable extends WP_List_Table {
                     </span>
 					<?php if ( isset( $this->_pagination_args['continuation_token'] ) && $this->_pagination_args['continuation_token'] ): ?>
                         <span class="pagination-links">
-                            <button type="button" id="s3-load-more" class="button button-secondary s3-icon-button"
-                                    data-token="<?php echo esc_attr( $this->_pagination_args['continuation_token'] ); ?>"
-                                    data-bucket="<?php echo esc_attr( $this->bucket ); ?>"
-                                    data-prefix="<?php echo esc_attr( $this->prefix ); ?>"
-                                    data-provider="<?php echo esc_attr( $this->provider_id ); ?>">
-                                <span class="s3-button-text"><?php esc_html_e( 'Load More Items', 'arraypress' ); ?></span>
-                                <span class="spinner" style="display: none;"></span>
-                            </button>
+                                <button type="button" id="s3-load-more" class="button button-secondary s3-icon-button"
+                                        data-token="<?php echo esc_attr( $this->_pagination_args['continuation_token'] ); ?>"
+                                        data-bucket="<?php echo esc_attr( $this->bucket ); ?>"
+                                        data-prefix="<?php echo esc_attr( $this->prefix ); ?>"
+                                        data-provider="<?php echo esc_attr( $this->provider_id ); ?>">
+                                    <span class="dashicons dashicons-update"></span>
+                                    <span class="s3-button-text"><?php esc_html_e( 'Load More Items', 'arraypress' ); ?></span>
+                                    <span class="spinner" style="display: none;"></span>
+                                </button>
                             <span class="s3-load-status"></span>
                         </span>
 					<?php endif; ?>
