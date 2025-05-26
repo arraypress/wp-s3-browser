@@ -741,12 +741,13 @@
             $tbody.append(response.data.html);
             this.originalTableData = $tbody.find('tr:not(.s3-no-results)').clone();
             this.totalLoadedItems += response.data.count;
-            this.updateTotalCount(response.data.has_more);
 
             if (response.data.has_more && response.data.continuation_token) {
                 this.updateLoadMoreButton($button, response.data.continuation_token);
+                this.updateTotalCount(true);
             } else {
-                $button.closest('.s3-load-more-wrapper').fadeOut(300);
+                // Hide just the load more button wrapper, not entire tablenav
+                $button.closest('.pagination-links').fadeOut(300);
                 this.updateTotalCount(false);
             }
 
@@ -761,18 +762,18 @@
          */
         updateLoadMoreButton: function ($button, token) {
             $button.data('token', token)
+                .prop('disabled', false)
                 .find('.s3-button-text').text(this.i18n.loadMoreItems)
-                .end().find('.spinner').hide()
-                .end().prop('disabled', false);
+                .end().find('.spinner').hide();
         },
 
         /**
          * Reset load more button to default state
          */
         resetLoadMoreButton: function ($button) {
-            $button.find('.s3-button-text').text(this.i18n.loadMoreItems)
-                .end().find('.spinner').hide()
-                .end().prop('disabled', false);
+            $button.prop('disabled', false)
+                .find('.s3-button-text').text(this.i18n.loadMoreItems)
+                .end().find('.spinner').hide();
         },
 
         /* ========================================
