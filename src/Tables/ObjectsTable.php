@@ -280,14 +280,6 @@ class ObjectsTable extends WP_List_Table {
 		<?php
 	}
 
-	/**
-	 * Static AJAX handler - called by Browser class
-	 *
-	 * @param Client $client      The S3 client instance
-	 * @param string $provider_id The provider ID
-	 *
-	 * @return void
-	 */
 	public static function ajax_load_more( Client $client, string $provider_id ) {
 		// Verify nonce
 		if ( ! check_ajax_referer( 's3_browser_nonce_' . $provider_id, 'nonce', false ) ) {
