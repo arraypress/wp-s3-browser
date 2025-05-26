@@ -701,11 +701,10 @@
         },
 
         /**
-         * Load more items via AJAX
+         * Load more items via AJAX - FIXED VERSION
          */
         loadMoreItems: function (token, bucket, prefix, $button) {
             var self = this;
-            var config = S3BrowserGlobalConfig;
 
             if (self.isLoading || !token) return;
             self.isLoading = true;
@@ -714,7 +713,8 @@
                 .find('.s3-button-text').text(self.i18n.loadingText)
                 .end().find('.spinner').show();
 
-            this.makeAjaxRequest(config.ajaxAction.replace('s3_', '').replace('_' + config.providerId, '_'), {
+            // Use the consistent action name pattern like other AJAX calls
+            this.makeAjaxRequest('s3_load_more_', {
                 bucket: bucket,
                 prefix: prefix || '',
                 continuation_token: token
