@@ -15,8 +15,7 @@ declare( strict_types=1 );
 
 namespace ArrayPress\S3\Traits\Browser;
 
-use ArrayPress\S3\Interfaces\Response;
-use ArrayPress\S3\Tables\ObjectsTable;
+use ArrayPress\S3\Tables\Objects;
 use ArrayPress\S3\Utils\Directory;
 use ArrayPress\S3\Utils\Validate;
 
@@ -67,12 +66,17 @@ trait AjaxHandlers {
 	 * Handle AJAX load more request
 	 */
 	public function handle_ajax_load_more(): void {
+		if ( ! check_ajax_referer( 's3_browser_nonce_' . $this->provider_id, 'nonce', false ) ) {
+			wp_send_json_error( [ 'message' => __( 'Security check failed', 'arraypress' ) ] );
+			return;
+		}
+
 		if ( ! current_user_can( $this->capability ) ) {
 			wp_send_json_error( [ 'message' => __( 'You do not have permission to perform this action', 'arraypress' ) ] );
 			return;
 		}
 
-		ObjectsTable::ajax_load_more( $this->client, $this->provider_id );
+		Objects::ajax_load_more( $this->client, $this->provider_id );
 	}
 
 	/**

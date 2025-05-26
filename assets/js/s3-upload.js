@@ -184,40 +184,9 @@
                         if (typeof S3Browser.showNotification === 'function') {
                             S3Browser.showNotification(self.i18n.uploadComplete, 'success');
                         }
-                        self.clearCache(() => window.location.reload());
+                        window.location.reload(); // Remove cache clearing AJAX call
                     }
                 }, 3000);
-            });
-        },
-
-        clearCache: function (callback) {
-            const urlParams = new URLSearchParams(window.location.search);
-            const bucket = urlParams.get('bucket') || $('.s3-upload-zone').data('bucket');
-            const prefix = urlParams.get('prefix') || $('.s3-upload-zone').data('prefix') || '';
-
-            if (!bucket) {
-                if (callback) callback();
-                return;
-            }
-
-            $.ajax({
-                url: S3BrowserGlobalConfig.ajaxUrl,
-                type: 'POST',
-                data: {
-                    action: 's3_clear_cache_' + S3BrowserGlobalConfig.providerId,
-                    type: 'objects',
-                    bucket: bucket,
-                    prefix: prefix,
-                    nonce: S3BrowserGlobalConfig.nonce
-                },
-                success: () => {
-                    console.log('Cache cleared successfully');
-                    if (callback) callback();
-                },
-                error: () => {
-                    console.error('Failed to clear cache');
-                    if (callback) callback();
-                }
             });
         },
 

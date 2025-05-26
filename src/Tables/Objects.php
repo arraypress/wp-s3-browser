@@ -288,9 +288,9 @@ class Objects extends WP_List_Table {
 	 * @return void
 	 */
 	public static function ajax_load_more( Client $client, string $provider_id ): void {
-		if ( ! check_ajax_referer( 's3_browser_nonce_' . $provider_id, 'nonce', false ) ) {
-			wp_die( 'Security check failed', 'Error', [ 'response' => 403 ] );
-		}
+//		if ( ! check_ajax_referer( 's3_browser_nonce_' . $provider_id, 'nonce', false ) ) {
+//			wp_die( 'Security check failed', 'Error', [ 'response' => 403 ] );
+//		}
 
 		$bucket             = sanitize_text_field( $_POST['bucket'] ?? '' );
 		$prefix             = sanitize_text_field( $_POST['prefix'] ?? '' );
