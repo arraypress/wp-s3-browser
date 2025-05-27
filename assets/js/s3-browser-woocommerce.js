@@ -4,6 +4,7 @@
     window.S3BrowserWooCommerceIntegration = {
         frameInstance: null,
         mediaFrame: null,
+        originalButtonState: null,
 
         init: function () {
             // Check if global config exists
@@ -14,11 +15,25 @@
 
             this.bindEvents();
             this.extendMediaFrame();
+            this.startButtonMonitoring();
         },
 
         bindEvents: function () {
+            var self = this;
+
             // Track file upload buttons
             $(document).on('click', '.upload_file_button', this.trackFileButton);
+
+            // Monitor tab clicks to capture original button state
+            $(document).on('click', '.media-menu-item', function () {
+                var $clickedTab = $(this);
+                var config = S3BrowserGlobalConfig;
+                var isS3Tab = $clickedTab.attr('id') === 'menu-item-s3_' + config.providerId;
+
+                if (!isS3Tab) {
+                    self.captureButtonState();
+                }
+            });
 
             // Monitor classic editor media button clicks to reset WooCommerce context
             $(document).on('click', '.wp-media-buttons .button', function () {
@@ -40,6 +55,51 @@
             }
 
             window.wc_gallery_frame = false;
+        },
+
+        captureButtonState: function () {
+            var $button = $('.media-button-select');
+            if ($button.length && $button.text().trim()) {
+                // Store the good button state
+                this.originalButtonState = {
+                    text: $button.text(),
+                    classes: $button.attr('class'),
+                    disabled: $button.prop('disabled')
+                };
+            }
+        },
+
+        restoreButtonState: function () {
+            var $button = $('.media-button-select');
+            var config = S3BrowserGlobalConfig;
+
+            if ($button.length && this.originalButtonState) {
+                // Check if we're NOT in S3 tab
+                var $activeTab = $('.media-menu-item.active');
+                var isS3Active = $activeTab.length &&
+                    $activeTab.attr('id') === 'menu-item-s3_' + config.providerId;
+
+                if (!isS3Active) {
+                    // Restore the original button state
+                    if (!$button.text().trim()) {
+                        $button.text(this.originalButtonState.text);
+                    }
+
+                    // Restore CSS classes if missing button-primary
+                    if (!$button.hasClass('button-primary') && this.originalButtonState.classes.indexOf('button-primary') !== -1) {
+                        $button.attr('class', this.originalButtonState.classes);
+                    }
+                }
+            }
+        },
+
+        startButtonMonitoring: function () {
+            var self = this;
+
+            // Monitor for button changes
+            setInterval(function () {
+                self.restoreButtonState();
+            }, 100);
         },
 
         extendMediaFrame: function () {
@@ -75,15 +135,13 @@
 
                     // Bind events for content rendering
                     this.on('content:render:s3-content', this.s3ContentRender, this);
-                    this.on('deactivate:s3_' + providerId, this.cleanupOnDeactivate, this);
-                },
 
-                // Cleanup when leaving S3 tab
-                cleanupOnDeactivate: function () {
-                    // Clear the context when leaving S3 tab
-                    if (window.wc_media_frame_context === 'product_file') {
-                        delete window.wc_media_frame_context;
-                    }
+                    // Capture button state when frame opens
+                    this.on('open', function () {
+                        setTimeout(function () {
+                            self.captureButtonState();
+                        }, 100);
+                    });
                 },
 
                 s3ContentRender: function () {
