@@ -3,6 +3,10 @@
     padding: 15px;
 }
 
+.s3-browser-container .notice {
+    margin: 0 0 15px 0;
+}
+
 /* Table Layout */
 .s3-browser-container .wp-list-table {
     margin-top: 15px;
