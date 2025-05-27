@@ -24,7 +24,7 @@ use ArrayPress\S3\Utils\Encode;
 use ArrayPress\S3\Utils\File;
 
 /**
- * Trait ObjectOperations
+ * Trait Formatter
  */
 trait Formatter {
 

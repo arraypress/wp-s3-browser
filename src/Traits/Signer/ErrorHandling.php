@@ -18,7 +18,7 @@ namespace ArrayPress\S3\Traits\Signer;
 use ArrayPress\S3\Responses\ErrorResponse;
 
 /**
- * Trait Utilities
+ * Trait ErrorHandling
  */
 trait ErrorHandling {
 

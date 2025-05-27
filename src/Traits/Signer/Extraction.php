@@ -21,7 +21,7 @@ use ArrayPress\S3\Responses\ErrorResponse;
 use ArrayPress\S3\Utils\Xml;
 
 /**
- * Trait BucketOperations
+ * Trait Extraction
  */
 trait Extraction {
 

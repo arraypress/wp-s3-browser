@@ -71,8 +71,7 @@ trait Assets {
 				'baseUrl'       => admin_url( 'media-upload.php' ),
 				'ajaxUrl'       => admin_url( 'admin-ajax.php' ),
 				'defaultBucket' => $bucket_to_use,
-				'nonce'         => wp_create_nonce( 's3_browser_nonce_' . $this->provider_id ),
-				'ajaxAction'    => 's3_load_more_' . $this->provider_id,
+				'nonce'         => wp_create_nonce( 's3_browser_nonce_' . $this->provider_id )
 			];
 
 			// Only add favorite and prefix if relevant
@@ -240,7 +239,6 @@ trait Assets {
 			'loadMoreItems'          => __( 'Load More Items', 'arraypress' ),
 			'loadMoreError'          => __( 'Failed to load more items. Please try again.', 'arraypress' ),
 			'networkError'           => __( 'Network error. Please try again.', 'arraypress' ),
-			'networkLoadError'       => __( 'Network error. Please check your connection and try again.', 'arraypress' ),
 
 			// Search results
 			'noMatchesFound'         => __( 'No matches found', 'arraypress' ),
@@ -257,7 +255,7 @@ trait Assets {
 			'setDefault'             => __( 'Set Default', 'arraypress' ),
 			'defaultText'            => __( 'Default', 'arraypress' ),
 
-			// NEW: Folder creation translations
+			// Folder creation translations
 			'newFolder'              => __( 'New Folder', 'arraypress' ),
 			'createFolder'           => __( 'Create Folder', 'arraypress' ),
 			'folderName'             => __( 'Folder Name', 'arraypress' ),
@@ -310,4 +308,5 @@ trait Assets {
 	protected function enqueue_integration_style( string $file, array $deps = [], string $version = '1.0' ) {
 		return enqueue_library_style_with_namespace( $file, self::$library_namespace, $deps );
 	}
+
 }

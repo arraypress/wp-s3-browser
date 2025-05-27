@@ -90,8 +90,8 @@ trait Buckets {
 
 		if ( ! ( $response instanceof BucketsResponse ) ) {
 			return new ErrorResponse(
-				'Expected BucketsResponse but got ' . get_class( $response ),
-				'invalid_response',
+				__( 'Unable to retrieve buckets. Please verify your access key, secret key, and region settings are correct.', 'arraypress' ),
+				'bucket_retrieval_failed',
 				400
 			);
 		}

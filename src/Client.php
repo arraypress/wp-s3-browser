@@ -23,6 +23,7 @@ use ArrayPress\S3\Traits\Client\Objects;
 use ArrayPress\S3\Traits\Client\Permissions;
 use ArrayPress\S3\Traits\Client\PresignedUrls;
 use ArrayPress\S3\Traits\Common\Debug;
+use ArrayPress\S3\Traits\Common\Context;
 
 /**
  * Class Client
@@ -35,6 +36,7 @@ class Client {
 	use Permissions;
 	use PresignedUrls;
 	use Debug;
+	use Context;
 
 	/**
 	 * Provider instance

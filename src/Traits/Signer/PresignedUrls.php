@@ -21,7 +21,7 @@ use ArrayPress\S3\Responses\ErrorResponse;
 use ArrayPress\S3\Utils\Encode;
 
 /**
- * Trait PresignedUrlOperations
+ * Trait PresignedUrls
  */
 trait PresignedUrls {
 

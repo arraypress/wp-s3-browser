@@ -48,6 +48,29 @@ trait Objects {
 		string $continuation_token = '',
 		bool $use_cache = true
 	): ResponseInterface {
+		// Allow filtering list parameters
+		$list_params = $this->apply_contextual_filters(
+			'arraypress_s3_list_objects_params',
+			[
+				'bucket'             => $bucket,
+				'max_keys'           => $max_keys,
+				'prefix'             => $prefix,
+				'delimiter'          => $delimiter,
+				'continuation_token' => $continuation_token,
+				'use_cache'          => $use_cache
+			],
+			$bucket,
+			$prefix
+		);
+
+		// Extract potentially modified values
+		$bucket             = $list_params['bucket'];
+		$max_keys           = $list_params['max_keys'];
+		$prefix             = $list_params['prefix'];
+		$delimiter          = $list_params['delimiter'];
+		$continuation_token = $list_params['continuation_token'];
+		$use_cache          = $list_params['use_cache'];
+
 		// Check cache if enabled
 		if ( $use_cache && $this->is_cache_enabled() ) {
 			$cache_key = $this->get_cache_key( 'objects_' . $bucket, [
@@ -115,23 +138,35 @@ trait Objects {
 
 		if ( ! ( $response instanceof ObjectsResponse ) ) {
 			return new ErrorResponse(
-				'Expected ObjectsResponse but got ' . get_class( $response ),
-				'invalid_response',
+				__( 'Unable to retrieve objects. Please verify your access key, secret key, and region settings are correct.', 'arraypress' ),
+				'object_retrieval_failed',
 				400
 			);
 		}
 
+		// Transform data
+		$data = [
+			'objects'            => $response->to_object_models(),
+			'prefixes'           => $response->to_prefix_models(),
+			'truncated'          => $response->is_truncated(),
+			'continuation_token' => $response->get_continuation_token(),
+			'response_object'    => $response
+		];
+
+		// Allow filtering the retrieved object models
+		$data = $this->apply_contextual_filters(
+			'arraypress_s3_object_models_retrieved',
+			$data,
+			$bucket,
+			$prefix,
+			$max_keys
+		);
+
 		// Return success response with transformed data
 		return new SuccessResponse(
-			'Object models retrieved successfully',
+			__( 'Object models retrieved successfully', 'arraypress' ),
 			200,
-			[
-				'objects'            => $response->to_object_models(),
-				'prefixes'           => $response->to_prefix_models(),
-				'truncated'          => $response->is_truncated(),
-				'continuation_token' => $response->get_continuation_token(),
-				'response_object'    => $response
-			]
+			$data
 		);
 	}
 
@@ -417,6 +452,35 @@ trait Objects {
 	 * @return ResponseInterface Response
 	 */
 	public function delete_object( string $bucket, string $object_key ): ResponseInterface {
+		// Allow filtering before deletion
+		$delete_params = $this->apply_contextual_filters(
+			'arraypress_s3_before_delete_object',
+			[
+				'bucket'     => $bucket,
+				'object_key' => $object_key,
+				'proceed'    => true // Allow preventing deletion
+			],
+			$bucket,
+			$object_key
+		);
+
+		// Check if deletion should proceed
+		if ( ! $delete_params['proceed'] ) {
+			return new ErrorResponse(
+				__( 'Object deletion was prevented by filter', 'arraypress' ),
+				'deletion_prevented',
+				403,
+				[
+					'bucket'     => $bucket,
+					'object_key' => $object_key
+				]
+			);
+		}
+
+		// Use potentially modified values
+		$bucket     = $delete_params['bucket'];
+		$object_key = $delete_params['object_key'];
+
 		// Use signer to delete object
 		$result = $this->signer->delete_object( $bucket, $object_key );
 
@@ -437,6 +501,16 @@ trait Objects {
 			$this->clear_cache_item( $cache_key );
 		}
 
+		// Allow filtering after deletion
+		if ( $result->is_successful() ) {
+			$this->apply_contextual_filters(
+				'arraypress_s3_after_delete_object',
+				$result,
+				$bucket,
+				$object_key
+			);
+		}
+
 		return $result;
 	}
 
@@ -451,7 +525,7 @@ trait Objects {
 	 * @return ResponseInterface Response
 	 */
 	public function copy_object( string $source_bucket, string $source_key, string $target_bucket, string $target_key ): ResponseInterface {
-		// Use signer to copy object
+		// Use signer to copy an object
 		$result = $this->signer->copy_object( $source_bucket, $source_key, $target_bucket, $target_key );
 
 		// Debug logging if enabled
@@ -614,6 +688,29 @@ trait Objects {
 		string $content_type = '',
 		array $additional_params = []
 	): ResponseInterface {
+		// Allow filtering upload parameters before processing
+		$upload_params = $this->apply_contextual_filters(
+			'arraypress_s3_upload_params',
+			[
+				'bucket'            => $bucket,
+				'target_key'        => $target_key,
+				'file_path'         => $file_path,
+				'is_path'           => $is_path,
+				'content_type'      => $content_type,
+				'additional_params' => $additional_params
+			],
+			$bucket,
+			$target_key
+		);
+
+		// Extract potentially modified values
+		$bucket            = $upload_params['bucket'];
+		$target_key        = $upload_params['target_key'];
+		$file_path         = $upload_params['file_path'];
+		$is_path           = $upload_params['is_path'];
+		$content_type      = $upload_params['content_type'];
+		$additional_params = $upload_params['additional_params'];
+
 		// 1. Get a presigned upload URL
 		$upload_url_response = $this->get_presigned_upload_url( $bucket, $target_key, 15 );
 
@@ -654,6 +751,15 @@ trait Objects {
 			$file_contents = $file_path; // When not a path, this contains the actual content
 		}
 
+		// Allow filtering file contents before upload
+		$file_contents = $this->apply_contextual_filters(
+			'arraypress_s3_upload_content',
+			$file_contents,
+			$bucket,
+			$target_key,
+			$content_type
+		);
+
 		$content_length = strlen( $file_contents );
 
 		// 4. Prepare headers - ALWAYS include Content-Length
@@ -661,6 +767,16 @@ trait Objects {
 			'Content-Type'   => $content_type,
 			'Content-Length' => (string) $content_length
 		], $additional_params );
+
+		// Allow filtering upload headers
+		$headers = $this->apply_contextual_filters(
+			'arraypress_s3_upload_headers',
+			$headers,
+			$bucket,
+			$target_key,
+			$content_type,
+			$content_length
+		);
 
 		// 5. Upload the file using WordPress HTTP API
 		$response = wp_remote_request( $upload_url, [
@@ -705,15 +821,28 @@ trait Objects {
 			$this->clear_cache_item( $cache_key );
 		}
 
+		// Prepare success response data
+		$success_data = [
+			'bucket' => $bucket,
+			'key'    => $target_key,
+			'size'   => $content_length
+		];
+
+		// Allow filtering success response data
+		$success_data = $this->apply_contextual_filters(
+			'arraypress_s3_upload_success',
+			$success_data,
+			$bucket,
+			$target_key,
+			$status_code,
+			$response
+		);
+
 		// 7. Return success response
 		return new SuccessResponse(
 			__( 'File uploaded successfully', 'arraypress' ),
 			$status_code,
-			[
-				'bucket' => $bucket,
-				'key'    => $target_key,
-				'size'   => $content_length
-			]
+			$success_data
 		);
 	}
 
