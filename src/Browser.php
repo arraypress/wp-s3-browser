@@ -132,9 +132,6 @@ class Browser {
 			HOUR_IN_SECONDS
 		);
 
-		// Register assets for this browser
-		register_library_assets( __NAMESPACE__ );
-
 		// Initialize WordPress hooks
 		$this->init_hooks();
 	}
