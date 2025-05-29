@@ -2,9 +2,10 @@
 /**
  * Browser Plugin Integrations Trait
  *
- * Handles third-party plugin integrations for the S3 Browser.
+ * Handles third-party plugin integrations for the S3 Browser using
+ * the new WP Composer Assets library for simplified asset management.
  *
- * @package     ArrayPress\S3\Traits
+ * @package     ArrayPress\S3\Traits\Browser
  * @copyright   Copyright (c) 2025, ArrayPress Limited
  * @license     GPL2+
  * @version     1.0.0
@@ -44,7 +45,7 @@ trait Integrations {
 	 * @param string $hook_suffix Current admin page hook suffix
 	 * @param string $post_type   Post type to check for
 	 *
-	 * @return bool True if on correct screen- and post-type, false otherwise
+	 * @return bool True if on correct screen and post-type, false otherwise
 	 */
 	private function is_post_type_admin_screen( string $hook_suffix, string $post_type ): bool {
 		// Only apply on post editing screens
@@ -114,8 +115,13 @@ trait Integrations {
 			// First enqueue the global config
 			$config_handle = $this->enqueue_global_config();
 
-			// Enqueue EDD-specific script using Assets trait helper
-			$this->enqueue_integration_script( 'js/s3-browser-edd.js', [ 'jquery', $config_handle ] );
+			// Enqueue EDD-specific script using WP Composer Assets
+			wp_enqueue_script_from_composer_file(
+				's3-browser-edd',
+				__FILE__,
+				'js/s3-browser-edd.js',
+				[ 'jquery', $config_handle ]
+			);
 		} );
 	}
 
@@ -143,8 +149,13 @@ trait Integrations {
 			// First enqueue the global config
 			$config_handle = $this->enqueue_global_config();
 
-			// Enqueue WooCommerce-specific script using Assets trait helper
-			$this->enqueue_integration_script( 'js/s3-browser-woocommerce.js', [ 'jquery', $config_handle ] );
+			// Enqueue WooCommerce-specific script using WP Composer Assets
+			wp_enqueue_script_from_composer_file(
+				's3-browser-woocommerce',
+				__FILE__,
+				'js/s3-browser-woocommerce.js',
+				[ 'jquery', $config_handle ]
+			);
 		} );
 
 		// Add WooCommerce-specific footer templates

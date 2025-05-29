@@ -2,9 +2,10 @@
 /**
  * Browser Assets Management Trait
  *
- * Handles asset loading and configuration for the S3 Browser.
+ * Handles asset loading and configuration for the S3 Browser using
+ * the new WP Composer Assets library for simplified asset management.
  *
- * @package     ArrayPress\S3\Traits
+ * @package     ArrayPress\S3\Traits\Browser
  * @copyright   Copyright (c) 2025, ArrayPress Limited
  * @license     GPL2+
  * @version     1.0.0
@@ -19,13 +20,6 @@ namespace ArrayPress\S3\Traits\Browser;
  * Trait Assets
  */
 trait Assets {
-
-	/**
-	 * Library namespace for asset loading
-	 *
-	 * @var string
-	 */
-	private static string $library_namespace = 'ArrayPress\\S3';
 
 	/**
 	 * Store the browser script handle for later reference
@@ -106,6 +100,9 @@ trait Assets {
 		// For media upload popup
 		if ( $hook_suffix === 'media-upload-popup' ) {
 			$this->enqueue_media_upload_assets();
+		} elseif ( in_array( $hook_suffix, [ 'post.php', 'post-new.php' ] ) ) {
+			// For post edit pages (WooCommerce products, etc.)
+			$this->enqueue_integration_assets();
 		}
 	}
 
@@ -129,32 +126,64 @@ trait Assets {
 	}
 
 	/**
+	 * Enqueue integration assets for post edit pages
+	 *
+	 * @return void
+	 */
+	private function enqueue_integration_assets(): void {
+		// First enqueue the global config
+		$config_handle = $this->enqueue_global_config();
+
+		// Enqueue integration-specific scripts based on context
+		$post_type = get_post_type();
+
+		if ( $post_type === 'product' ) {
+			// WooCommerce integration
+			wp_enqueue_script_from_composer_file(
+				's3-browser-woocommerce',
+				__FILE__,
+				'js/s3-browser-woocommerce.js',
+				[ 'jquery', $config_handle ]
+			);
+		} elseif ( $post_type === 'download' ) {
+			// EDD integration
+			wp_enqueue_script_from_composer_file(
+				's3-browser-edd',
+				__FILE__,
+				'js/s3-browser-edd.js',
+				[ 'jquery', $config_handle ]
+			);
+		}
+	}
+
+	/**
 	 * Enqueue core browser assets (CSS and main JS)
 	 *
 	 * @param string $config_handle Global config script handle
 	 *
-	 * @return string|false Main script handle on success, false on failure
+	 * @return bool True on success, false on failure
 	 */
-	private function enqueue_core_browser_assets( string $config_handle ) {
+	private function enqueue_core_browser_assets( string $config_handle ): bool {
 		// Enqueue main browser styles
-		enqueue_library_style( 'css/s3-browser.css', [], null, 'all', '', self::$library_namespace );
-
-		// Enqueue main browser script
-		$script_handle = enqueue_library_script(
-			'js/s3-browser.js',
-			[ 'jquery', $config_handle ],
-			null,
-			true,
-			'',
-			self::$library_namespace
+		wp_enqueue_style_from_composer_file(
+			's3-browser-style',
+			__FILE__,
+			'css/s3-browser.css'
 		);
 
-		// Store the actual script handle for later use
-		if ( $script_handle ) {
-			$this->browser_script_handle = $script_handle;
+		// Enqueue main browser script
+		$success = wp_enqueue_script_from_composer_file(
+			's3-browser-script',
+			__FILE__,
+			'js/s3-browser.js',
+			[ 'jquery', $config_handle ]
+		);
+
+		if ( $success ) {
+			$this->browser_script_handle = 's3-browser-script';
 		}
 
-		return $script_handle;
+		return $success;
 	}
 
 	/**
@@ -173,28 +202,30 @@ trait Assets {
 		}
 
 		// Enqueue upload script
-		enqueue_library_script(
+		wp_enqueue_script_from_composer_file(
+			's3-upload-script',
+			__FILE__,
 			'js/s3-upload.js',
-			[ 'jquery', $config_handle, $main_script_handle ],
-			null,
-			true,
-			'',
-			self::$library_namespace
+			[ 'jquery', $config_handle, $main_script_handle ]
 		);
 
 		// Enqueue upload styles
-		enqueue_library_style( 'css/s3-upload.css', [], null, 'all', '', self::$library_namespace );
+		wp_enqueue_style_from_composer_file(
+			's3-upload-style',
+			__FILE__,
+			'css/s3-upload.css'
+		);
 	}
 
 	/**
 	 * Localize the main browser script with configuration and translations
 	 *
-	 * @param string|false $script_handle The script handle to localize
+	 * @param bool $script_success Whether the script was successfully enqueued
 	 *
 	 * @return void
 	 */
-	private function localize_browser_script( $script_handle ): void {
-		if ( ! $script_handle || ! wp_script_is( $script_handle, 'enqueued' ) ) {
+	private function localize_browser_script( bool $script_success ): void {
+		if ( ! $script_success || ! $this->browser_script_handle ) {
 			return;
 		}
 
@@ -208,7 +239,7 @@ trait Assets {
 		];
 
 		// Localize the script
-		localize_library_script( $script_handle, 's3BrowserConfig', $browser_config );
+		wp_localize_script( $this->browser_script_handle, 's3BrowserConfig', $browser_config );
 	}
 
 	/**
@@ -281,32 +312,6 @@ trait Assets {
 				'uploadCancelled'     => __( 'Upload cancelled', 'arraypress' )
 			]
 		];
-	}
-
-	/**
-	 * Helper method to enqueue scripts with explicit namespace (for traits)
-	 *
-	 * @param string $file    Relative path to the JS file
-	 * @param array  $deps    Dependencies
-	 * @param string $version Version string
-	 *
-	 * @return string|false Script handle on success, false on failure
-	 */
-	protected function enqueue_integration_script( string $file, array $deps = [ 'jquery' ], string $version = '1.0' ) {
-		return enqueue_library_script_with_namespace( $file, self::$library_namespace, $deps );
-	}
-
-	/**
-	 * Helper method to enqueue styles with explicit namespace (for traits)
-	 *
-	 * @param string $file    Relative path to the CSS file
-	 * @param array  $deps    Dependencies
-	 * @param string $version Version string
-	 *
-	 * @return string|false Style handle on success, false on failure
-	 */
-	protected function enqueue_integration_style( string $file, array $deps = [], string $version = '1.0' ) {
-		return enqueue_library_style_with_namespace( $file, self::$library_namespace, $deps );
 	}
 
 }
