@@ -1,6 +1,6 @@
 /**
- * S3 Browser Core Functionality
- * Handles browsing, searching, file operations, folder creation and WordPress integrations
+ * S3 Browser Core Functionality - Enhanced with Rename Support
+ * Handles browsing, searching, file operations, folder creation, file renaming and WordPress integrations
  */
 (function ($) {
     'use strict';
@@ -34,6 +34,7 @@
             this.countInitialItems();
             this.initUploadToggle();
             this.initFolderCreation();
+            this.initRenameModal();
         },
 
         /**
@@ -54,6 +55,7 @@
             this.bindSearchEvents();
             this.bindLoadMoreEvents();
             this.bindFolderEvents();
+            this.bindRenameEvents();
             this.bindRefreshEvents();
         },
 
@@ -102,6 +104,9 @@
                 } else if ($target.hasClass('s3-delete-file')) {
                     e.preventDefault();
                     self.deleteFile($target);
+                } else if ($target.hasClass('s3-rename-file')) {
+                    e.preventDefault();
+                    self.openRenameModal($target);
                 } else if ($target.hasClass('s3-favorite-bucket')) {
                     e.preventDefault();
                     e.stopPropagation();
@@ -156,6 +161,314 @@
                 e.preventDefault();
                 self.refreshCache($(this));
             });
+        },
+
+        /* ========================================
+         * RENAME FUNCTIONALITY
+         * ======================================== */
+
+        /**
+         * Initialize rename modal
+         */
+        initRenameModal: function () {
+            this.createRenameModal();
+        },
+
+        /**
+         * Bind rename event handlers
+         */
+        bindRenameEvents: function () {
+            var self = this;
+
+            // Modal close events
+            $(document).off('click.s3rename').on('click.s3rename', '.s3-rename-modal-overlay, .s3-rename-modal-close', function (e) {
+                if (e.target === this) {
+                    self.closeRenameModal();
+                }
+            });
+
+            // Escape key to close modal
+            $(document).off('keydown.s3rename').on('keydown.s3rename', function (e) {
+                if (e.key === 'Escape' && $('#s3RenameModal').is(':visible')) {
+                    self.closeRenameModal();
+                }
+            });
+        },
+
+        /**
+         * Create rename modal HTML structure
+         */
+        createRenameModal: function () {
+            if ($('#s3RenameModal').length > 0) return;
+
+            var i18n = this.i18n;
+            var modalHtml = [
+                '<div id="s3RenameModal" class="s3-rename-modal-overlay" style="display: none;">',
+                '<div class="s3-rename-modal">',
+                '<div class="s3-rename-modal-header">',
+                '<h2>' + i18n.renameFile + '</h2>',
+                '<button type="button" class="s3-rename-modal-close">&times;</button>',
+                '</div>',
+                '<div class="s3-rename-modal-body">',
+                '<div class="s3-rename-error" style="display: none;"></div>',
+                '<div class="s3-rename-field">',
+                '<label for="s3RenameInput">' + i18n.filenameLabel + '</label>',
+                '<input type="text" id="s3RenameInput" placeholder="' + i18n.newFilename + '" maxlength="255" autocomplete="off">',
+                '<p class="description">' + i18n.filenameHelp + '</p>',
+                '</div>',
+                '<div class="s3-rename-loading" style="display: none;">',
+                '<span class="spinner is-active"></span>' + i18n.renamingFile,
+                '</div>',
+                '</div>',
+                '<div class="s3-rename-modal-footer">',
+                '<button type="button" class="button s3-rename-cancel">' + i18n.cancel + '</button>',
+                '<button type="button" class="button button-primary s3-rename-submit" disabled>' + i18n.renameFile + '</button>',
+                '</div>',
+                '</div>',
+                '</div>'
+            ].join('');
+
+            $('body').append(modalHtml);
+            this.bindRenameModalEvents();
+        },
+
+        /**
+         * Bind rename modal-specific events
+         */
+        bindRenameModalEvents: function () {
+            var self = this;
+
+            $('#s3RenameModal')
+                .on('click', '.s3-rename-submit', function () {
+                    self.submitRenameForm();
+                })
+                .on('click', '.s3-rename-cancel', function () {
+                    self.closeRenameModal();
+                })
+                .on('keyup', '#s3RenameInput', function (e) {
+                    self.validateRenameInput(e);
+                })
+                .on('keydown', '#s3RenameInput', function (e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        self.submitRenameForm();
+                    }
+                });
+        },
+
+        /**
+         * Open rename modal for a file
+         */
+        openRenameModal: function ($button) {
+            var filename = $button.data('filename');
+            var bucket = $button.data('bucket');
+            var key = $button.data('key');
+
+            // Store current rename context
+            this.currentRename = {
+                filename: filename,
+                bucket: bucket,
+                key: key,
+                $button: $button
+            };
+
+            // Set current filename without extension for editing
+            var nameWithoutExt = this.getFilenameWithoutExtension(filename);
+            $('#s3RenameInput').val(nameWithoutExt);
+
+            // Reset modal state
+            $('.s3-rename-error').hide();
+            $('.s3-rename-submit').prop('disabled', false);
+            $('.s3-rename-loading').hide();
+
+            // Show modal and focus input
+            $('#s3RenameModal').fadeIn(200);
+            setTimeout(function () {
+                $('#s3RenameInput').focus().select();
+            }, 250);
+        },
+
+        /**
+         * Close rename modal
+         */
+        closeRenameModal: function () {
+            $('#s3RenameModal').fadeOut(200);
+            this.currentRename = null;
+        },
+
+        /**
+         * Validate rename input
+         */
+        validateRenameInput: function (e) {
+            var newName = e.target.value.trim();
+            var $submit = $('.s3-rename-submit');
+            var $error = $('.s3-rename-error');
+
+            $error.hide();
+
+            if (!this.currentRename) return;
+
+            // Get original extension
+            var originalExt = this.getFileExtension(this.currentRename.filename);
+            var fullNewName = newName + (originalExt ? '.' + originalExt : '');
+
+            var validation = this.validateFilename(newName, fullNewName);
+
+            if (!validation.valid && newName.length > 0) {
+                $error.text(validation.message).show();
+            }
+
+            $submit.prop('disabled', !validation.valid);
+        },
+
+        /**
+         * Validate filename for renaming
+         */
+        validateFilename: function (nameWithoutExt, fullName) {
+            var i18n = this.i18n;
+
+            if (nameWithoutExt.length === 0) {
+                return {valid: false, message: i18n.filenameRequired};
+            }
+
+            if (fullName.length > 255) {
+                return {valid: false, message: i18n.filenameTooLong};
+            }
+
+            // Check for invalid characters
+            if (/[<>:"|?*\/\\]/.test(nameWithoutExt)) {
+                return {valid: false, message: i18n.filenameInvalid};
+            }
+
+            // Check if starts with problematic characters
+            if (/^[.\-_]/.test(nameWithoutExt)) {
+                return {valid: false, message: i18n.filenameInvalid};
+            }
+
+            // Check for relative path indicators
+            if (nameWithoutExt.includes('..')) {
+                return {valid: false, message: i18n.filenameInvalid};
+            }
+
+            // Check if the new name is the same as current
+            if (this.currentRename && fullName === this.currentRename.filename) {
+                return {valid: false, message: i18n.filenameSame};
+            }
+
+            return {valid: true, message: ''};
+        },
+
+        /**
+         * Submit rename form
+         */
+        submitRenameForm: function () {
+            if (!this.currentRename) return;
+
+            var newNameWithoutExt = $('#s3RenameInput').val().trim();
+            var originalExt = this.getFileExtension(this.currentRename.filename);
+            var fullNewName = newNameWithoutExt + (originalExt ? '.' + originalExt : '');
+
+            var validation = this.validateFilename(newNameWithoutExt, fullNewName);
+            if (!validation.valid) {
+                $('.s3-rename-error').text(validation.message).show();
+                return;
+            }
+
+            this.renameFile(fullNewName);
+        },
+
+        /**
+         * Perform file rename via AJAX
+         */
+        renameFile: function (newFilename) {
+            if (!this.currentRename) return;
+
+            var self = this;
+            var $modal = $('#s3RenameModal');
+            var $elements = {
+                submit: $modal.find('.s3-rename-submit'),
+                cancel: $modal.find('.s3-rename-cancel'),
+                loading: $modal.find('.s3-rename-loading'),
+                error: $modal.find('.s3-rename-error')
+            };
+
+            // Show loading state
+            $elements.submit.prop('disabled', true);
+            $elements.cancel.prop('disabled', true);
+            $elements.loading.show();
+            $elements.error.hide();
+
+            this.makeAjaxRequest('s3_rename_object_', {
+                bucket: this.currentRename.bucket,
+                current_key: this.currentRename.key,
+                new_filename: newFilename
+            }, {
+                success: function (response) {
+                    self.handleRenameSuccess(response, newFilename);
+                },
+                error: function (message) {
+                    $elements.error.text(message).show();
+                    self.resetRenameForm();
+                }
+            });
+        },
+
+        /**
+         * Handle successful rename response
+         */
+        handleRenameSuccess: function (response, newFilename) {
+            var self = this;
+
+            // Update the filename display in the table
+            if (this.currentRename && this.currentRename.$button) {
+                var $row = this.currentRename.$button.closest('tr');
+                var $filenameSpan = $row.find('.s3-filename');
+
+                if ($filenameSpan.length) {
+                    $filenameSpan.text(newFilename).data('original-name', newFilename);
+                }
+
+                // Update all action button data attributes in the row
+                $row.find('[data-filename]').attr('data-filename', newFilename);
+                $row.find('[data-key]').attr('data-key', response.data.new_key);
+            }
+
+            // Show success message
+            this.showNotification(
+                response.data.message || this.i18n.renameSuccess,
+                'success'
+            );
+
+            // Close modal
+            this.closeRenameModal();
+
+            // Update search data
+            this.refreshSearch();
+        },
+
+        /**
+         * Reset rename form to default state
+         */
+        resetRenameForm: function () {
+            var $modal = $('#s3RenameModal');
+            $modal.find('.s3-rename-submit, .s3-rename-cancel').prop('disabled', false);
+            $modal.find('.s3-rename-loading').hide();
+        },
+
+        /**
+         * Get file extension from filename
+         */
+        getFileExtension: function (filename) {
+            var lastDot = filename.lastIndexOf('.');
+            return lastDot > 0 ? filename.substring(lastDot + 1) : '';
+        },
+
+        /**
+         * Get filename without extension
+         */
+        getFilenameWithoutExtension: function (filename) {
+            var lastDot = filename.lastIndexOf('.');
+            return lastDot > 0 ? filename.substring(0, lastDot) : filename;
         },
 
         /* ========================================
@@ -701,7 +1014,7 @@
         },
 
         /**
-         * Load more items via AJAX - FIXED VERSION
+         * Load more items via AJAX
          */
         loadMoreItems: function (token, bucket, prefix, $button) {
             var self = this;
@@ -713,7 +1026,6 @@
                 .find('.s3-button-text').text(self.i18n.loadingText)
                 .end().find('.spinner').show();
 
-            // Use the consistent action name pattern like other AJAX calls
             this.makeAjaxRequest('s3_load_more_', {
                 bucket: bucket,
                 prefix: prefix || '',
@@ -746,7 +1058,6 @@
                 this.updateLoadMoreButton($button, response.data.continuation_token);
                 this.updateTotalCount(true);
             } else {
-                // Hide just the load more button wrapper, not entire tablenav
                 $button.closest('.pagination-links').fadeOut(300);
                 this.updateTotalCount(false);
             }

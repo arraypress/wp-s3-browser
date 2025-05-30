@@ -1,9 +1,9 @@
 <?php
 /**
- * S3 Objects List Table
+ * S3 Objects List Table - Enhanced with Rename Support
  *
  * Displays S3 objects and folders in a WordPress-style table with pagination,
- * search functionality, and file operations.
+ * search functionality, file operations, and renaming capabilities.
  *
  * @package     ArrayPress\S3\Tables
  * @copyright   Copyright (c) 2025, ArrayPress Limited
@@ -25,7 +25,7 @@ use ArrayPress\S3\Client;
  * Class Objects
  *
  * Extends WP_List_Table to display S3 objects and prefixes with proper pagination
- * and file operations support.
+ * and file operations support including renaming.
  */
 class Objects extends WP_List_Table {
 
@@ -288,10 +288,6 @@ class Objects extends WP_List_Table {
 	 * @return void
 	 */
 	public static function ajax_load_more( Client $client, string $provider_id ): void {
-//		if ( ! check_ajax_referer( 's3_browser_nonce_' . $provider_id, 'nonce', false ) ) {
-//			wp_die( 'Security check failed', 'Error', [ 'response' => 403 ] );
-//		}
-
 		$bucket             = sanitize_text_field( $_POST['bucket'] ?? '' );
 		$prefix             = sanitize_text_field( $_POST['prefix'] ?? '' );
 		$continuation_token = sanitize_text_field( $_POST['continuation_token'] ?? '' );
@@ -383,8 +379,9 @@ class Objects extends WP_List_Table {
 		$icon_class = $item['object']->get_dashicon_class();
 
 		return sprintf(
-			'<span class="dashicons %s"></span> %s',
+			'<span class="dashicons %s"></span> <span class="s3-filename" data-original-name="%s">%s</span>',
 			esc_attr( $icon_class ),
+			esc_attr( $item['name'] ),
 			esc_html( $item['name'] )
 		);
 	}
@@ -433,6 +430,15 @@ class Objects extends WP_List_Table {
 				);
 			}
 		}
+
+		// Rename button
+		$actions .= sprintf(
+			' <a href="#" class="button s3-icon-button s3-rename-file" data-filename="%s" data-bucket="%s" data-key="%s"><span class="dashicons dashicons-edit"></span>%s</a>',
+			esc_attr( $item['name'] ),
+			esc_attr( $this->bucket ),
+			esc_attr( $item['key'] ),
+			esc_html__( 'Rename', 'arraypress' )
+		);
 
 		// Delete button
 		$actions .= sprintf(

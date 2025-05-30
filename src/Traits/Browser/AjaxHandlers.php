@@ -30,11 +30,13 @@ trait AjaxHandlers {
 	public function handle_ajax_delete_object(): void {
 		if ( ! check_ajax_referer( 's3_browser_nonce_' . $this->provider_id, 'nonce', false ) ) {
 			wp_send_json_error( [ 'message' => __( 'Security check failed', 'arraypress' ) ] );
+
 			return;
 		}
 
 		if ( ! current_user_can( $this->capability ) ) {
 			wp_send_json_error( [ 'message' => __( 'You do not have permission to perform this action', 'arraypress' ) ] );
+
 			return;
 		}
 
@@ -43,6 +45,7 @@ trait AjaxHandlers {
 
 		if ( empty( $bucket ) || empty( $object_key ) ) {
 			wp_send_json_error( [ 'message' => __( 'Bucket and object key are required', 'arraypress' ) ] );
+
 			return;
 		}
 
@@ -50,6 +53,7 @@ trait AjaxHandlers {
 
 		if ( ! $result->is_successful() ) {
 			wp_send_json_error( [ 'message' => $result->get_error_message() ] );
+
 			return;
 		}
 
@@ -63,16 +67,97 @@ trait AjaxHandlers {
 	}
 
 	/**
-	 * Handle AJAX load more request
+	 * Handle AJAX rename object request
 	 */
-	public function handle_ajax_load_more(): void {
+	public function handle_ajax_rename_object(): void {
 		if ( ! check_ajax_referer( 's3_browser_nonce_' . $this->provider_id, 'nonce', false ) ) {
 			wp_send_json_error( [ 'message' => __( 'Security check failed', 'arraypress' ) ] );
+
 			return;
 		}
 
 		if ( ! current_user_can( $this->capability ) ) {
 			wp_send_json_error( [ 'message' => __( 'You do not have permission to perform this action', 'arraypress' ) ] );
+
+			return;
+		}
+
+		$bucket       = isset( $_POST['bucket'] ) ? sanitize_text_field( $_POST['bucket'] ) : '';
+		$current_key  = isset( $_POST['current_key'] ) ? sanitize_text_field( $_POST['current_key'] ) : '';
+		$new_filename = isset( $_POST['new_filename'] ) ? sanitize_text_field( $_POST['new_filename'] ) : '';
+
+		if ( empty( $bucket ) || empty( $current_key ) || empty( $new_filename ) ) {
+			wp_send_json_error( [ 'message' => __( 'Bucket, current key, and new filename are required', 'arraypress' ) ] );
+
+			return;
+		}
+
+		// Validate the new filename
+		$validation_result = Validate::filename_comprehensive( $new_filename );
+		if ( ! $validation_result['valid'] ) {
+			wp_send_json_error( [ 'message' => $validation_result['message'] ] );
+
+			return;
+		}
+
+		// Extract directory path from current key
+		$directory_path = dirname( $current_key );
+		$directory_path = ( $directory_path === '.' ) ? '' : $directory_path . '/';
+
+		// Build new object key
+		$new_key = $directory_path . $new_filename;
+
+		// Check if the new key would be the same as current key
+		if ( $new_key === $current_key ) {
+			wp_send_json_error( [ 'message' => __( 'The new filename is the same as the current filename', 'arraypress' ) ] );
+
+			return;
+		}
+
+		// Check if an object with the new key already exists
+		$exists_result = $this->client->object_exists( $bucket, $new_key );
+		if ( $exists_result->is_successful() ) {
+			$data = $exists_result->get_data();
+			if ( $data['exists'] ) {
+				wp_send_json_error( [ 'message' => sprintf( __( 'A file named "%s" already exists in this location', 'arraypress' ), $new_filename ) ] );
+
+				return;
+			}
+		}
+
+		// Perform the rename operation
+		$rename_result = $this->client->rename_object( $bucket, $current_key, $new_key );
+
+		if ( ! $rename_result->is_successful() ) {
+			wp_send_json_error( [ 'message' => $rename_result->get_error_message() ] );
+
+			return;
+		}
+
+		$this->client->clear_all_cache();
+
+		wp_send_json_success( [
+			'message'      => sprintf( __( 'File renamed to "%s" successfully', 'arraypress' ), $new_filename ),
+			'bucket'       => $bucket,
+			'old_key'      => $current_key,
+			'new_key'      => $new_key,
+			'new_filename' => $new_filename
+		] );
+	}
+
+	/**
+	 * Handle AJAX load more request
+	 */
+	public function handle_ajax_load_more(): void {
+		if ( ! check_ajax_referer( 's3_browser_nonce_' . $this->provider_id, 'nonce', false ) ) {
+			wp_send_json_error( [ 'message' => __( 'Security check failed', 'arraypress' ) ] );
+
+			return;
+		}
+
+		if ( ! current_user_can( $this->capability ) ) {
+			wp_send_json_error( [ 'message' => __( 'You do not have permission to perform this action', 'arraypress' ) ] );
+
 			return;
 		}
 
@@ -85,11 +170,13 @@ trait AjaxHandlers {
 	public function handle_ajax_get_upload_url() {
 		if ( ! check_ajax_referer( 's3_browser_nonce_' . $this->provider_id, 'nonce', false ) ) {
 			wp_send_json_error( [ 'message' => __( 'Security check failed', 'arraypress' ) ] );
+
 			return;
 		}
 
 		if ( ! current_user_can( $this->capability ) ) {
 			wp_send_json_error( [ 'message' => __( 'You do not have permission to perform this action', 'arraypress' ) ] );
+
 			return;
 		}
 
@@ -98,6 +185,7 @@ trait AjaxHandlers {
 
 		if ( empty( $bucket ) || empty( $object_key ) ) {
 			wp_send_json_error( [ 'message' => __( 'Bucket and object key are required', 'arraypress' ) ] );
+
 			return;
 		}
 
@@ -105,6 +193,7 @@ trait AjaxHandlers {
 
 		if ( ! $response->is_successful() ) {
 			wp_send_json_error( [ 'message' => $response->get_error_message() ] );
+
 			return;
 		}
 
@@ -122,11 +211,13 @@ trait AjaxHandlers {
 	public function handle_ajax_clear_cache(): void {
 		if ( ! check_ajax_referer( 's3_browser_nonce_' . $this->provider_id, 'nonce', false ) ) {
 			wp_send_json_error( [ 'message' => __( 'Security check failed', 'arraypress' ) ] );
+
 			return;
 		}
 
 		if ( ! current_user_can( $this->capability ) ) {
 			wp_send_json_error( [ 'message' => __( 'Permission denied', 'arraypress' ) ] );
+
 			return;
 		}
 
@@ -151,23 +242,27 @@ trait AjaxHandlers {
 	public function handle_ajax_toggle_favorite(): void {
 		if ( ! check_ajax_referer( 's3_browser_nonce_' . $this->provider_id, 'nonce', false ) ) {
 			wp_send_json_error( [ 'message' => __( 'Security check failed', 'arraypress' ) ] );
+
 			return;
 		}
 
 		if ( ! current_user_can( $this->capability ) ) {
 			wp_send_json_error( [ 'message' => __( 'You do not have permission to perform this action', 'arraypress' ) ] );
+
 			return;
 		}
 
 		$bucket = isset( $_POST['bucket'] ) ? sanitize_text_field( $_POST['bucket'] ) : '';
 		if ( empty( $bucket ) ) {
 			wp_send_json_error( [ 'message' => __( 'Bucket name is required', 'arraypress' ) ] );
+
 			return;
 		}
 
 		$user_id = get_current_user_id();
 		if ( ! $user_id ) {
 			wp_send_json_error( [ 'message' => __( 'User not logged in', 'arraypress' ) ] );
+
 			return;
 		}
 
@@ -207,11 +302,13 @@ trait AjaxHandlers {
 	public function handle_ajax_create_folder(): void {
 		if ( ! check_ajax_referer( 's3_browser_nonce_' . $this->provider_id, 'nonce', false ) ) {
 			wp_send_json_error( [ 'message' => __( 'Security check failed', 'arraypress' ) ] );
+
 			return;
 		}
 
 		if ( ! current_user_can( $this->capability ) ) {
 			wp_send_json_error( [ 'message' => __( 'You do not have permission to perform this action', 'arraypress' ) ] );
+
 			return;
 		}
 
@@ -221,25 +318,29 @@ trait AjaxHandlers {
 
 		if ( empty( $bucket ) ) {
 			wp_send_json_error( [ 'message' => __( 'Bucket name is required', 'arraypress' ) ] );
+
 			return;
 		}
 
 		if ( empty( $folder_name ) ) {
 			wp_send_json_error( [ 'message' => __( 'Folder name is required', 'arraypress' ) ] );
+
 			return;
 		}
 
 		$validation_result = Validate::folder_comprehensive( $folder_name );
 		if ( ! $validation_result['valid'] ) {
 			wp_send_json_error( [ 'message' => $validation_result['message'] ] );
+
 			return;
 		}
 
 		$folder_key = Directory::build_folder_key( $current_prefix, $folder_name );
-		$result = $this->client->create_folder( $bucket, $folder_key );
+		$result     = $this->client->create_folder( $bucket, $folder_key );
 
 		if ( ! $result->is_successful() ) {
 			wp_send_json_error( [ 'message' => $result->get_error_message() ] );
+
 			return;
 		}
 

@@ -1,6 +1,6 @@
 <?php
 /**
- * Browser Assets Management Trait
+ * Browser Assets Management Trait - Enhanced with Rename Support
  *
  * Handles asset loading and configuration for the S3 Browser using
  * the new WP Composer Assets library for simplified asset management.
@@ -35,7 +35,7 @@ trait Assets {
 	 */
 	private function enqueue_global_config(): string {
 		// Use a consistent handle
-		$handle = 's3-browser-global-config';
+		$handle = self::GLOBAL_CONFIG_HANDLE;
 
 		// Register empty script if not already registered
 		if ( ! wp_script_is( $handle, 'registered' ) ) {
@@ -274,6 +274,20 @@ trait Assets {
 			'confirmDelete'          => __( 'Are you sure you want to delete "{filename}"?\n\nThis action cannot be undone.', 'arraypress' ),
 			'deleteSuccess'          => __( 'File successfully deleted', 'arraypress' ),
 			'deleteError'            => __( 'Failed to delete file', 'arraypress' ),
+
+			// Rename operation strings
+			'renameFile'             => __( 'Rename File', 'arraypress' ),
+			'newFilename'            => __( 'New Filename', 'arraypress' ),
+			'filenameLabel'          => __( 'Enter the new filename:', 'arraypress' ),
+			'filenameHelp'           => __( 'Enter a new filename. The file extension will be preserved.', 'arraypress' ),
+			'renameSuccess'          => __( 'File renamed successfully', 'arraypress' ),
+			'renameError'            => __( 'Failed to rename file', 'arraypress' ),
+			'renamingFile'           => __( 'Renaming file...', 'arraypress' ),
+			'filenameRequired'       => __( 'Filename is required', 'arraypress' ),
+			'filenameInvalid'        => __( 'Filename contains invalid characters', 'arraypress' ),
+			'filenameTooLong'        => __( 'Filename is too long', 'arraypress' ),
+			'filenameExists'         => __( 'A file with this name already exists', 'arraypress' ),
+			'filenameSame'           => __( 'The new filename is the same as the current filename', 'arraypress' ),
 
 			// Cache and refresh
 			'cacheRefreshed'         => __( 'Cache refreshed successfully', 'arraypress' ),
