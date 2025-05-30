@@ -82,7 +82,7 @@ trait PresignedUrls {
 			if ( $canonical_querystring !== '' ) {
 				$canonical_querystring .= '&';
 			}
-			$canonical_querystring .= rawurlencode( (string) $key ) . '=' . rawurlencode( (string) $value );
+			$canonical_querystring .= rawurlencode( $key ) . '=' . rawurlencode( (string) $value );
 		}
 
 		// Build the canonical request
@@ -106,7 +106,7 @@ trait PresignedUrls {
 		// Calculate the signature
 		$signature = $this->calculate_signature( $string_to_sign, $datestamp );
 
-		// Build the final URL based on path style setting
+		// Build the final URL based on the path style setting
 		if ( $this->provider->uses_path_style() ) {
 			$url = 'https://' . $host . '/' . $bucket . '/' . $encoded_key;
 		} else {
@@ -173,7 +173,7 @@ trait PresignedUrls {
 			if ( $canonical_querystring !== '' ) {
 				$canonical_querystring .= '&';
 			}
-			$canonical_querystring .= rawurlencode( (string) $key ) . '=' . rawurlencode( (string) $value );
+			$canonical_querystring .= rawurlencode( $key ) . '=' . rawurlencode( (string) $value );
 		}
 
 		// Get endpoint
@@ -200,7 +200,7 @@ trait PresignedUrls {
 		// Calculate the signature
 		$signature = $this->calculate_signature( $string_to_sign, $datestamp );
 
-		// Build the final URL based on path style setting
+		// Build the final URL based on the path style setting
 		if ( $this->provider->uses_path_style() ) {
 			$url = 'https://' . $host . '/' . $bucket . '/' . $encoded_key;
 		} else {

@@ -17,6 +17,7 @@ namespace ArrayPress\S3\Traits\Signer;
 
 use ArrayPress\S3\Utils\Xml;
 use ArrayPress\S3\Responses\ErrorResponse;
+use SimpleXMLElement;
 
 /**
  * Trait XmlParser
@@ -77,13 +78,13 @@ trait XmlParser {
 	/**
 	 * Convert SimpleXML object to array
 	 *
-	 * @param \SimpleXMLElement $xml       SimpleXML object
+	 * @param SimpleXMLElement $xml       SimpleXML object
 	 * @param int               $depth     Current recursion depth
 	 * @param int               $max_depth Maximum recursion depth
 	 *
 	 * @return array Converted array
 	 */
-	protected function xml_to_array( \SimpleXMLElement $xml, int $depth = 0, int $max_depth = 100 ): array {
+	protected function xml_to_array( SimpleXMLElement $xml, int $depth = 0, int $max_depth = 100 ): array {
 		// Prevent infinite recursion
 		if ( $depth >= $max_depth ) {
 			$this->debug( 'Maximum XML recursion depth reached', [
@@ -233,12 +234,12 @@ trait XmlParser {
 	/**
 	 * Process XML namespaces
 	 *
-	 * @param \SimpleXMLElement $xml       SimpleXML object
+	 * @param SimpleXMLElement $xml       SimpleXML object
 	 * @param array             $result    Result array to modify
 	 * @param int               $depth     Current recursion depth
 	 * @param int               $max_depth Maximum recursion depth
 	 */
-	protected function process_xml_namespaces( \SimpleXMLElement $xml, array &$result, int $depth, int $max_depth ): void {
+	protected function process_xml_namespaces( SimpleXMLElement $xml, array &$result, int $depth, int $max_depth ): void {
 		foreach ( $xml->getNamespaces( true ) as $prefix => $ns ) {
 			if ( $prefix === '' ) {
 				$prefix = 'ns';

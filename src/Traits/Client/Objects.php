@@ -50,7 +50,7 @@ trait Objects {
 	): ResponseInterface {
 		// Allow filtering list parameters
 		$list_params = $this->apply_contextual_filters(
-			'arraypress_s3_list_objects_params',
+			'arraypress_s3_get_objects_params',
 			[
 				'bucket'             => $bucket,
 				'max_keys'           => $max_keys,
@@ -103,7 +103,14 @@ trait Objects {
 			$this->save_to_cache( $cache_key, $result );
 		}
 
-		return $result;
+		// Apply contextual filter to final response
+		return $this->apply_contextual_filters(
+			'arraypress_s3_get_objects_response',
+			$result,
+			$bucket,
+			$prefix,
+			$max_keys
+		);
 	}
 
 	/**
@@ -126,14 +133,29 @@ trait Objects {
 		string $continuation_token = '',
 		bool $use_cache = true
 	): ResponseInterface {
+		// Apply contextual filter to modify parameters
+		$params = $this->apply_contextual_filters(
+			'arraypress_s3_get_object_models_params',
+			[
+				'bucket'             => $bucket,
+				'max_keys'           => $max_keys,
+				'prefix'             => $prefix,
+				'delimiter'          => $delimiter,
+				'continuation_token' => $continuation_token,
+				'use_cache'          => $use_cache
+			],
+			$bucket,
+			$prefix
+		);
+
 		// Get regular object response
 		$response = $this->get_objects(
-			$bucket,
-			$max_keys,
-			$prefix,
-			$delimiter,
-			$continuation_token,
-			$use_cache
+			$params['bucket'],
+			$params['max_keys'],
+			$params['prefix'],
+			$params['delimiter'],
+			$params['continuation_token'],
+			$params['use_cache']
 		);
 
 		if ( ! ( $response instanceof ObjectsResponse ) ) {
@@ -153,20 +175,19 @@ trait Objects {
 			'response_object'    => $response
 		];
 
-		// Allow filtering the retrieved object models
-		$data = $this->apply_contextual_filters(
-			'arraypress_s3_object_models_retrieved',
-			$data,
-			$bucket,
-			$prefix,
-			$max_keys
-		);
-
-		// Return success response with transformed data
-		return new SuccessResponse(
+		// Apply contextual filter to final response
+		$success_response = new SuccessResponse(
 			__( 'Object models retrieved successfully', 'arraypress' ),
 			200,
 			$data
+		);
+
+		return $this->apply_contextual_filters(
+			'arraypress_s3_get_object_models_response',
+			$success_response,
+			$bucket,
+			$prefix,
+			$max_keys
 		);
 	}
 
@@ -232,6 +253,21 @@ trait Objects {
 	 * @return ResponseInterface Response with existence info for all objects
 	 */
 	public function objects_exist( string $bucket, array $object_keys, bool $use_cache = true ): ResponseInterface {
+		// Apply contextual filter to modify parameters
+		$params = $this->apply_contextual_filters(
+			'arraypress_s3_objects_exist_params',
+			[
+				'bucket'      => $bucket,
+				'object_keys' => $object_keys,
+				'use_cache'   => $use_cache
+			],
+			$bucket
+		);
+
+		$bucket      = $params['bucket'];
+		$object_keys = $params['object_keys'];
+		$use_cache   = $params['use_cache'];
+
 		if ( empty( $bucket ) ) {
 			return new ErrorResponse(
 				__( 'Bucket name is required', 'arraypress' ),
@@ -303,7 +339,7 @@ trait Objects {
 			$status_code = 207; // Multi-Status
 		}
 
-		return new SuccessResponse(
+		$response = new SuccessResponse(
 			$message,
 			$status_code,
 			[
@@ -318,6 +354,14 @@ trait Objects {
 				'errors'  => $errors
 			]
 		);
+
+		// Apply contextual filter to final response
+		return $this->apply_contextual_filters(
+			'arraypress_s3_objects_exist_response',
+			$response,
+			$bucket,
+			$object_keys
+		);
 	}
 
 	/**
@@ -330,6 +374,22 @@ trait Objects {
 	 * @return ResponseInterface Response with existence info
 	 */
 	public function object_exists( string $bucket, string $object_key, bool $use_cache = true ): ResponseInterface {
+		// Apply contextual filter to modify parameters
+		$params = $this->apply_contextual_filters(
+			'arraypress_s3_object_exists_params',
+			[
+				'bucket'     => $bucket,
+				'object_key' => $object_key,
+				'use_cache'  => $use_cache
+			],
+			$bucket,
+			$object_key
+		);
+
+		$bucket     = $params['bucket'];
+		$object_key = $params['object_key'];
+		$use_cache  = $params['use_cache'];
+
 		if ( empty( $bucket ) || empty( $object_key ) ) {
 			return new ErrorResponse(
 				__( 'Bucket and object key are required', 'arraypress' ),
@@ -374,7 +434,13 @@ trait Objects {
 				$this->save_to_cache( $cache_key, $response );
 			}
 
-			return $response;
+			// Apply contextual filter to final response
+			return $this->apply_contextual_filters(
+				'arraypress_s3_object_exists_response',
+				$response,
+				$bucket,
+				$object_key
+			);
 		}
 
 		// Handle error response
@@ -409,7 +475,13 @@ trait Objects {
 					$this->save_to_cache( $cache_key, $response );
 				}
 
-				return $response;
+				// Apply contextual filter to final response
+				return $this->apply_contextual_filters(
+					'arraypress_s3_object_exists_response',
+					$response,
+					$bucket,
+					$object_key
+				);
 			}
 
 			// For other errors, we can't determine existence
@@ -452,9 +524,9 @@ trait Objects {
 	 * @return ResponseInterface Response
 	 */
 	public function delete_object( string $bucket, string $object_key ): ResponseInterface {
-		// Allow filtering before deletion
+		// Apply contextual filter to modify parameters and allow preventing deletion
 		$delete_params = $this->apply_contextual_filters(
-			'arraypress_s3_before_delete_object',
+			'arraypress_s3_delete_object_params',
 			[
 				'bucket'     => $bucket,
 				'object_key' => $object_key,
@@ -501,17 +573,13 @@ trait Objects {
 			$this->clear_cache_item( $cache_key );
 		}
 
-		// Allow filtering after deletion
-		if ( $result->is_successful() ) {
-			$this->apply_contextual_filters(
-				'arraypress_s3_after_delete_object',
-				$result,
-				$bucket,
-				$object_key
-			);
-		}
-
-		return $result;
+		// Apply contextual filter to final response
+		return $this->apply_contextual_filters(
+			'arraypress_s3_delete_object_response',
+			$result,
+			$bucket,
+			$object_key
+		);
 	}
 
 	/**
@@ -525,8 +593,26 @@ trait Objects {
 	 * @return ResponseInterface Response
 	 */
 	public function copy_object( string $source_bucket, string $source_key, string $target_bucket, string $target_key ): ResponseInterface {
+		// Apply contextual filter to modify parameters
+		$params = $this->apply_contextual_filters(
+			'arraypress_s3_copy_object_params',
+			[
+				'source_bucket' => $source_bucket,
+				'source_key'    => $source_key,
+				'target_bucket' => $target_bucket,
+				'target_key'    => $target_key
+			],
+			$source_bucket,
+			$target_bucket
+		);
+
 		// Use signer to copy an object
-		$result = $this->signer->copy_object( $source_bucket, $source_key, $target_bucket, $target_key );
+		$result = $this->signer->copy_object(
+			$params['source_bucket'],
+			$params['source_key'],
+			$params['target_bucket'],
+			$params['target_key']
+		);
 
 		// Debug logging if enabled
 		$this->debug( 'Client: Raw result from signer for copy operation:', $result );
@@ -534,10 +620,10 @@ trait Objects {
 		// Clear cache for target bucket/prefix
 		if ( $this->is_cache_enabled() ) {
 			// Extract the directory prefix from the target object key
-			$prefix = Directory::prefix( $target_key );
+			$prefix = Directory::prefix( $params['target_key'] );
 
 			// Clear cache for this specific prefix
-			$cache_key = $this->get_cache_key( 'objects_' . $target_bucket, [
+			$cache_key = $this->get_cache_key( 'objects_' . $params['target_bucket'], [
 				'max_keys'  => 1000,
 				'prefix'    => $prefix,
 				'delimiter' => '/'
@@ -545,7 +631,13 @@ trait Objects {
 			$this->clear_cache_item( $cache_key );
 		}
 
-		return $result;
+		// Apply contextual filter to final response
+		return $this->apply_contextual_filters(
+			'arraypress_s3_copy_object_response',
+			$result,
+			$params['source_bucket'],
+			$params['target_bucket']
+		);
 	}
 
 	/**
@@ -558,6 +650,22 @@ trait Objects {
 	 * @return ResponseInterface Response with object info
 	 */
 	public function get_object_info( string $bucket, string $object_key, bool $use_cache = true ): ResponseInterface {
+		// Apply contextual filter to modify parameters
+		$params = $this->apply_contextual_filters(
+			'arraypress_s3_get_object_info_params',
+			[
+				'bucket'     => $bucket,
+				'object_key' => $object_key,
+				'use_cache'  => $use_cache
+			],
+			$bucket,
+			$object_key
+		);
+
+		$bucket     = $params['bucket'];
+		$object_key = $params['object_key'];
+		$use_cache  = $params['use_cache'];
+
 		if ( empty( $bucket ) || empty( $object_key ) ) {
 			return new ErrorResponse(
 				__( 'Bucket and object key are required', 'arraypress' ),
@@ -611,10 +719,18 @@ trait Objects {
 			$enhanced_data['last_modified_formatted'] = date( 'Y-m-d H:i:s', $enhanced_data['last_modified_timestamp'] );
 		}
 
-		return new SuccessResponse(
+		$response = new SuccessResponse(
 			sprintf( __( 'Object information for "%s" in bucket "%s"', 'arraypress' ), $object_key, $bucket ),
 			200,
 			$enhanced_data
+		);
+
+		// Apply contextual filter to final response
+		return $this->apply_contextual_filters(
+			'arraypress_s3_get_object_info_response',
+			$response,
+			$bucket,
+			$object_key
 		);
 	}
 
@@ -628,6 +744,23 @@ trait Objects {
 	 * @return ResponseInterface Response
 	 */
 	public function rename_object( string $bucket, string $source_key, string $target_key ): ResponseInterface {
+		// Apply contextual filter to modify parameters
+		$params = $this->apply_contextual_filters(
+			'arraypress_s3_rename_object_params',
+			[
+				'bucket'     => $bucket,
+				'source_key' => $source_key,
+				'target_key' => $target_key
+			],
+			$bucket,
+			$source_key,
+			$target_key
+		);
+
+		$bucket     = $params['bucket'];
+		$source_key = $params['source_key'];
+		$target_key = $params['target_key'];
+
 		// 1. Copy the object to the new key
 		$copy_result = $this->copy_object( $bucket, $source_key, $bucket, $target_key );
 
@@ -646,7 +779,7 @@ trait Objects {
 
 		// If delete failed, return a warning but still consider the operation successful
 		if ( ! $delete_result->is_successful() ) {
-			return new SuccessResponse(
+			$response = new SuccessResponse(
 				__( 'Object renamed, but failed to delete the original', 'arraypress' ),
 				207, // 207 Multi-Status
 				[
@@ -655,16 +788,25 @@ trait Objects {
 					'target_key' => $target_key
 				]
 			);
+		} else {
+			// Both operations succeeded
+			$response = new SuccessResponse(
+				__( 'Object renamed successfully', 'arraypress' ),
+				200,
+				[
+					'source_key' => $source_key,
+					'target_key' => $target_key
+				]
+			);
 		}
 
-		// Both operations succeeded
-		return new SuccessResponse(
-			__( 'Object renamed successfully', 'arraypress' ),
-			200,
-			[
-				'source_key' => $source_key,
-				'target_key' => $target_key
-			]
+		// Apply contextual filter to final response
+		return $this->apply_contextual_filters(
+			'arraypress_s3_rename_object_response',
+			$response,
+			$bucket,
+			$source_key,
+			$target_key
 		);
 	}
 
@@ -688,9 +830,9 @@ trait Objects {
 		string $content_type = '',
 		array $additional_params = []
 	): ResponseInterface {
-		// Allow filtering upload parameters before processing
+		// Apply contextual filter to modify upload parameters before processing
 		$upload_params = $this->apply_contextual_filters(
-			'arraypress_s3_upload_params',
+			'arraypress_s3_put_object_params',
 			[
 				'bucket'            => $bucket,
 				'target_key'        => $target_key,
@@ -751,15 +893,6 @@ trait Objects {
 			$file_contents = $file_path; // When not a path, this contains the actual content
 		}
 
-		// Allow filtering file contents before upload
-		$file_contents = $this->apply_contextual_filters(
-			'arraypress_s3_upload_content',
-			$file_contents,
-			$bucket,
-			$target_key,
-			$content_type
-		);
-
 		$content_length = strlen( $file_contents );
 
 		// 4. Prepare headers - ALWAYS include Content-Length
@@ -767,16 +900,6 @@ trait Objects {
 			'Content-Type'   => $content_type,
 			'Content-Length' => (string) $content_length
 		], $additional_params );
-
-		// Allow filtering upload headers
-		$headers = $this->apply_contextual_filters(
-			'arraypress_s3_upload_headers',
-			$headers,
-			$bucket,
-			$target_key,
-			$content_type,
-			$content_length
-		);
 
 		// 5. Upload the file using WordPress HTTP API
 		$response = wp_remote_request( $upload_url, [
@@ -821,28 +944,24 @@ trait Objects {
 			$this->clear_cache_item( $cache_key );
 		}
 
-		// Prepare success response data
-		$success_data = [
-			'bucket' => $bucket,
-			'key'    => $target_key,
-			'size'   => $content_length
-		];
-
-		// Allow filtering success response data
-		$success_data = $this->apply_contextual_filters(
-			'arraypress_s3_upload_success',
-			$success_data,
-			$bucket,
-			$target_key,
-			$status_code,
-			$response
-		);
-
 		// 7. Return success response
-		return new SuccessResponse(
+		$success_response = new SuccessResponse(
 			__( 'File uploaded successfully', 'arraypress' ),
 			$status_code,
-			$success_data
+			[
+				'bucket' => $bucket,
+				'key'    => $target_key,
+				'size'   => $content_length
+			]
+		);
+
+		// Apply contextual filter to final response
+		return $this->apply_contextual_filters(
+			'arraypress_s3_put_object_response',
+			$success_response,
+			$bucket,
+			$target_key,
+			$status_code
 		);
 	}
 

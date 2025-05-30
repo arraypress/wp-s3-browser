@@ -57,7 +57,7 @@ class Client {
 	 *
 	 * @var bool
 	 */
-	private bool $debug = false;
+	private bool $debug;
 
 	/**
 	 * Custom debug logger callback
@@ -69,12 +69,13 @@ class Client {
 	/**
 	 * Constructor
 	 *
-	 * @param Provider $provider   Provider instance
-	 * @param string   $access_key Access key ID
-	 * @param string   $secret_key Secret access key
-	 * @param bool     $use_cache  Whether to use cache
-	 * @param int      $cache_ttl  Cache TTL in seconds
-	 * @param bool     $debug      Whether to enable debug mode
+	 * @param Provider    $provider   Provider instance
+	 * @param string      $access_key Access key ID
+	 * @param string      $secret_key Secret access key
+	 * @param bool        $use_cache  Whether to use cache
+	 * @param int         $cache_ttl  Cache TTL in seconds
+	 * @param bool        $debug      Whether to enable debug mode
+	 * @param string|null $context    Optional. Context identifier for filtering and customization
 	 */
 	public function __construct(
 		Provider $provider,
@@ -82,12 +83,18 @@ class Client {
 		string $secret_key,
 		bool $use_cache = true,
 		int $cache_ttl = 86400, // DAY_IN_SECONDS
-		bool $debug = false
+		bool $debug = false,
+		?string $context = null
 	) {
 		$this->provider = $provider;
 		$this->signer   = new Signer( $provider, $access_key, $secret_key );
 		$this->init_cache( $use_cache, $cache_ttl );
 		$this->debug = $debug;
+
+		// Set context if provided
+		if ( $context !== null ) {
+			$this->set_context( $context );
+		}
 	}
 
 	/**

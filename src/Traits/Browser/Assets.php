@@ -77,6 +77,13 @@ trait Assets {
 				$shared_config['defaultPrefix'] = $prefix_to_use;
 			}
 
+			// Apply contextual filters if context trait is available
+			if ( method_exists( $this, 'apply_contextual_filters' ) ) {
+				$shared_config = $this->apply_contextual_filters( 's3_browser_global_config', $shared_config, $this->provider_id );
+			} else {
+				$shared_config = apply_filters( 's3_browser_global_config', $shared_config, $this->provider_id );
+			}
+
 			// Localize the script
 			wp_localize_script( $handle, 'S3BrowserGlobalConfig', $shared_config );
 		}
@@ -142,7 +149,7 @@ trait Assets {
 			wp_enqueue_script_from_composer_file(
 				's3-browser-woocommerce',
 				__FILE__,
-				'js/s3-browser-woocommerce.js',
+				'js/integrations/s3-browser-woocommerce.js',
 				[ 'jquery', $config_handle ]
 			);
 		} elseif ( $post_type === 'download' ) {
@@ -150,7 +157,7 @@ trait Assets {
 			wp_enqueue_script_from_composer_file(
 				's3-browser-edd',
 				__FILE__,
-				'js/s3-browser-edd.js',
+				'js/integrations/s3-browser-edd.js',
 				[ 'jquery', $config_handle ]
 			);
 		}
@@ -238,6 +245,13 @@ trait Assets {
 			'i18n'     => $this->get_browser_translations()
 		];
 
+		// Apply contextual filters if context trait is available
+		if ( method_exists( $this, 'apply_contextual_filters' ) ) {
+			$browser_config = $this->apply_contextual_filters( 's3_browser_config', $browser_config, $this->provider_id );
+		} else {
+			$browser_config = apply_filters( 's3_browser_config', $browser_config, $this->provider_id );
+		}
+
 		// Localize the script
 		wp_localize_script( $this->browser_script_handle, 's3BrowserConfig', $browser_config );
 	}
@@ -248,7 +262,7 @@ trait Assets {
 	 * @return array Comprehensive translation array
 	 */
 	private function get_browser_translations(): array {
-		return [
+		$default_translations = [
 			// Browser UI strings
 			'uploadFiles'            => __( 'Upload Files', 'arraypress' ),
 			'dropFilesHere'          => __( 'Drop files here to upload', 'arraypress' ),
@@ -312,6 +326,8 @@ trait Assets {
 				'uploadCancelled'     => __( 'Upload cancelled', 'arraypress' )
 			]
 		];
+
+		return $this->apply_contextual_filters( 's3_browser_translations', $default_translations, $this->provider_id );
 	}
 
 }

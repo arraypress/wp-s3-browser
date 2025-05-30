@@ -41,6 +41,23 @@ trait Buckets {
 		string $marker = '',
 		bool $use_cache = true
 	): ResponseInterface {
+		// Apply contextual filter to modify request parameters
+		$params = $this->apply_contextual_filters(
+			'arraypress_s3_get_buckets_params',
+			[
+				'max_keys'  => $max_keys,
+				'prefix'    => $prefix,
+				'marker'    => $marker,
+				'use_cache' => $use_cache
+			]
+		);
+
+		// Extract potentially modified values
+		$max_keys  = $params['max_keys'];
+		$prefix    = $params['prefix'];
+		$marker    = $params['marker'];
+		$use_cache = $params['use_cache'];
+
 		// Check cache if enabled
 		if ( $use_cache && $this->is_cache_enabled() ) {
 			$cache_key = $this->get_cache_key( 'buckets', [
@@ -66,7 +83,13 @@ trait Buckets {
 			$this->save_to_cache( $cache_key, $result );
 		}
 
-		return $result;
+		// Apply contextual filter to final response
+		return $this->apply_contextual_filters(
+			'arraypress_s3_get_buckets_response',
+			$result,
+			$max_keys,
+			$prefix
+		);
 	}
 
 	/**
@@ -85,8 +108,24 @@ trait Buckets {
 		string $marker = '',
 		bool $use_cache = true
 	): ResponseInterface {
+		// Apply contextual filter to modify request parameters
+		$params = $this->apply_contextual_filters(
+			'arraypress_s3_get_bucket_models_params',
+			[
+				'max_keys'  => $max_keys,
+				'prefix'    => $prefix,
+				'marker'    => $marker,
+				'use_cache' => $use_cache
+			]
+		);
+
 		// Get buckets response
-		$response = $this->get_buckets( $max_keys, $prefix, $marker, $use_cache );
+		$response = $this->get_buckets(
+			$params['max_keys'],
+			$params['prefix'],
+			$params['marker'],
+			$params['use_cache']
+		);
 
 		if ( ! ( $response instanceof BucketsResponse ) ) {
 			return new ErrorResponse(
@@ -97,8 +136,8 @@ trait Buckets {
 		}
 
 		// Return success response with transformed data
-		return new SuccessResponse(
-			'Bucket models retrieved successfully',
+		$success_response = new SuccessResponse(
+			__( 'Bucket models retrieved successfully', 'arraypress' ),
 			200,
 			[
 				'buckets'         => $response->to_bucket_models(),
@@ -107,6 +146,14 @@ trait Buckets {
 				'owner'           => $response->get_owner(),
 				'response_object' => $response
 			]
+		);
+
+		// Apply contextual filter to final response
+		return $this->apply_contextual_filters(
+			'arraypress_s3_get_bucket_models_response',
+			$success_response,
+			$params['max_keys'],
+			$params['prefix']
 		);
 	}
 
@@ -119,6 +166,18 @@ trait Buckets {
 	 * @return ResponseInterface Response with existence info for all buckets
 	 */
 	public function buckets_exist( array $buckets, bool $use_cache = true ): ResponseInterface {
+		// Apply contextual filter to modify request parameters
+		$params = $this->apply_contextual_filters(
+			'arraypress_s3_buckets_exist_params',
+			[
+				'buckets'   => $buckets,
+				'use_cache' => $use_cache
+			]
+		);
+
+		$buckets   = $params['buckets'];
+		$use_cache = $params['use_cache'];
+
 		if ( empty( $buckets ) ) {
 			return new ErrorResponse(
 				__( 'At least one bucket name is required', 'arraypress' ),
@@ -180,7 +239,7 @@ trait Buckets {
 			$status_code = 207; // Multi-Status
 		}
 
-		return new SuccessResponse(
+		$response = new SuccessResponse(
 			$message,
 			$status_code,
 			[
@@ -194,6 +253,13 @@ trait Buckets {
 				'errors'  => $errors
 			]
 		);
+
+		// Apply contextual filter to final response
+		return $this->apply_contextual_filters(
+			'arraypress_s3_buckets_exist_response',
+			$response,
+			$buckets
+		);
 	}
 
 	/**
@@ -205,6 +271,19 @@ trait Buckets {
 	 * @return ResponseInterface Response with existence info
 	 */
 	public function bucket_exists( string $bucket, bool $use_cache = true ): ResponseInterface {
+		// Apply contextual filter to modify request parameters
+		$params = $this->apply_contextual_filters(
+			'arraypress_s3_bucket_exists_params',
+			[
+				'bucket'    => $bucket,
+				'use_cache' => $use_cache
+			],
+			$bucket
+		);
+
+		$bucket    = $params['bucket'];
+		$use_cache = $params['use_cache'];
+
 		if ( empty( $bucket ) ) {
 			return new ErrorResponse(
 				__( 'Bucket name is required', 'arraypress' ),
@@ -242,7 +321,12 @@ trait Buckets {
 				$this->save_to_cache( $cache_key, $response );
 			}
 
-			return $response;
+			// Apply contextual filter to final response
+			return $this->apply_contextual_filters(
+				'arraypress_s3_bucket_exists_response',
+				$response,
+				$bucket
+			);
 		}
 
 		// Check error response
@@ -273,7 +357,12 @@ trait Buckets {
 					$this->save_to_cache( $cache_key, $response );
 				}
 
-				return $response;
+				// Apply contextual filter to final response
+				return $this->apply_contextual_filters(
+					'arraypress_s3_bucket_exists_response',
+					$response,
+					$bucket
+				);
 			}
 
 			// For other errors, we can't determine existence

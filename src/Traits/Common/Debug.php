@@ -85,7 +85,7 @@ trait Debug {
 	 * Set a custom debug callback function
 	 *
 	 * @param callable $callback Function to call for debug logging
-	 *                          Signature: function( string $title, mixed $data )
+	 *                          Signature: function ( string $title, mixed $data )
 	 *
 	 * @return self
 	 */

@@ -42,7 +42,7 @@ trait Folders {
 			);
 		}
 
-		// Allow filtering folder existence check parameters
+		// Apply contextual filter to modify parameters
 		$check_params = $this->apply_contextual_filters(
 			'arraypress_s3_folder_exists_params',
 			[
@@ -98,7 +98,7 @@ trait Folders {
 			'subfolder_count' => count( $data['prefixes'] )
 		];
 
-		// Allow filtering the folder existence result
+		// Apply contextual filter to the folder existence result
 		$result_data = $this->apply_contextual_filters(
 			'arraypress_s3_folder_exists_result',
 			$result_data,
@@ -133,7 +133,7 @@ trait Folders {
 			);
 		}
 
-		// Allow filtering folder creation parameters
+		// Apply contextual filter to modify parameters
 		$create_params = $this->apply_contextual_filters(
 			'arraypress_s3_create_folder_params',
 			[
@@ -185,7 +185,7 @@ trait Folders {
 		// Create a placeholder object to represent the folder
 		$placeholder_content = '';
 
-		// Allow filtering the placeholder content
+		// Apply contextual filter to modify placeholder content
 		$placeholder_content = $this->apply_contextual_filters(
 			'arraypress_s3_folder_placeholder_content',
 			$placeholder_content,
@@ -217,7 +217,7 @@ trait Folders {
 			'created'     => true
 		];
 
-		// Allow filtering the folder creation success result
+		// Apply contextual filter to the folder creation success result
 		$success_data = $this->apply_contextual_filters(
 			'arraypress_s3_folder_created',
 			$success_data,
@@ -248,7 +248,7 @@ trait Folders {
 		string $target_prefix,
 		bool $recursive = true
 	): ResponseInterface {
-		// Allow filtering rename parameters
+		// Apply contextual filter to modify parameters
 		$rename_params = $this->apply_contextual_filters(
 			'arraypress_s3_rename_folder_params',
 			[
@@ -267,11 +267,11 @@ trait Folders {
 		$target_prefix = $rename_params['target_prefix'];
 		$recursive     = $rename_params['recursive'];
 
-		// 1. Ensure prefixes end with a slash
+		// Ensure prefixes end with a slash
 		$source_prefix = Directory::normalize( $source_prefix );
 		$target_prefix = Directory::normalize( $target_prefix );
 
-		// 2. Get all objects in the source prefix
+		// Get all objects in the source prefix
 		$objects_result = $this->get_object_models( $bucket, 1000, $source_prefix, $recursive ? '' : '/' );
 
 		if ( ! $objects_result->is_successful() ) {
@@ -283,7 +283,7 @@ trait Folders {
 			);
 		}
 
-		// 3. Check if there are objects to move
+		// Check if there are objects to move
 		$data          = $objects_result->get_data();
 		$objects       = $data['objects'];
 		$total_objects = count( $objects );
@@ -299,18 +299,18 @@ trait Folders {
 			);
 		}
 
-		// 4. Track success and failure counts
+		// Track success and failure counts
 		$success_count = 0;
 		$failure_count = 0;
 		$failures      = [];
 
-		// 5. Process each object
+		// Process each object
 		foreach ( $objects as $object ) {
 			$source_key    = $object->get_key();
 			$relative_path = substr( $source_key, strlen( $source_prefix ) );
 			$target_key    = $target_prefix . $relative_path;
 
-			// Allow filtering individual object rename
+			// Apply contextual filter to individual object rename
 			$object_rename_params = $this->apply_contextual_filters(
 				'arraypress_s3_rename_folder_object',
 				[
@@ -358,7 +358,7 @@ trait Folders {
 			$success_count ++;
 		}
 
-		// 6. Create an appropriate response based on results
+		// Create an appropriate response based on results
 		$result_data = [
 			'source_prefix'     => $source_prefix,
 			'target_prefix'     => $target_prefix,
@@ -368,7 +368,7 @@ trait Folders {
 			'failures'          => $failures
 		];
 
-		// Allow filtering the rename result
+		// Apply contextual filter to the rename result
 		$result_data = $this->apply_contextual_filters(
 			'arraypress_s3_folder_renamed',
 			$result_data,
@@ -423,7 +423,7 @@ trait Folders {
 			);
 		}
 
-		// Allow filtering delete parameters
+		// Apply contextual filter to modify parameters and allow preventing deletion
 		$delete_params = $this->apply_contextual_filters(
 			'arraypress_s3_delete_folder_params',
 			[
@@ -514,7 +514,7 @@ trait Folders {
 			foreach ( $objects as $object ) {
 				$object_key = $object->get_key();
 
-				// Allow filtering individual object deletion
+				// Apply contextual filter to individual object deletion
 				$object_delete_params = $this->apply_contextual_filters(
 					'arraypress_s3_delete_folder_object',
 					[
@@ -597,7 +597,7 @@ trait Folders {
 			'recursive'     => $recursive
 		];
 
-		// Allow filtering the deletion result
+		// Apply contextual filter to the deletion result
 		$result_data = $this->apply_contextual_filters(
 			'arraypress_s3_folder_deleted',
 			$result_data,
