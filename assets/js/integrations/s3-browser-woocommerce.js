@@ -44,7 +44,7 @@
             });
         },
 
-        trackFileButton: function (e) {
+        trackFileButton: function () {
             var $button = $(this);
             var $row = $button.closest('tr');
             var $input = $row.find('input[name="_wc_file_urls[]"]');

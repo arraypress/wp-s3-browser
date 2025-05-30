@@ -53,20 +53,6 @@ class Client {
 	private Signer $signer;
 
 	/**
-	 * Debug mode
-	 *
-	 * @var bool
-	 */
-	private bool $debug;
-
-	/**
-	 * Custom debug logger callback
-	 *
-	 * @var callable|null
-	 */
-	private $debug_logger = null;
-
-	/**
 	 * Constructor
 	 *
 	 * @param Provider    $provider   Provider instance

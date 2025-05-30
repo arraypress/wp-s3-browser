@@ -27,7 +27,7 @@
             });
         },
 
-        trackFileButton: function (e) {
+        trackFileButton: function () {
             var $button = $(this);
 
             // Find the related input fields
