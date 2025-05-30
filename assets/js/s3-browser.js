@@ -1,5 +1,5 @@
 /**
- * S3 Browser Core Functionality - Enhanced with Rename Support
+ * S3 Browser Core Functionality - Refactored with Generic Modal System
  * Handles browsing, searching, file operations, folder creation, file renaming and WordPress integrations
  */
 (function ($) {
@@ -19,6 +19,7 @@
         hasActiveUploads: false,
         currentBucket: null,
         currentPrefix: null,
+        currentRename: null,
 
         // Translation strings (populated by PHP)
         i18n: {},
@@ -33,8 +34,6 @@
             this.setupAjaxLoading();
             this.countInitialItems();
             this.initUploadToggle();
-            this.initFolderCreation();
-            this.initRenameModal();
         },
 
         /**
@@ -57,6 +56,7 @@
             this.bindFolderEvents();
             this.bindRenameEvents();
             this.bindRefreshEvents();
+            this.bindModalEvents();
         },
 
         /**
@@ -164,102 +164,372 @@
         },
 
         /* ========================================
-         * RENAME FUNCTIONALITY
+         * GENERIC MODAL SYSTEM
          * ======================================== */
 
         /**
-         * Initialize rename modal
+         * Create a generic modal
          */
-        initRenameModal: function () {
-            this.createRenameModal();
-        },
+        createModal: function (options) {
+            var defaults = {
+                id: 's3Modal',
+                title: 'Modal',
+                width: '500px',
+                fields: [],
+                buttons: [],
+                onOpen: null,
+                onClose: null
+            };
 
-        /**
-         * Bind rename event handlers
-         */
-        bindRenameEvents: function () {
-            var self = this;
+            var config = $.extend({}, defaults, options);
 
-            // Modal close events
-            $(document).off('click.s3rename').on('click.s3rename', '.s3-rename-modal-overlay, .s3-rename-modal-close', function (e) {
-                if (e.target === this) {
-                    self.closeRenameModal();
+            // Remove existing modal with same ID
+            $('#' + config.id).remove();
+
+            // Build field HTML
+            var fieldsHtml = '';
+            config.fields.forEach(function (field) {
+                fieldsHtml += '<div class="s3-modal-field">';
+
+                if (field.label) {
+                    fieldsHtml += '<label for="' + field.id + '">' + field.label + '</label>';
                 }
+
+                if (field.type === 'text') {
+                    fieldsHtml += '<input type="text" id="' + field.id + '" ' +
+                        'placeholder="' + (field.placeholder || '') + '" ' +
+                        'maxlength="' + (field.maxlength || '') + '" autocomplete="off">';
+                }
+
+                if (field.description) {
+                    fieldsHtml += '<p class="description">' + field.description + '</p>';
+                }
+
+                fieldsHtml += '</div>';
             });
 
-            // Escape key to close modal
-            $(document).off('keydown.s3rename').on('keydown.s3rename', function (e) {
-                if (e.key === 'Escape' && $('#s3RenameModal').is(':visible')) {
-                    self.closeRenameModal();
-                }
+            // Build buttons HTML
+            var buttonsHtml = '';
+            config.buttons.forEach(function (button) {
+                var classes = 'button ' + (button.classes || '');
+                var disabled = button.disabled ? 'disabled' : '';
+                buttonsHtml += '<button type="button" class="' + classes + '" ' +
+                    'data-action="' + button.action + '" ' + disabled + '>' +
+                    button.text + '</button>';
             });
-        },
 
-        /**
-         * Create rename modal HTML structure
-         */
-        createRenameModal: function () {
-            if ($('#s3RenameModal').length > 0) return;
-
-            var i18n = this.i18n;
+            // Create modal HTML
             var modalHtml = [
-                '<div id="s3RenameModal" class="s3-rename-modal-overlay" style="display: none;">',
-                '<div class="s3-rename-modal">',
-                '<div class="s3-rename-modal-header">',
-                '<h2>' + i18n.renameFile + '</h2>',
-                '<button type="button" class="s3-rename-modal-close">&times;</button>',
+                '<div id="' + config.id + '" class="s3-modal-overlay" style="display: none;">',
+                '<div class="s3-modal" style="max-width: ' + config.width + ';">',
+                '<div class="s3-modal-header">',
+                '<h2>' + config.title + '</h2>',
+                '<button type="button" class="s3-modal-close">&times;</button>',
                 '</div>',
-                '<div class="s3-rename-modal-body">',
-                '<div class="s3-rename-error" style="display: none;"></div>',
-                '<div class="s3-rename-field">',
-                '<label for="s3RenameInput">' + i18n.filenameLabel + '</label>',
-                '<input type="text" id="s3RenameInput" placeholder="' + i18n.newFilename + '" maxlength="255" autocomplete="off">',
-                '<p class="description">' + i18n.filenameHelp + '</p>',
-                '</div>',
-                '<div class="s3-rename-loading" style="display: none;">',
-                '<span class="spinner is-active"></span>' + i18n.renamingFile,
+                '<div class="s3-modal-body">',
+                '<div class="s3-modal-error" style="display: none;"></div>',
+                fieldsHtml,
+                '<div class="s3-modal-loading" style="display: none;">',
+                '<span class="spinner is-active"></span><span class="loading-text"></span>',
                 '</div>',
                 '</div>',
-                '<div class="s3-rename-modal-footer">',
-                '<button type="button" class="button s3-rename-cancel">' + i18n.cancel + '</button>',
-                '<button type="button" class="button button-primary s3-rename-submit" disabled>' + i18n.renameFile + '</button>',
+                '<div class="s3-modal-footer">',
+                buttonsHtml,
                 '</div>',
                 '</div>',
                 '</div>'
             ].join('');
 
             $('body').append(modalHtml);
-            this.bindRenameModalEvents();
+
+            var $modal = $('#' + config.id);
+
+            // Store config and callbacks on modal
+            $modal.data('config', config);
+
+            return $modal;
         },
 
         /**
-         * Bind rename modal-specific events
+         * Show modal
          */
-        bindRenameModalEvents: function () {
+        showModal: function (modalId, onOpenCallback) {
+            var $modal = $('#' + modalId);
+            if (!$modal.length) return;
+
+            $modal.fadeIn(200);
+
+            if (onOpenCallback) {
+                setTimeout(onOpenCallback, 250);
+            }
+        },
+
+        /**
+         * Hide modal
+         */
+        hideModal: function (modalId, onCloseCallback) {
+            var $modal = $('#' + modalId);
+            if (!$modal.length) return;
+
+            $modal.fadeOut(200);
+
+            if (onCloseCallback) {
+                onCloseCallback();
+            }
+        },
+
+        /**
+         * Set modal loading state
+         */
+        setModalLoading: function (modalId, isLoading, loadingText) {
+            var $modal = $('#' + modalId);
+            if (!$modal.length) return;
+
+            var $loading = $modal.find('.s3-modal-loading');
+            var $buttons = $modal.find('.s3-modal-footer button');
+            var $error = $modal.find('.s3-modal-error');
+
+            if (isLoading) {
+                $loading.find('.loading-text').text(loadingText || 'Loading...');
+                $loading.show();
+                $buttons.prop('disabled', true);
+                $error.hide();
+            } else {
+                $loading.hide();
+                $buttons.prop('disabled', false);
+            }
+        },
+
+        /**
+         * Show modal error
+         */
+        showModalError: function (modalId, message) {
+            var $modal = $('#' + modalId);
+            if (!$modal.length) return;
+
+            $modal.find('.s3-modal-error').text(message).show();
+            this.setModalLoading(modalId, false);
+        },
+
+        /**
+         * Bind generic modal events
+         */
+        bindModalEvents: function () {
             var self = this;
 
-            $('#s3RenameModal')
-                .on('click', '.s3-rename-submit', function () {
-                    self.submitRenameForm();
-                })
-                .on('click', '.s3-rename-cancel', function () {
-                    self.closeRenameModal();
-                })
-                .on('keyup', '#s3RenameInput', function (e) {
-                    self.validateRenameInput(e);
-                })
-                .on('keydown', '#s3RenameInput', function (e) {
-                    if (e.key === 'Enter') {
-                        e.preventDefault();
-                        self.submitRenameForm();
+            // Modal close events
+            $(document).off('click.s3modal').on('click.s3modal', '.s3-modal-overlay, .s3-modal-close', function (e) {
+                if (e.target === this) {
+                    var $modal = $(this).closest('.s3-modal-overlay');
+                    var config = $modal.data('config');
+                    self.hideModal($modal.attr('id'), config ? config.onClose : null);
+                }
+            });
+
+            // Escape key to close modal
+            $(document).off('keydown.s3modal').on('keydown.s3modal', function (e) {
+                if (e.key === 'Escape') {
+                    var $visibleModal = $('.s3-modal-overlay:visible');
+                    if ($visibleModal.length) {
+                        var config = $visibleModal.data('config');
+                        self.hideModal($visibleModal.attr('id'), config ? config.onClose : null);
                     }
-                });
+                }
+            });
+
+            // Button click events
+            $(document).off('click.s3modalbutton').on('click.s3modalbutton', '.s3-modal-footer button[data-action]', function () {
+                var $button = $(this);
+                var $modal = $button.closest('.s3-modal-overlay');
+                var action = $button.data('action');
+                var config = $modal.data('config');
+
+                if (config && config.buttons) {
+                    var buttonConfig = config.buttons.find(function (btn) {
+                        return btn.action === action;
+                    });
+                    if (buttonConfig && buttonConfig.callback) {
+                        buttonConfig.callback($modal, $button);
+                    }
+                }
+            });
+        },
+
+        /* ========================================
+         * FOLDER MANAGEMENT
+         * ======================================== */
+
+        /**
+         * Bind folder creation events
+         */
+        bindFolderEvents: function () {
+            var self = this;
+
+            // Create folder button
+            $(document).off('click.s3folder').on('click.s3folder', '#s3-create-folder', function (e) {
+                e.preventDefault();
+                var $button = $(this);
+                self.openCreateFolderModal($button.data('bucket'), $button.data('prefix'));
+            });
+        },
+
+        /**
+         * Open folder creation modal
+         */
+        openCreateFolderModal: function (bucket, prefix) {
+            var self = this;
+            this.currentBucket = bucket;
+            this.currentPrefix = prefix || '';
+
+            var modal = this.createModal({
+                id: 's3FolderModal',
+                title: this.i18n.newFolder,
+                fields: [{
+                    id: 's3FolderNameInput',
+                    type: 'text',
+                    label: this.i18n.folderName,
+                    placeholder: this.i18n.folderNamePlaceholder,
+                    maxlength: 63,
+                    description: this.i18n.folderNameHelp
+                }],
+                buttons: [{
+                    text: this.i18n.cancel,
+                    action: 'cancel',
+                    callback: function () {
+                        self.hideModal('s3FolderModal');
+                    }
+                }, {
+                    text: this.i18n.createFolder,
+                    action: 'submit',
+                    classes: 'button-primary',
+                    disabled: true,
+                    callback: function () {
+                        self.submitFolderForm();
+                    }
+                }],
+                onClose: function () {
+                    // Cleanup when modal closes
+                }
+            });
+
+            // Bind folder-specific validation
+            modal.on('keyup', '#s3FolderNameInput', function (e) {
+                self.validateFolderInput(e, modal);
+            }).on('keydown', '#s3FolderNameInput', function (e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    self.submitFolderForm();
+                }
+            });
+
+            this.showModal('s3FolderModal', function () {
+                $('#s3FolderNameInput').focus();
+            });
+        },
+
+        /**
+         * Validate folder input
+         */
+        validateFolderInput: function (e, $modal) {
+            var folderName = e.target.value.trim();
+            var $submit = $modal.find('button[data-action="submit"]');
+            var $error = $modal.find('.s3-modal-error');
+
+            $error.hide();
+            var validation = this.validateFolderName(folderName);
+
+            if (!validation.valid && folderName.length > 0) {
+                $error.text(validation.message).show();
+            }
+
+            $submit.prop('disabled', !validation.valid);
+        },
+
+        /**
+         * Validate folder name
+         */
+        validateFolderName: function (folderName) {
+            var i18n = this.i18n;
+
+            if (folderName.length === 0) {
+                return {valid: false, message: i18n.folderNameRequired};
+            }
+            if (folderName.length > 63) {
+                return {valid: false, message: i18n.folderNameTooLong};
+            }
+            if (!/^[a-zA-Z0-9._-]+$/.test(folderName)) {
+                return {valid: false, message: i18n.folderNameInvalidChars};
+            }
+            if (['.', '-'].includes(folderName[0]) || ['.', '-'].includes(folderName[folderName.length - 1])) {
+                return {valid: false, message: 'Folder name cannot start or end with dots or hyphens'};
+            }
+            if (folderName.includes('..')) {
+                return {valid: false, message: 'Folder name cannot contain consecutive dots'};
+            }
+
+            return {valid: true, message: ''};
+        },
+
+        /**
+         * Submit folder creation form
+         */
+        submitFolderForm: function () {
+            var folderName = $('#s3FolderNameInput').val().trim();
+            var validation = this.validateFolderName(folderName);
+
+            if (!validation.valid) {
+                this.showModalError('s3FolderModal', validation.message);
+                return;
+            }
+
+            this.createFolder(folderName);
+        },
+
+        /**
+         * Create folder via AJAX
+         */
+        createFolder: function (folderName) {
+            var self = this;
+
+            this.setModalLoading('s3FolderModal', true, this.i18n.creatingFolder);
+
+            this.makeAjaxRequest('s3_create_folder_', {
+                bucket: this.currentBucket,
+                prefix: this.currentPrefix,
+                folder_name: folderName
+            }, {
+                success: function (response) {
+                    self.showNotification(
+                        response.data.message || self.i18n.createFolderSuccess.replace('{name}', folderName),
+                        'success'
+                    );
+                    self.hideModal('s3FolderModal');
+                    setTimeout(function () {
+                        window.location.reload();
+                    }, 1500);
+                },
+                error: function (message) {
+                    self.showModalError('s3FolderModal', message);
+                }
+            });
+        },
+
+        /* ========================================
+         * RENAME FUNCTIONALITY
+         * ======================================== */
+
+        /**
+         * Bind rename event handlers
+         */
+        bindRenameEvents: function () {
+            // No additional binding needed - handled by generic modal system
         },
 
         /**
          * Open rename modal for a file
          */
         openRenameModal: function ($button) {
+            var self = this;
             var filename = $button.data('filename');
             var bucket = $button.data('bucket');
             var key = $button.data('key');
@@ -272,37 +542,63 @@
                 $button: $button
             };
 
+            var modal = this.createModal({
+                id: 's3RenameModal',
+                title: this.i18n.renameFile,
+                fields: [{
+                    id: 's3RenameInput',
+                    type: 'text',
+                    label: this.i18n.filenameLabel,
+                    placeholder: this.i18n.newFilename,
+                    maxlength: 255,
+                    description: this.i18n.filenameHelp
+                }],
+                buttons: [{
+                    text: this.i18n.cancel,
+                    action: 'cancel',
+                    callback: function () {
+                        self.hideModal('s3RenameModal');
+                        self.currentRename = null;
+                    }
+                }, {
+                    text: this.i18n.renameFile,
+                    action: 'submit',
+                    classes: 'button-primary',
+                    disabled: true,
+                    callback: function () {
+                        self.submitRenameForm();
+                    }
+                }],
+                onClose: function () {
+                    self.currentRename = null;
+                }
+            });
+
+            // Bind rename-specific validation
+            modal.on('keyup', '#s3RenameInput', function (e) {
+                self.validateRenameInput(e, modal);
+            }).on('keydown', '#s3RenameInput', function (e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    self.submitRenameForm();
+                }
+            });
+
             // Set current filename without extension for editing
             var nameWithoutExt = this.getFilenameWithoutExtension(filename);
-            $('#s3RenameInput').val(nameWithoutExt);
 
-            // Reset modal state
-            $('.s3-rename-error').hide();
-            $('.s3-rename-submit').prop('disabled', false);
-            $('.s3-rename-loading').hide();
-
-            // Show modal and focus input
-            $('#s3RenameModal').fadeIn(200);
-            setTimeout(function () {
-                $('#s3RenameInput').focus().select();
-            }, 250);
-        },
-
-        /**
-         * Close rename modal
-         */
-        closeRenameModal: function () {
-            $('#s3RenameModal').fadeOut(200);
-            this.currentRename = null;
+            this.showModal('s3RenameModal', function () {
+                $('#s3RenameInput').val(nameWithoutExt).focus().select();
+            });
         },
 
         /**
          * Validate rename input
          */
-        validateRenameInput: function (e) {
+        validateRenameInput: function (e, $modal) {
             var newName = e.target.value.trim();
-            var $submit = $('.s3-rename-submit');
-            var $error = $('.s3-rename-error');
+            var $submit = $modal.find('button[data-action="submit"]');
+            var $error = $modal.find('.s3-modal-error');
 
             $error.hide();
 
@@ -370,7 +666,7 @@
 
             var validation = this.validateFilename(newNameWithoutExt, fullNewName);
             if (!validation.valid) {
-                $('.s3-rename-error').text(validation.message).show();
+                this.showModalError('s3RenameModal', validation.message);
                 return;
             }
 
@@ -384,19 +680,8 @@
             if (!this.currentRename) return;
 
             var self = this;
-            var $modal = $('#s3RenameModal');
-            var $elements = {
-                submit: $modal.find('.s3-rename-submit'),
-                cancel: $modal.find('.s3-rename-cancel'),
-                loading: $modal.find('.s3-rename-loading'),
-                error: $modal.find('.s3-rename-error')
-            };
 
-            // Show loading state
-            $elements.submit.prop('disabled', true);
-            $elements.cancel.prop('disabled', true);
-            $elements.loading.show();
-            $elements.error.hide();
+            this.setModalLoading('s3RenameModal', true, this.i18n.renamingFile);
 
             this.makeAjaxRequest('s3_rename_object_', {
                 bucket: this.currentRename.bucket,
@@ -407,8 +692,7 @@
                     self.handleRenameSuccess(response, newFilename);
                 },
                 error: function (message) {
-                    $elements.error.text(message).show();
-                    self.resetRenameForm();
+                    self.showModalError('s3RenameModal', message);
                 }
             });
         },
@@ -440,19 +724,10 @@
             );
 
             // Close modal
-            this.closeRenameModal();
+            this.hideModal('s3RenameModal');
 
             // Update search data
             this.refreshSearch();
-        },
-
-        /**
-         * Reset rename form to default state
-         */
-        resetRenameForm: function () {
-            var $modal = $('#s3RenameModal');
-            $modal.find('.s3-rename-submit, .s3-rename-cancel').prop('disabled', false);
-            $modal.find('.s3-rename-loading').hide();
         },
 
         /**
@@ -469,239 +744,6 @@
         getFilenameWithoutExtension: function (filename) {
             var lastDot = filename.lastIndexOf('.');
             return lastDot > 0 ? filename.substring(0, lastDot) : filename;
-        },
-
-        /* ========================================
-         * FOLDER MANAGEMENT
-         * ======================================== */
-
-        /**
-         * Initialize folder creation functionality
-         */
-        initFolderCreation: function () {
-            this.createFolderModal();
-        },
-
-        /**
-         * Bind folder creation events
-         */
-        bindFolderEvents: function () {
-            var self = this;
-
-            // Create folder button
-            $(document).off('click.s3folder').on('click.s3folder', '#s3-create-folder', function (e) {
-                e.preventDefault();
-                var $button = $(this);
-                self.openCreateFolderModal($button.data('bucket'), $button.data('prefix'));
-            });
-
-            // Modal close events
-            $(document).off('click.s3modal').on('click.s3modal', '.s3-folder-modal-overlay, .s3-folder-modal-close', function (e) {
-                if (e.target === this) {
-                    self.closeFolderModal();
-                }
-            });
-
-            // Escape key to close modal
-            $(document).off('keydown.s3modal').on('keydown.s3modal', function (e) {
-                if (e.key === 'Escape' && $('#s3FolderModal').is(':visible')) {
-                    self.closeFolderModal();
-                }
-            });
-        },
-
-        /**
-         * Create folder modal HTML structure
-         */
-        createFolderModal: function () {
-            if ($('#s3FolderModal').length > 0) return;
-
-            var i18n = this.i18n;
-            var modalHtml = [
-                '<div id="s3FolderModal" class="s3-folder-modal-overlay" style="display: none;">',
-                '<div class="s3-folder-modal">',
-                '<div class="s3-folder-modal-header">',
-                '<h2>' + i18n.newFolder + '</h2>',
-                '<button type="button" class="s3-folder-modal-close">&times;</button>',
-                '</div>',
-                '<div class="s3-folder-modal-body">',
-                '<div class="s3-folder-error" style="display: none;"></div>',
-                '<div class="s3-folder-field">',
-                '<label for="s3FolderNameInput">' + i18n.folderName + '</label>',
-                '<input type="text" id="s3FolderNameInput" placeholder="' + i18n.folderNamePlaceholder + '" maxlength="63" autocomplete="off">',
-                '<p class="description">' + i18n.folderNameHelp + '</p>',
-                '</div>',
-                '<div class="s3-folder-loading" style="display: none;">',
-                '<span class="spinner is-active"></span>' + i18n.creatingFolder,
-                '</div>',
-                '</div>',
-                '<div class="s3-folder-modal-footer">',
-                '<button type="button" class="button s3-folder-cancel">' + i18n.cancel + '</button>',
-                '<button type="button" class="button button-primary s3-folder-submit" disabled>' + i18n.createFolder + '</button>',
-                '</div>',
-                '</div>',
-                '</div>'
-            ].join('');
-
-            $('body').append(modalHtml);
-            this.bindModalEvents();
-        },
-
-        /**
-         * Bind modal-specific events
-         */
-        bindModalEvents: function () {
-            var self = this;
-
-            $('#s3FolderModal')
-                .on('click', '.s3-folder-submit', function () {
-                    self.submitFolderForm();
-                })
-                .on('click', '.s3-folder-cancel', function () {
-                    self.closeFolderModal();
-                })
-                .on('keyup', '#s3FolderNameInput', function (e) {
-                    self.validateFolderInput(e);
-                })
-                .on('keydown', '#s3FolderNameInput', function (e) {
-                    if (e.key === 'Enter') {
-                        e.preventDefault();
-                        self.submitFolderForm();
-                    }
-                });
-        },
-
-        /**
-         * Validate folder name input
-         */
-        validateFolderInput: function (e) {
-            var folderName = e.target.value.trim();
-            var $submit = $('.s3-folder-submit');
-            var $error = $('.s3-folder-error');
-
-            $error.hide();
-            var validation = this.validateFolderName(folderName);
-
-            if (!validation.valid && folderName.length > 0) {
-                $error.text(validation.message).show();
-            }
-
-            $submit.prop('disabled', !validation.valid);
-        },
-
-        /**
-         * Validate folder name
-         */
-        validateFolderName: function (folderName) {
-            var i18n = this.i18n;
-
-            if (folderName.length === 0) {
-                return {valid: false, message: i18n.folderNameRequired};
-            }
-            if (folderName.length > 63) {
-                return {valid: false, message: i18n.folderNameTooLong};
-            }
-            if (!/^[a-zA-Z0-9._-]+$/.test(folderName)) {
-                return {valid: false, message: i18n.folderNameInvalidChars};
-            }
-            if (['.', '-'].includes(folderName[0]) || ['.', '-'].includes(folderName[folderName.length - 1])) {
-                return {valid: false, message: 'Folder name cannot start or end with dots or hyphens'};
-            }
-            if (folderName.includes('..')) {
-                return {valid: false, message: 'Folder name cannot contain consecutive dots'};
-            }
-
-            return {valid: true, message: ''};
-        },
-
-        /**
-         * Submit folder creation form
-         */
-        submitFolderForm: function () {
-            var folderName = $('#s3FolderNameInput').val().trim();
-            var validation = this.validateFolderName(folderName);
-
-            if (!validation.valid) {
-                $('.s3-folder-error').text(validation.message).show();
-                return;
-            }
-
-            this.createFolder(folderName);
-        },
-
-        /**
-         * Create folder via AJAX
-         */
-        createFolder: function (folderName) {
-            var self = this;
-            var $modal = $('#s3FolderModal');
-            var $elements = {
-                submit: $modal.find('.s3-folder-submit'),
-                cancel: $modal.find('.s3-folder-cancel'),
-                loading: $modal.find('.s3-folder-loading'),
-                error: $modal.find('.s3-folder-error')
-            };
-
-            // Show loading state
-            $elements.submit.prop('disabled', true);
-            $elements.cancel.prop('disabled', true);
-            $elements.loading.show();
-            $elements.error.hide();
-
-            this.makeAjaxRequest('s3_create_folder_', {
-                bucket: this.currentBucket,
-                prefix: this.currentPrefix,
-                folder_name: folderName
-            }, {
-                success: function (response) {
-                    self.showNotification(
-                        response.data.message || self.i18n.createFolderSuccess.replace('{name}', folderName),
-                        'success'
-                    );
-                    self.closeFolderModal();
-                    setTimeout(function () {
-                        window.location.reload();
-                    }, 1500);
-                },
-                error: function (message) {
-                    $elements.error.text(message).show();
-                    self.resetFolderForm();
-                }
-            });
-        },
-
-        /**
-         * Reset folder form
-         */
-        resetFolderForm: function () {
-            var $modal = $('#s3FolderModal');
-            $modal.find('.s3-folder-submit, .s3-folder-cancel').prop('disabled', false);
-            $modal.find('.s3-folder-loading').hide();
-        },
-
-        /**
-         * Open the create folder modal
-         */
-        openCreateFolderModal: function (bucket, prefix) {
-            this.currentBucket = bucket;
-            this.currentPrefix = prefix || '';
-
-            $('#s3FolderNameInput').val('');
-            $('.s3-folder-error').hide();
-            $('.s3-folder-submit').prop('disabled', true);
-            $('.s3-folder-loading').hide();
-
-            $('#s3FolderModal').fadeIn(200);
-            setTimeout(function () {
-                $('#s3FolderNameInput').focus();
-            }, 250);
-        },
-
-        /**
-         * Close the folder modal
-         */
-        closeFolderModal: function () {
-            $('#s3FolderModal').fadeOut(200);
         },
 
         /* ========================================

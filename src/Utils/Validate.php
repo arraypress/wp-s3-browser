@@ -1,8 +1,8 @@
 <?php
 /**
- * Validate Utility Class
+ * Validate Utility Class - Enhanced with Filename Validation
  *
- * Handles validation of S3 paths, buckets, and objects.
+ * Handles validation of S3 paths, buckets, objects, and filenames.
  *
  * @package     ArrayPress\S3\Utils
  * @copyright   Copyright (c) 2025, ArrayPress Limited
@@ -18,7 +18,7 @@ namespace ArrayPress\S3\Utils;
 /**
  * Class Validate
  *
- * Handles validation of S3 paths, buckets, and objects
+ * Handles validation of S3 paths, buckets, objects, and filenames
  */
 class Validate {
 
@@ -143,6 +143,104 @@ class Validate {
 		}
 
 		return $parsed;
+	}
+
+	/**
+	 * Validate filename with comprehensive checks
+	 *
+	 * @param string $filename Filename to validate
+	 *
+	 * @return array Validation result with 'valid' boolean and 'message' string
+	 */
+	public static function filename_comprehensive( string $filename ): array {
+		// Check if filename is empty
+		if ( empty( trim( $filename ) ) ) {
+			return [
+				'valid'   => false,
+				'message' => __( 'Filename cannot be empty', 'arraypress' )
+			];
+		}
+
+		// Check filename length (S3 key length limit is 1024, but we'll be more conservative for filenames)
+		if ( strlen( $filename ) > 255 ) {
+			return [
+				'valid'   => false,
+				'message' => __( 'Filename is too long (maximum 255 characters)', 'arraypress' )
+			];
+		}
+
+		// Check for invalid characters (basic S3 key validation plus Windows/common restrictions)
+		if ( preg_match( '/[<>:"|?*]/', $filename ) ) {
+			return [
+				'valid'   => false,
+				'message' => __( 'Filename contains invalid characters: < > : " | ? *', 'arraypress' )
+			];
+		}
+
+		// Check if filename starts or ends with problematic characters
+		if ( preg_match( '/^[.\-_\s]|[.\s]$/', $filename ) ) {
+			return [
+				'valid'   => false,
+				'message' => __( 'Filename cannot start with dots, dashes, underscores, or spaces, or end with dots or spaces', 'arraypress' )
+			];
+		}
+
+		// Check for directory traversal attempts
+		if ( strpos( $filename, '..' ) !== false || strpos( $filename, '/' ) !== false || strpos( $filename, '\\' ) !== false ) {
+			return [
+				'valid'   => false,
+				'message' => __( 'Filename cannot contain path separators or relative path indicators', 'arraypress' )
+			];
+		}
+
+		// Check for control characters and null bytes
+		if ( preg_match( '/[\x00-\x1F\x7F]/', $filename ) ) {
+			return [
+				'valid'   => false,
+				'message' => __( 'Filename cannot contain control characters', 'arraypress' )
+			];
+		}
+
+		// Additional checks for common problematic patterns
+		$reserved_names = [
+			'CON', 'PRN', 'AUX', 'NUL',
+			'COM1', 'COM2', 'COM3', 'COM4', 'COM5', 'COM6', 'COM7', 'COM8', 'COM9',
+			'LPT1', 'LPT2', 'LPT3', 'LPT4', 'LPT5', 'LPT6', 'LPT7', 'LPT8', 'LPT9'
+		];
+
+		// Get base name without extension for reserved name checking
+		$base_name = pathinfo( $filename, PATHINFO_FILENAME );
+		if ( in_array( strtoupper( $base_name ), $reserved_names, true ) ) {
+			return [
+				'valid'   => false,
+				'message' => __( 'Filename cannot be a reserved system name', 'arraypress' )
+			];
+		}
+
+		// Check if filename is just an extension (starts with dot and has no base name)
+		if ( $filename[0] === '.' && strlen( trim( $base_name ) ) === 0 ) {
+			return [
+				'valid'   => false,
+				'message' => __( 'Filename cannot be just an extension', 'arraypress' )
+			];
+		}
+
+		return [
+			'valid'   => true,
+			'message' => ''
+		];
+	}
+
+	/**
+	 * Validate filename (simple version)
+	 *
+	 * @param string $filename Filename to validate
+	 *
+	 * @return bool True if the filename is valid
+	 */
+	public static function filename( string $filename ): bool {
+		$result = self::filename_comprehensive( $filename );
+		return $result['valid'];
 	}
 
 	/**
