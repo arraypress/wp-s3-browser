@@ -618,7 +618,7 @@
         },
 
         /**
-         * Validate filename for renaming
+         * Validate filename for renaming - keep it simple and safe
          */
         validateFilename: function (nameWithoutExt, fullName) {
             var i18n = this.i18n;
@@ -703,21 +703,7 @@
         handleRenameSuccess: function (response, newFilename) {
             var self = this;
 
-            // Update the filename display in the table
-            if (this.currentRename && this.currentRename.$button) {
-                var $row = this.currentRename.$button.closest('tr');
-                var $filenameSpan = $row.find('.s3-filename');
-
-                if ($filenameSpan.length) {
-                    $filenameSpan.text(newFilename).data('original-name', newFilename);
-                }
-
-                // Update all action button data attributes in the row
-                $row.find('[data-filename]').attr('data-filename', newFilename);
-                $row.find('[data-key]').attr('data-key', response.data.new_key);
-            }
-
-            // Show success message
+            // Show success message immediately
             this.showNotification(
                 response.data.message || this.i18n.renameSuccess,
                 'success'
@@ -726,9 +712,13 @@
             // Close modal
             this.hideModal('s3RenameModal');
 
-            // Update search data
-            this.refreshSearch();
+            // Always refresh the page after rename to ensure everything is in sync
+            // This is the most reliable approach for handling file renames with special characters
+            setTimeout(function () {
+                window.location.reload();
+            }, 1500);
         },
+
 
         /**
          * Get file extension from filename

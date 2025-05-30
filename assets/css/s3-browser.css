@@ -1,201 +1,300 @@
-/**
- * S3 Browser Styles - Enhanced with Rename Modal
- * Comprehensive styling for the S3 browser interface including rename functionality
- */
-
-/* ========================================
- * GENERAL BROWSER STYLES
- * ======================================== */
-
+/* Core Container */
 .s3-browser-container {
-    max-width: 100%;
-    margin: 0;
-    padding: 20px;
-    background: #fff;
-    border: 1px solid #c3c4c7;
-    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+    padding: 15px;
 }
 
+.s3-browser-container .notice {
+    margin: 0 0 15px 0;
+}
+
+/* Table Layout */
 .s3-browser-container .wp-list-table {
-    margin-top: 0;
+    margin-top: 15px;
 }
 
-.s3-browser-container .tablenav {
-    padding: 0;
-    margin: 12px 0;
+/* Column Widths */
+.wp-list-table th.column-name, .wp-list-table td.column-name {
+    width: 20%;
+    min-width: 200px;
+    overflow-wrap: break-word;
 }
 
+.wp-list-table th.column-size, .wp-list-table td.column-size {
+    width: 15%;
+    text-align: right;
+    white-space: nowrap;
+}
+
+.wp-list-table th.column-modified, .wp-list-table td.column-modified {
+    width: 20%;
+    white-space: nowrap;
+}
+
+.wp-list-table th.column-actions, .wp-list-table td.column-actions {
+    width: 15%;
+    white-space: nowrap;
+}
+
+/* Icon and Filename Alignment Fix */
+.wp-list-table .column-name .dashicons {
+    display: inline-block;
+    vertical-align: top;
+    margin-right: 6px;
+    line-height: 20px;
+}
+
+.wp-list-table .column-name .s3-filename,
+.wp-list-table .column-name .s3-folder-link {
+    display: inline-block;
+    vertical-align: top;
+    line-height: 20px;
+}
+
+/* Text Overflow Prevention */
+.bucket-name, .s3-folder-link {
+    display: inline-block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+/* Button Styling */
+.s3-icon-button .dashicons {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    margin-right: 4px;
+    vertical-align: middle;
+}
+
+.button-delete {
+    background-color: #d63638 !important;
+    border-color: #d63638 !important;
+    color: white !important;
+}
+
+.button-delete:hover {
+    background-color: #b32d2e !important;
+}
+
+.button-delete .dashicons {
+    color: white;
+}
+
+/* Upload Toggle */
+#s3-toggle-upload.active {
+    background-color: #135e96;
+    border-color: #135e96;
+}
+
+/* Breadcrumbs */
+.breadcrumb-container {
+    margin-bottom: 15px;
+    padding: 8px 12px;
+    background-color: #f5f5f5;
+    border-radius: 4px;
+    border: 1px solid #e5e5e5;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.breadcrumb-link, .breadcrumb-current {
+    display: inline-flex;
+    align-items: center;
+}
+
+.breadcrumb-link {
+    color: #0073aa;
+    text-decoration: none;
+}
+
+.breadcrumb-link:hover {
+    text-decoration: underline;
+}
+
+.breadcrumb-current {
+    font-weight: bold;
+}
+
+.breadcrumb-separator {
+    margin: 0 8px;
+    color: #999;
+}
+
+/* Search and Navigation */
 .s3-top-nav {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 15px;
-    flex-wrap: wrap;
+    margin-bottom: 10px;
 }
 
 .s3-search-container {
     display: flex;
     align-items: center;
     gap: 10px;
-    flex: 1;
-    min-width: 300px;
+    flex-grow: 1;
 }
 
-.s3-search-container input[type="search"] {
-    min-width: 250px;
-    max-width: 400px;
+#s3-js-search {
+    min-width: 500px;
 }
 
-.s3-search-stats {
-    font-style: italic;
-    color: #646970;
-    font-size: 13px;
-    white-space: nowrap;
-}
-
-.s3-actions-container {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-}
-
-/* ========================================
- * BUTTON STYLES
- * ======================================== */
-
-.s3-icon-button {
+/* Load More Button */
+#s3-load-more {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
-    padding: 4px 8px;
-    line-height: 1.2;
-    text-decoration: none !important;
-    vertical-align: middle;
+    gap: 6px;
+    padding: 8px 16px;
+    font-weight: 500;
+    border-radius: 4px;
+    transition: all 0.2s ease;
 }
 
-.s3-icon-button .dashicons {
+#s3-load-more .dashicons {
     font-size: 16px;
     width: 16px;
     height: 16px;
-    margin-right: 3px;
+    margin: 0;
 }
 
-.s3-icon-button.button-delete {
-    color: #d63638;
+#s3-load-more:hover:not(:disabled) {
+    background-color: #f0f6fc;
+    border-color: #0969da;
+    color: #0969da;
 }
 
-.s3-icon-button.button-delete:hover {
-    color: #d63638;
-    background-color: #f6f7f7;
-    border-color: #d63638;
+#s3-load-more:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background-color: #f6f8fa;
+    border-color: #d1d9e0;
+    color: #656d76;
 }
 
-.button.s3-refresh-button.refreshing .dashicons {
-    animation: spin 1s linear infinite;
+/* Bottom navigation */
+.tablenav.bottom {
+    padding: 12px 0;
 }
 
-@keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
+.tablenav-pages {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
 }
 
-/* ========================================
- * TABLE STYLES
- * ======================================== */
-
-.s3-browser-container .wp-list-table th,
-.s3-browser-container .wp-list-table td {
-    vertical-align: middle;
+.pagination-links {
+    display: flex;
+    align-items: center;
 }
 
-.s3-browser-container .column-name {
-    width: 40%;
-}
-
-.s3-browser-container .column-size {
-    width: 15%;
-}
-
-.s3-browser-container .column-modified {
-    width: 20%;
-}
-
-.s3-browser-container .column-actions {
-    width: 25%;
-}
-
-.s3-browser-container .column-name .dashicons {
-    margin-right: 5px;
-    color: #646970;
-}
-
-.s3-folder-icon {
-    color: #f0b849 !important;
-}
-
-.s3-filename {
-    font-weight: 500;
-}
-
-.s3-folder-link {
-    font-weight: 500;
-    text-decoration: none;
-}
-
-.s3-folder-link:hover {
-    color: #0073aa;
-}
-
-.s3-no-results td {
-    text-align: center;
+.s3-load-status {
+    font-size: 12px;
     color: #646970;
     font-style: italic;
-    padding: 20px;
 }
 
-/* ========================================
- * BREADCRUMB STYLES
- * ======================================== */
-
-.s3-browser-breadcrumbs {
-    margin: 0 0 20px 0;
-    padding: 10px 15px;
-    background: #f6f7f7;
-    border: 1px solid #c3c4c7;
-    border-radius: 3px;
+/* Refresh Button */
+.s3-refresh-button.refreshing .dashicons {
+    animation: s3-spin 1.5s linear infinite;
 }
 
-.s3-browser-breadcrumbs .breadcrumb-item {
+@keyframes s3-spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Icon Colors */
+.dashicons-category, .s3-folder-icon {
+    color: #dba617;
+}
+
+.dashicons-format-image {
+    color: #218838;
+}
+
+.dashicons-media-document {
+    color: #2271b1;
+}
+
+.dashicons-media-archive {
+    color: #7b68ee;
+}
+
+.dashicons-media-audio {
+    color: #1e90ff;
+}
+
+.dashicons-media-video {
+    color: #dc3545;
+}
+
+/* Favorites */
+.s3-favorite-bucket .dashicons-star-filled.s3-favorite-active {
+    color: #ffb900;
+}
+
+/* Notifications */
+.s3-notification {
+    padding: 12px 15px;
+    margin: 10px 0 15px;
+    border-radius: 4px;
+    text-align: center;
+    animation: s3-notification-fadeIn 0.3s ease-in-out;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+.s3-notification-success {
+    background-color: #ecf7ed;
+    border-left: 4px solid #46b450;
+    color: #1e8a27;
+}
+
+.s3-notification-error {
+    background-color: #fbeaea;
+    border-left: 4px solid #dc3232;
+    color: #b32d2d;
+}
+
+.s3-notification-info {
+    background-color: #e5f5fa;
+    border-left: 4px solid #00a0d2;
+    color: #0073aa;
+}
+
+@keyframes s3-notification-fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Toolbar Buttons */
+.s3-toolbar-buttons {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+    align-items: center;
+}
+
+.s3-toolbar-buttons .button {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
+    gap: 4px;
 }
 
-.s3-browser-breadcrumbs .breadcrumb-item:not(:last-child)::after {
-    content: "›";
-    margin: 0 8px;
-    color: #646970;
-}
-
-.s3-browser-breadcrumbs .breadcrumb-link {
-    color: #0073aa;
-    text-decoration: none;
-}
-
-.s3-browser-breadcrumbs .breadcrumb-link:hover {
-    color: #005a87;
-    text-decoration: underline;
-}
-
-.s3-browser-breadcrumbs .breadcrumb-current {
-    font-weight: 600;
-    color: #1d2327;
-}
-
-/* ========================================
- * MODAL BASE STYLES
- * ======================================== */
-
+/* Generic Modal (Updated from Folder Modal) */
 .s3-modal-overlay {
     position: fixed;
     top: 0;
@@ -203,7 +302,7 @@
     width: 100%;
     height: 100%;
     background: rgba(0, 0, 0, 0.7);
-    z-index: 999999;
+    z-index: 100000;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -211,39 +310,53 @@
 
 .s3-modal {
     background: #fff;
-    border-radius: 4px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    border-radius: 3px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.7);
     max-width: 500px;
     width: 90%;
     max-height: 90vh;
     overflow: hidden;
     position: relative;
+    animation: s3ModalSlideIn 0.2s ease-out;
+}
+
+@keyframes s3ModalSlideIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9) translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
 }
 
 .s3-modal-header {
-    padding: 20px 20px 15px;
-    border-bottom: 1px solid #dcdcde;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid #ddd;
+    background: #fcfcfc;
+    position: relative;
 }
 
 .s3-modal-header h2 {
     margin: 0;
     font-size: 18px;
     font-weight: 600;
-    color: #1d2327;
+    color: #23282d;
 }
 
 .s3-modal-close {
+    position: absolute;
+    top: 16px;
+    right: 20px;
     background: none;
     border: none;
-    font-size: 24px;
-    color: #646970;
+    font-size: 20px;
     cursor: pointer;
+    color: #666;
     padding: 0;
-    width: 30px;
-    height: 30px;
+    width: 24px;
+    height: 24px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -251,64 +364,78 @@
 }
 
 .s3-modal-close:hover {
-    background: #f6f7f7;
+    background: #dcdcde;
     color: #1d2327;
 }
 
 .s3-modal-body {
-    padding: 20px;
+    padding: 24px;
 }
 
+.s3-modal-footer {
+    padding: 16px 24px;
+    border-top: 1px solid #ddd;
+    background: #fcfcfc;
+    text-align: right;
+}
+
+.s3-modal-footer .button {
+    margin-left: 8px;
+}
+
+/* Modal Form Fields */
 .s3-modal-field {
-    margin-bottom: 15px;
+    margin-bottom: 20px;
 }
 
 .s3-modal-field label {
     display: block;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
     font-weight: 600;
-    color: #1d2327;
+    color: #23282d;
 }
 
-.s3-modal-field input {
+.s3-modal-field input[type="text"] {
     width: 100%;
     padding: 8px 12px;
-    border: 1px solid #8c8f94;
-    border-radius: 4px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
     font-size: 14px;
     line-height: 1.4;
+    box-sizing: border-box;
 }
 
-.s3-modal-field input:focus {
-    border-color: #2271b1;
-    box-shadow: 0 0 0 1px #2271b1;
+.s3-modal-field input[type="text"]:focus {
+    border-color: #0073aa;
+    box-shadow: 0 0 0 1px #0073aa;
     outline: none;
 }
 
 .s3-modal-field .description {
-    margin-top: 8px;
-    font-size: 13px;
-    color: #646970;
+    margin-top: 6px;
+    margin-bottom: 0;
+    font-size: 12px;
+    color: #666;
     line-height: 1.4;
 }
 
 .s3-modal-error {
-    padding: 8px 12px;
-    background: #fcf2f2;
-    border: 1px solid #f87171;
-    border-radius: 4px;
-    color: #dc2626;
-    margin-bottom: 15px;
-    font-size: 14px;
+    background: #fff;
+    border-left: 4px solid #d63638;
+    padding: 12px;
+    margin-bottom: 16px;
+    color: #d63638;
+    font-size: 13px;
+    border-radius: 0 3px 3px 0;
 }
 
 .s3-modal-loading {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 15px 0;
-    color: #646970;
-    font-style: italic;
+    gap: 8px;
+    color: #666;
+    font-size: 13px;
+    margin-bottom: 16px;
 }
 
 .s3-modal-loading .spinner {
@@ -316,143 +443,17 @@
     margin: 0;
 }
 
-.s3-modal-footer {
-    padding: 15px 20px 20px;
-    border-top: 1px solid #dcdcde;
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
+.s3-modal .button:disabled {
+    background: #ccd0d4 !important;
+    border-color: #ccd0d4 !important;
+    color: #a7aaad !important;
+    cursor: not-allowed !important;
 }
 
-/* ========================================
- * NOTIFICATION STYLES
- * ======================================== */
-
-.s3-notification {
-    padding: 12px 16px;
-    margin-bottom: 20px;
-    border-radius: 4px;
-    font-weight: 500;
-    position: relative;
-}
-
-.s3-notification-success {
-    background: #d1e7dd;
-    border: 1px solid #badbcc;
-    color: #0f5132;
-}
-
-.s3-notification-error {
-    background: #f8d7da;
-    border: 1px solid #f5c2c7;
-    color: #842029;
-}
-
-.s3-notification-info {
-    background: #d1ecf1;
-    border: 1px solid #b8daff;
-    color: #055160;
-}
-
-/* ========================================
- * UPLOAD SECTION STYLES
- * ======================================== */
-
-.s3-upload-wrapper {
-    margin-bottom: 20px;
-    border: 1px solid #c3c4c7;
-    border-radius: 4px;
-    background: #fff;
-}
-
-.s3-toolbar-buttons {
-    padding: 15px;
-    border-bottom: 1px solid #dcdcde;
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-}
-
-.s3-upload-container {
-    border-top: 1px solid #dcdcde;
-}
-
-.s3-upload-header {
-    padding: 15px 20px;
-    background: #f6f7f7;
-    border-bottom: 1px solid #dcdcde;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.s3-upload-title {
-    margin: 0;
-    font-size: 16px;
-    font-weight: 600;
-    color: #1d2327;
-}
-
-.s3-close-upload {
-    background: none;
-    border: none;
-    color: #646970;
-    cursor: pointer;
-    padding: 4px;
-    border-radius: 2px;
-}
-
-.s3-close-upload:hover {
-    background: #dcdcde;
-    color: #1d2327;
-}
-
-.s3-upload-zone {
-    padding: 40px 20px;
-    text-align: center;
-    border: 2px dashed #c3c4c7;
-    margin: 20px;
-    border-radius: 4px;
-    background: #fafafa;
-    transition: all 0.3s ease;
-}
-
-.s3-upload-zone.dragover {
-    border-color: #2271b1;
-    background: #f0f6fc;
-}
-
-.s3-upload-message {
-    color: #646970;
-}
-
-.s3-upload-message .dashicons {
-    font-size: 48px;
-    color: #c3c4c7;
-    margin-bottom: 15px;
-}
-
-.s3-upload-message p {
-    margin: 10px 0;
-    font-size: 16px;
-}
-
-.s3-upload-or {
-    font-size: 14px;
-    color: #8c8f94;
-}
-
-.s3-file-input {
-    display: none;
-}
-
-/* ========================================
- * RESPONSIVE STYLES
- * ======================================== */
-
-@media (max-width: 768px) {
+/* Mobile Responsiveness */
+@media screen and (max-width: 782px) {
     .s3-browser-container {
-        padding: 15px;
+        padding: 8px;
     }
 
     .s3-top-nav {
@@ -461,112 +462,51 @@
         gap: 10px;
     }
 
-    .s3-search-container {
+    #s3-js-search {
         min-width: auto;
-    }
-
-    .s3-search-container input[type="search"] {
-        min-width: auto;
-    }
-
-    .s3-actions-container {
-        justify-content: center;
-    }
-
-    .s3-modal {
-        width: 95%;
-        margin: 20px;
-    }
-
-    .s3-modal-header {
-        padding: 15px;
-    }
-
-    .s3-modal-body {
-        padding: 15px;
-    }
-
-    .s3-modal-footer {
-        padding: 15px;
-        flex-direction: column;
+        width: 100%;
     }
 
     .s3-toolbar-buttons {
         flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
     }
 
-    .s3-upload-zone {
-        margin: 15px;
-        padding: 30px 15px;
-    }
-}
-
-@media (max-width: 480px) {
-    .s3-browser-container .column-actions {
-        width: auto;
+    .s3-toolbar-buttons .button {
+        justify-content: center;
+        width: 100%;
     }
 
-    .s3-icon-button {
-        padding: 2px 4px;
-        font-size: 12px;
+    .tablenav-pages {
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
     }
 
-    .s3-icon-button .dashicons {
-        font-size: 14px;
-        width: 14px;
-        height: 14px;
+    #s3-load-more {
+        width: 100%;
+        justify-content: center;
+        padding: 10px 16px;
     }
-}
 
-/* ========================================
- * ACCESSIBILITY IMPROVEMENTS
- * ======================================== */
+    .s3-modal {
+        min-width: 280px;
+        max-width: 90vw;
+    }
 
-.s3-modal:focus {
-    outline: 2px solid #2271b1;
-    outline-offset: -2px;
-}
+    .s3-modal-header,
+    .s3-modal-body,
+    .s3-modal-footer {
+        padding: 16px;
+    }
 
-.s3-icon-button:focus {
-    box-shadow: 0 0 0 2px #2271b1;
-    outline: none;
-}
+    .s3-modal-footer {
+        text-align: center;
+    }
 
-.s3-modal-close:focus {
-    outline: 2px solid #2271b1;
-    outline-offset: 2px;
-}
-
-/* ========================================
- * LOADING STATES
- * ======================================== */
-
-.s3-processing {
-    opacity: 0.6;
-    pointer-events: none;
-}
-
-.spin {
-    animation: spin 1s linear infinite;
-}
-
-/* ========================================
- * FAVORITES
- * ======================================== */
-
-.s3-favorite-active {
-    color: #f0b849 !important;
-}
-
-/* ========================================
- * PRINT STYLES
- * ======================================== */
-
-@media print {
-    .s3-folder-modal-overlay,
-    .s3-rename-modal-overlay,
-    .s3-upload-wrapper,
-    .s3-notification {
-        display: none !important;
+    .s3-modal-footer .button {
+        margin: 4px;
+        min-width: 100px;
     }
 }

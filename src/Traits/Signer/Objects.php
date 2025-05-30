@@ -420,13 +420,8 @@ trait Objects {
 			);
 		}
 
-		// Encode the source key and target key for URL
-		$encoded_source_key = Encode::object_key( $source_key );
+		// Encode the target key for URL usage
 		$encoded_target_key = Encode::object_key( $target_key );
-
-		// Create the source path in the format required by the S3 CopyObject operation
-		// Note: The x-amz-copy-source header must be URL-encoded
-		$source_path = rawurlencode( "{$source_bucket}/{$encoded_source_key}" );
 
 		// Generate authorization headers for PUT request to the target
 		$headers = $this->generate_auth_headers(
@@ -434,6 +429,11 @@ trait Objects {
 			$target_bucket,
 			$encoded_target_key
 		);
+
+		// Create the source path for x-amz-copy-source header
+		// The source path should be: bucket/key where key is URL-encoded
+		$encoded_source_key = Encode::object_key( $source_key );
+		$source_path        = $source_bucket . '/' . $encoded_source_key;
 
 		// Add the source header - this tells S3 to copy from the source object
 		$headers['x-amz-copy-source'] = $source_path;
@@ -444,6 +444,9 @@ trait Objects {
 		// Debug the request
 		$this->debug( "Copy Object Request URL", $url );
 		$this->debug( "Copy Object Request Headers", $headers );
+		$this->debug( "Copy Object Source Key", $source_key );
+		$this->debug( "Copy Object Encoded Source Key", $encoded_source_key );
+		$this->debug( "Copy Object Source Path", $source_path );
 
 		// Make the request
 		$response = wp_remote_request( $url, [
