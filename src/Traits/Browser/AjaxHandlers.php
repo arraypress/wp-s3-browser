@@ -67,7 +67,7 @@ trait AjaxHandlers {
 	}
 
 	/**
-	 * Handle AJAX delete folder request - Fixed to properly handle empty folders
+	 * Handle AJAX delete folder request - Enhanced with better error handling
 	 */
 	public function handle_ajax_delete_folder(): void {
 		if ( ! check_ajax_referer( 's3_browser_nonce_' . $this->provider_id, 'nonce', false ) ) {
@@ -91,14 +91,22 @@ trait AjaxHandlers {
 			return;
 		}
 
-		// Ensure folder path ends with / for proper S3 folder handling
-		$normalized_folder_path = rtrim( $folder_path, '/' ) . '/';
+		// Normalize folder path to ensure it ends with /
+		$normalized_folder_path = Directory::normalize( $folder_path );
 
-		// Always use recursive deletion and force=true for user-initiated folder deletion
-		// This ensures both the placeholder object and any contents are removed
-		$result = method_exists( $this->client, 'delete_folder_batch' )
-			? $this->client->delete_folder_batch( $bucket, $normalized_folder_path, true, true )
-			: $this->client->delete_folder( $bucket, $normalized_folder_path, true, true );
+		// Use batch deletion with fallback to regular deletion
+		$result = $this->client->delete_folder_batch( $bucket, $normalized_folder_path, true, true );
+
+		// If batch deletion failed due to network/timeout issues, try regular deletion
+		if ( ! $result->is_successful() ) {
+			$error_code = $result->get_error_code();
+
+			// Check for network/timeout related errors
+			if ( in_array( $error_code, [ 'batch_delete_timeout', 'batch_delete_not_supported', 'network_error' ] ) ) {
+				// Fallback to regular folder deletion
+				$result = $this->client->delete_folder( $bucket, $normalized_folder_path, true, true );
+			}
+		}
 
 		if ( ! $result->is_successful() ) {
 			wp_send_json_error( [ 'message' => $result->get_error_message() ] );
@@ -106,12 +114,19 @@ trait AjaxHandlers {
 			return;
 		}
 
+		// Clear cache after successful deletion
 		$this->client->clear_all_cache();
 
-		$data    = $result->get_data();
-		$message = isset( $data['deleted_count'] ) && $data['deleted_count'] > 0
-			? sprintf( __( 'Folder deleted successfully (%d items removed)', 'arraypress' ), $data['deleted_count'] )
-			: __( 'Folder deleted successfully', 'arraypress' );
+		$data = $result->get_data();
+
+		// Create appropriate success message based on what was deleted
+		if ( isset( $data['deleted_count'] ) && $data['deleted_count'] > 0 ) {
+			$message = sprintf( __( 'Folder deleted successfully (%d items removed)', 'arraypress' ), $data['deleted_count'] );
+		} elseif ( isset( $data['success_count'] ) && $data['success_count'] > 0 ) {
+			$message = sprintf( __( 'Folder deleted successfully (%d objects removed)', 'arraypress' ), $data['success_count'] );
+		} else {
+			$message = __( 'Folder deleted successfully', 'arraypress' );
+		}
 
 		wp_send_json_success( [
 			'message'     => $message,

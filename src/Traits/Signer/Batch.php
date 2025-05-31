@@ -1,14 +1,6 @@
 <?php
 /**
- * Bucket Operations Trait
- *
- * Handles bucket-related operations for S3-compatible storage.
- *
- * @package     ArrayPress\S3\Traits
- * @copyright   Copyright (c) 2025, ArrayPress Limited
- * @license     GPL2+
- * @version     1.0.0
- * @author      David Sherlock
+ * Enhanced Signer Batch Trait with Better Error Handling
  */
 
 declare( strict_types=1 );
@@ -20,13 +12,10 @@ use ArrayPress\S3\Responses\SuccessResponse;
 use ArrayPress\S3\Responses\ErrorResponse;
 use ArrayPress\S3\Utils\Xml;
 
-/**
- * Add this to your Objects trait in Signer
- */
 trait Batch {
 
 	/**
-	 * Delete multiple objects in batches (up to 1000 per request)
+	 * Delete multiple objects in batches with enhanced error handling
 	 *
 	 * @param string $bucket      Bucket name
 	 * @param array  $object_keys Array of object keys to delete
@@ -57,16 +46,16 @@ trait Batch {
 			'object_keys'  => $object_keys
 		] );
 
-		// S3 batch delete supports max 1000 objects per request
-		if ( count( $object_keys ) > 1000 ) {
+		// R2 compatibility: Reduce batch size limit
+		if ( count( $object_keys ) > 100 ) {
 			return new ErrorResponse(
-				__( 'Maximum 1000 objects can be deleted per batch request', 'arraypress' ),
+				__( 'Maximum 100 objects can be deleted per batch request for R2 compatibility', 'arraypress' ),
 				'too_many_objects',
 				400
 			);
 		}
 
-		// Build the XML for batch delete using utility
+		// Build the XML for batch delete
 		$delete_xml = $this->build_batch_delete_xml( $object_keys );
 
 		$this->debug( 'Batch Delete XML', $delete_xml );
@@ -91,17 +80,36 @@ trait Batch {
 		$this->debug( "Batch Delete Request URL", $url );
 		$this->debug( "Batch Delete Request Headers", $headers );
 
-		// Make the request with longer timeout for batch operations
+		// Enhanced request with better timeout handling for R2
 		$response = wp_remote_request( $url, [
-			'method'  => 'POST',
-			'headers' => $headers,
-			'body'    => $delete_xml,
-			'timeout' => 120  // Increase timeout for batch operations
+			'method'     => 'POST',
+			'headers'    => $headers,
+			'body'       => $delete_xml,
+			'timeout'    => 60,  // Reduced timeout for R2
+			'blocking'   => true,
+			'sslverify'  => true,
+			'user-agent' => 'ArrayPress-S3-Client/1.0'
 		] );
 
-		// Handle WP_Error responses
+		// Enhanced error handling
 		if ( is_wp_error( $response ) ) {
-			$this->debug( 'Batch Delete WP_Error', $response->get_error_message() );
+			$error_message = $response->get_error_message();
+			$error_code    = $response->get_error_code();
+
+			$this->debug( 'Batch Delete WP_Error', [
+				'code'    => $error_code,
+				'message' => $error_message,
+				'data'    => $response->get_error_data()
+			] );
+
+			// Check for specific timeout/network errors
+			if ( in_array( $error_code, [ 'http_request_timeout', 'http_request_failed' ] ) ) {
+				return new ErrorResponse(
+					__( 'Request timeout - try reducing batch size or use individual deletes', 'arraypress' ),
+					'batch_delete_timeout',
+					408  // Request Timeout
+				);
+			}
 
 			return ErrorResponse::from_wp_error( $response );
 		}
@@ -121,6 +129,15 @@ trait Batch {
 				'status' => $status_code,
 				'body'   => $body
 			] );
+
+			// Special handling for R2 specific errors
+			if ( $status_code === 400 && strpos( $body, 'MalformedXML' ) !== false ) {
+				return new ErrorResponse(
+					__( 'Batch delete XML format not supported by provider - falling back to individual deletes', 'arraypress' ),
+					'batch_delete_not_supported',
+					400
+				);
+			}
 
 			return $this->handle_error_response( $status_code, $body, 'Failed to batch delete objects' );
 		}
@@ -156,8 +173,7 @@ trait Batch {
 	}
 
 	/**
-	 * Build XML for batch delete request with enhanced compatibility
-	 * Uses proper XML escaping and structure
+	 * Build XML for batch delete request with R2 compatibility
 	 *
 	 * @param array $object_keys Array of object keys
 	 *
@@ -165,7 +181,9 @@ trait Batch {
 	 */
 	private function build_batch_delete_xml( array $object_keys ): string {
 		$xml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
-		$xml .= '<Delete xmlns="http://s3.amazonaws.com/doc/2006-03-01/">' . "\n";
+
+		// Try without namespace first for R2 compatibility
+		$xml .= '<Delete>' . "\n";
 		$xml .= '  <Quiet>false</Quiet>' . "\n";
 
 		foreach ( $object_keys as $key ) {
@@ -182,7 +200,7 @@ trait Batch {
 	}
 
 	/**
-	 * Parse batch delete response XML using existing XML utilities
+	 * Parse batch delete response XML with enhanced error handling
 	 *
 	 * @param array $xml Parsed XML response from parse_xml_response()
 	 *
