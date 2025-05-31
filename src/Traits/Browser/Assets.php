@@ -1,6 +1,6 @@
 <?php
 /**
- * Browser Assets Management Trait - Enhanced with Rename Support
+ * Browser Assets Management Trait - Enhanced with Folder Delete Support
  *
  * Handles asset loading and configuration for the S3 Browser using
  * the new WP Composer Assets library for simplified asset management.
@@ -274,6 +274,12 @@ trait Assets {
 			'confirmDelete'          => __( 'Are you sure you want to delete "{filename}"?\n\nThis action cannot be undone.', 'arraypress' ),
 			'deleteSuccess'          => __( 'File successfully deleted', 'arraypress' ),
 			'deleteError'            => __( 'Failed to delete file', 'arraypress' ),
+
+			// Folder operation strings
+			'confirmDeleteFolder'    => __( 'Are you sure you want to delete the folder "{foldername}" and all its contents?\n\nThis action cannot be undone.', 'arraypress' ),
+			'deleteFolderSuccess'    => __( 'Folder successfully deleted', 'arraypress' ),
+			'deleteFolderError'      => __( 'Failed to delete folder', 'arraypress' ),
+			'deletingFolder'         => __( 'Deleting folder...', 'arraypress' ),
 
 			// Rename operation strings
 			'renameFile'             => __( 'Rename File', 'arraypress' ),

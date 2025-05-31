@@ -1,9 +1,9 @@
 <?php
 /**
- * S3 Objects List Table - Enhanced with Rename Support
+ * S3 Objects List Table - Enhanced with Row Actions and Folder Delete
  *
  * Displays S3 objects and folders in a WordPress-style table with pagination,
- * search functionality, file operations, and renaming capabilities.
+ * search functionality, file operations, and WordPress-style row actions.
  *
  * @package     ArrayPress\S3\Tables
  * @copyright   Copyright (c) 2025, ArrayPress Limited
@@ -25,7 +25,7 @@ use ArrayPress\S3\Client;
  * Class Objects
  *
  * Extends WP_List_Table to display S3 objects and prefixes with proper pagination
- * and file operations support including renaming.
+ * and file operations support including renaming and folder deletion.
  */
 class Objects extends WP_List_Table {
 
@@ -109,7 +109,6 @@ class Objects extends WP_List_Table {
 			'name'     => __( 'Name', 'arraypress' ),
 			'size'     => __( 'Size', 'arraypress' ),
 			'modified' => __( 'Last Modified', 'arraypress' ),
-			'actions'  => __( 'Actions', 'arraypress' ),
 		];
 	}
 
@@ -338,13 +337,88 @@ class Objects extends WP_List_Table {
 	 */
 	public function render_row( array $item ): string {
 		$output = '<tr>';
-		$output .= '<td class="column-name">' . $this->column_name( $item ) . '</td>';
+		$output .= '<td class="column-name has-row-actions">' . $this->column_name( $item ) . '</td>';
 		$output .= '<td class="column-size">' . esc_html( $item['size'] ) . '</td>';
 		$output .= '<td class="column-modified">' . esc_html( $item['modified'] ) . '</td>';
-		$output .= '<td class="column-actions">' . $this->column_actions( $item ) . '</td>';
 		$output .= '</tr>';
 
 		return $output;
+	}
+
+	/**
+	 * Generate row actions for WordPress-style hover actions
+	 *
+	 * @param array $item Item data
+	 *
+	 * @return array Array of action links
+	 */
+	protected function get_row_actions( array $item ): array {
+		$actions = [];
+
+		if ( $item['type'] === 'folder' ) {
+			// Folder actions
+			$url = add_query_arg( [
+				'chromeless' => 1,
+				'post_id'    => isset( $_REQUEST['post_id'] ) ? intval( $_REQUEST['post_id'] ) : 0,
+				'tab'        => 's3_' . $this->provider_id,
+				'bucket'     => $this->bucket,
+				'prefix'     => $item['prefix']
+			], remove_query_arg( [ 'continuation_token' ] ) );
+
+			$actions['open'] = sprintf(
+				'<a href="%s">%s</a>',
+				esc_url( $url ),
+				esc_html__( 'Open', 'arraypress' )
+			);
+
+			$actions['delete'] = sprintf(
+				'<a href="#" class="s3-delete-folder" data-folder-name="%s" data-bucket="%s" data-prefix="%s">%s</a>',
+				esc_attr( $item['name'] ),
+				esc_attr( $this->bucket ),
+				esc_attr( $item['prefix'] ),
+				esc_html__( 'Delete', 'arraypress' )
+			);
+
+		} else {
+			// File actions
+			$actions['select'] = sprintf(
+				'<a href="#" class="s3-select-file" data-filename="%s" data-bucket="%s" data-key="%s">%s</a>',
+				esc_attr( $item['name'] ),
+				esc_attr( $this->bucket ),
+				esc_attr( $item['key'] ),
+				esc_html__( 'Select', 'arraypress' )
+			);
+
+			// Download link
+			if ( isset( $item['object'] ) ) {
+				$presigned_url = $item['object']->get_presigned_url( $this->client, $this->bucket, 60 );
+				if ( ! is_wp_error( $presigned_url ) ) {
+					$actions['download'] = sprintf(
+						'<a href="#" class="s3-download-file" data-url="%s">%s</a>',
+						esc_attr( $presigned_url ),
+						esc_html__( 'Download', 'arraypress' )
+					);
+				}
+			}
+
+			$actions['rename'] = sprintf(
+				'<a href="#" class="s3-rename-file" data-filename="%s" data-bucket="%s" data-key="%s">%s</a>',
+				esc_attr( $item['name'] ),
+				esc_attr( $this->bucket ),
+				esc_attr( $item['key'] ),
+				esc_html__( 'Rename', 'arraypress' )
+			);
+
+			$actions['delete'] = sprintf(
+				'<a href="#" class="s3-delete-file button-delete" data-filename="%s" data-bucket="%s" data-key="%s">%s</a>',
+				esc_attr( $item['name'] ),
+				esc_attr( $this->bucket ),
+				esc_attr( $item['key'] ),
+				esc_html__( 'Delete', 'arraypress' )
+			);
+		}
+
+		return $actions;
 	}
 
 	/**
@@ -360,96 +434,33 @@ class Objects extends WP_List_Table {
 	}
 
 	/**
-	 * Render the name column with icon and link
+	 * Render the name column with icon, link, and row actions
 	 *
 	 * @param array $item Item data
 	 *
 	 * @return string Column HTML
 	 */
 	public function column_name( array $item ): string {
+		$actions = $this->get_row_actions( $item );
+
 		if ( $item['type'] === 'folder' ) {
-			return sprintf(
-				'<span class="dashicons dashicons-category s3-folder-icon"></span> <a href="#" class="s3-folder-link" data-prefix="%s" data-bucket="%s">%s</a>',
+			$primary_content = sprintf(
+				'<span class="dashicons dashicons-category s3-folder-icon"></span> <a href="#" class="s3-folder-link" data-prefix="%s" data-bucket="%s"><strong>%s</strong></a>',
 				esc_attr( $item['prefix'] ),
 				esc_attr( $this->bucket ),
 				esc_html( $item['name'] )
 			);
-		}
-
-		$icon_class = $item['object']->get_dashicon_class();
-
-		return sprintf(
-			'<span class="dashicons %s"></span> <span class="s3-filename" data-original-name="%s">%s</span>',
-			esc_attr( $icon_class ),
-			esc_attr( $item['name'] ),
-			esc_html( $item['name'] )
-		);
-	}
-
-	/**
-	 * Render the actions column with buttons
-	 *
-	 * @param array $item Item data
-	 *
-	 * @return string Actions HTML
-	 */
-	public function column_actions( array $item ): string {
-		if ( $item['type'] === 'folder' ) {
-			$url = add_query_arg( [
-				'chromeless' => 1,
-				'post_id'    => isset( $_REQUEST['post_id'] ) ? intval( $_REQUEST['post_id'] ) : 0,
-				'tab'        => 's3_' . $this->provider_id,
-				'bucket'     => $this->bucket,
-				'prefix'     => $item['prefix']
-			], remove_query_arg( [ 'continuation_token' ] ) );
-
-			return sprintf(
-				'<a href="%s" class="button s3-icon-button"><span class="dashicons dashicons-external"></span>%s</a>',
-				esc_url( $url ),
-				esc_html__( 'Open', 'arraypress' )
+		} else {
+			$icon_class = $item['object']->get_dashicon_class();
+			$primary_content = sprintf(
+				'<span class="dashicons %s"></span> <span class="s3-filename" data-original-name="%s"><strong>%s</strong></span>',
+				esc_attr( $icon_class ),
+				esc_attr( $item['name'] ),
+				esc_html( $item['name'] )
 			);
 		}
 
-		// File actions
-		$actions = sprintf(
-			'<a href="#" class="button s3-icon-button s3-select-file" data-filename="%s" data-bucket="%s" data-key="%s"><span class="dashicons dashicons-insert"></span>%s</a>',
-			esc_attr( $item['name'] ),
-			esc_attr( $this->bucket ),
-			esc_attr( $item['key'] ),
-			esc_html__( 'Select', 'arraypress' )
-		);
-
-		// Download link
-		if ( isset( $item['object'] ) ) {
-			$presigned_url = $item['object']->get_presigned_url( $this->client, $this->bucket, 60 );
-			if ( ! is_wp_error( $presigned_url ) ) {
-				$actions .= sprintf(
-					' <a href="#" class="button s3-icon-button s3-download-file" data-url="%s"><span class="dashicons dashicons-download"></span>%s</a>',
-					esc_attr( $presigned_url ),
-					esc_html__( 'Download', 'arraypress' )
-				);
-			}
-		}
-
-		// Rename button
-		$actions .= sprintf(
-			' <a href="#" class="button s3-icon-button s3-rename-file" data-filename="%s" data-bucket="%s" data-key="%s"><span class="dashicons dashicons-edit"></span>%s</a>',
-			esc_attr( $item['name'] ),
-			esc_attr( $this->bucket ),
-			esc_attr( $item['key'] ),
-			esc_html__( 'Rename', 'arraypress' )
-		);
-
-		// Delete button
-		$actions .= sprintf(
-			' <a href="#" class="button s3-icon-button s3-delete-file button-delete" data-filename="%s" data-bucket="%s" data-key="%s"><span class="dashicons dashicons-trash"></span>%s</a>',
-			esc_attr( $item['name'] ),
-			esc_attr( $this->bucket ),
-			esc_attr( $item['key'] ),
-			esc_html__( 'Delete', 'arraypress' )
-		);
-
-		return $actions;
+		return $primary_content . $this->row_actions( $actions );
 	}
 
 	/**

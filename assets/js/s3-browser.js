@@ -1,6 +1,6 @@
 /**
- * S3 Browser Core Functionality - Refactored with Generic Modal System
- * Handles browsing, searching, file operations, folder creation, file renaming and WordPress integrations
+ * S3 Browser Core Functionality - Enhanced with Row Actions and Folder Delete
+ * Handles browsing, searching, file operations, folder management, and WordPress integrations
  */
 (function ($) {
     'use strict';
@@ -34,6 +34,7 @@
             this.setupAjaxLoading();
             this.countInitialItems();
             this.initUploadToggle();
+            this.initRowActions();
         },
 
         /**
@@ -43,6 +44,42 @@
             if (typeof s3BrowserConfig !== 'undefined' && s3BrowserConfig.i18n) {
                 this.i18n = s3BrowserConfig.i18n;
             }
+        },
+
+        /**
+         * Initialize WordPress-style row actions
+         */
+        initRowActions: function () {
+            var self = this;
+
+            // Handle row action clicks with event delegation
+            $(document).off('click.s3rowactions').on('click.s3rowactions', '.wp-list-table .row-actions a', function (e) {
+                e.preventDefault();
+                var $link = $(this);
+
+                // Handle different actions
+                if ($link.hasClass('s3-select-file')) {
+                    self.handleFileSelection($link);
+                } else if ($link.hasClass('s3-download-file')) {
+                    window.open($link.data('url'), '_blank');
+                } else if ($link.hasClass('s3-delete-file')) {
+                    self.deleteFile($link);
+                } else if ($link.hasClass('s3-delete-folder')) {
+                    self.deleteFolderConfirm($link);
+                } else if ($link.hasClass('s3-rename-file')) {
+                    self.openRenameModal($link);
+                }
+                // Note: 'open' folder links are handled by regular navigation
+            });
+
+            // Show/hide row actions on hover - WordPress standard behavior
+            $(document).off('mouseenter.s3rowactions mouseleave.s3rowactions')
+                .on('mouseenter.s3rowactions', '.wp-list-table tbody tr', function () {
+                    $(this).find('.row-actions').css('visibility', 'visible');
+                })
+                .on('mouseleave.s3rowactions', '.wp-list-table tbody tr', function () {
+                    $(this).find('.row-actions').css('visibility', 'hidden');
+                });
         },
 
         /**
@@ -87,7 +124,7 @@
         },
 
         /**
-         * Bind file action event handlers
+         * Bind file action event handlers (for buttons outside table)
          */
         bindFileActionEvents: function () {
             var self = this;
@@ -95,19 +132,12 @@
             $(document).off('click.s3files').on('click.s3files', '.s3-browser-container', function (e) {
                 var $target = $(e.target).closest('a');
 
-                if ($target.hasClass('s3-select-file')) {
-                    e.preventDefault();
-                    self.handleFileSelection($target);
-                } else if ($target.hasClass('s3-download-file')) {
-                    e.preventDefault();
-                    window.open($target.data('url'), '_blank');
-                } else if ($target.hasClass('s3-delete-file')) {
-                    e.preventDefault();
-                    self.deleteFile($target);
-                } else if ($target.hasClass('s3-rename-file')) {
-                    e.preventDefault();
-                    self.openRenameModal($target);
-                } else if ($target.hasClass('s3-favorite-bucket')) {
+                // Skip if this is a row action (handled separately)
+                if ($target.closest('.row-actions').length) {
+                    return;
+                }
+
+                if ($target.hasClass('s3-favorite-bucket')) {
                     e.preventDefault();
                     e.stopPropagation();
                     self.toggleFavoriteBucket($target);
@@ -374,6 +404,55 @@
         },
 
         /**
+         * Confirm folder deletion
+         */
+        deleteFolderConfirm: function ($button) {
+            var folderName = $button.data('folder-name');
+            var confirmMessage = this.i18n.confirmDeleteFolder
+                ? this.i18n.confirmDeleteFolder.replace('{foldername}', folderName)
+                : 'Are you sure you want to delete the folder "' + folderName + '" and all its contents?\n\nThis action cannot be undone.';
+
+            if (!window.confirm(confirmMessage)) return;
+
+            this.deleteFolder($button);
+        },
+
+        /**
+         * Delete a folder from S3
+         */
+        deleteFolder: function ($button) {
+            var self = this;
+            var folderName = $button.data('folder-name');
+            var bucket = $button.data('bucket');
+            var folderPath = $button.data('prefix');
+
+            this.setButtonLoading($button, true);
+
+            this.makeAjaxRequest('s3_delete_folder_', {
+                bucket: bucket,
+                folder_path: folderPath,
+                recursive: true  // Always delete recursively for user-initiated deletions
+            }, {
+                success: function (response) {
+                    self.showNotification(
+                        response.data.message || self.i18n.deleteFolderSuccess || 'Folder deleted successfully',
+                        'success'
+                    );
+                    $button.closest('tr').fadeOut(300, function () {
+                        $(this).remove();
+                        self.totalLoadedItems--;
+                        self.updateTotalCount(false);
+                        self.refreshSearch();
+                    });
+                },
+                error: function (message) {
+                    self.showNotification(message, 'error');
+                    self.setButtonLoading($button, false);
+                }
+            });
+        },
+
+        /**
          * Open folder creation modal
          */
         openCreateFolderModal: function (bucket, prefix) {
@@ -383,23 +462,23 @@
 
             var modal = this.createModal({
                 id: 's3FolderModal',
-                title: this.i18n.newFolder,
+                title: this.i18n.newFolder || 'New Folder',
                 fields: [{
                     id: 's3FolderNameInput',
                     type: 'text',
-                    label: this.i18n.folderName,
-                    placeholder: this.i18n.folderNamePlaceholder,
+                    label: this.i18n.folderName || 'Folder Name',
+                    placeholder: this.i18n.folderNamePlaceholder || 'Enter folder name',
                     maxlength: 63,
-                    description: this.i18n.folderNameHelp
+                    description: this.i18n.folderNameHelp || 'Enter a name for the new folder. Use only letters, numbers, dots, hyphens, and underscores.'
                 }],
                 buttons: [{
-                    text: this.i18n.cancel,
+                    text: this.i18n.cancel || 'Cancel',
                     action: 'cancel',
                     callback: function () {
                         self.hideModal('s3FolderModal');
                     }
                 }, {
-                    text: this.i18n.createFolder,
+                    text: this.i18n.createFolder || 'Create Folder',
                     action: 'submit',
                     classes: 'button-primary',
                     disabled: true,
@@ -452,13 +531,13 @@
             var i18n = this.i18n;
 
             if (folderName.length === 0) {
-                return {valid: false, message: i18n.folderNameRequired};
+                return {valid: false, message: i18n.folderNameRequired || 'Folder name is required'};
             }
             if (folderName.length > 63) {
-                return {valid: false, message: i18n.folderNameTooLong};
+                return {valid: false, message: i18n.folderNameTooLong || 'Folder name cannot exceed 63 characters'};
             }
             if (!/^[a-zA-Z0-9._-]+$/.test(folderName)) {
-                return {valid: false, message: i18n.folderNameInvalidChars};
+                return {valid: false, message: i18n.folderNameInvalidChars || 'Folder name can only contain letters, numbers, dots, hyphens, and underscores'};
             }
             if (['.', '-'].includes(folderName[0]) || ['.', '-'].includes(folderName[folderName.length - 1])) {
                 return {valid: false, message: 'Folder name cannot start or end with dots or hyphens'};
@@ -491,7 +570,7 @@
         createFolder: function (folderName) {
             var self = this;
 
-            this.setModalLoading('s3FolderModal', true, this.i18n.creatingFolder);
+            this.setModalLoading('s3FolderModal', true, this.i18n.creatingFolder || 'Creating folder...');
 
             this.makeAjaxRequest('s3_create_folder_', {
                 bucket: this.currentBucket,
@@ -499,10 +578,11 @@
                 folder_name: folderName
             }, {
                 success: function (response) {
-                    self.showNotification(
-                        response.data.message || self.i18n.createFolderSuccess.replace('{name}', folderName),
-                        'success'
-                    );
+                    var successMessage = response.data.message ||
+                        (self.i18n.createFolderSuccess && self.i18n.createFolderSuccess.replace('{name}', folderName)) ||
+                        'Folder "' + folderName + '" created successfully';
+
+                    self.showNotification(successMessage, 'success');
                     self.hideModal('s3FolderModal');
                     setTimeout(function () {
                         window.location.reload();
@@ -522,7 +602,7 @@
          * Bind rename event handlers
          */
         bindRenameEvents: function () {
-            // No additional binding needed - handled by generic modal system
+            // No additional binding needed - handled by row actions
         },
 
         /**
@@ -544,24 +624,24 @@
 
             var modal = this.createModal({
                 id: 's3RenameModal',
-                title: this.i18n.renameFile,
+                title: this.i18n.renameFile || 'Rename File',
                 fields: [{
                     id: 's3RenameInput',
                     type: 'text',
-                    label: this.i18n.filenameLabel,
-                    placeholder: this.i18n.newFilename,
+                    label: this.i18n.filenameLabel || 'Enter the new filename:',
+                    placeholder: this.i18n.newFilename || 'New Filename',
                     maxlength: 255,
-                    description: this.i18n.filenameHelp
+                    description: this.i18n.filenameHelp || 'Enter a new filename. The file extension will be preserved.'
                 }],
                 buttons: [{
-                    text: this.i18n.cancel,
+                    text: this.i18n.cancel || 'Cancel',
                     action: 'cancel',
                     callback: function () {
                         self.hideModal('s3RenameModal');
                         self.currentRename = null;
                     }
                 }, {
-                    text: this.i18n.renameFile,
+                    text: this.i18n.renameFile || 'Rename File',
                     action: 'submit',
                     classes: 'button-primary',
                     disabled: true,
@@ -624,31 +704,31 @@
             var i18n = this.i18n;
 
             if (nameWithoutExt.length === 0) {
-                return {valid: false, message: i18n.filenameRequired};
+                return {valid: false, message: i18n.filenameRequired || 'Filename is required'};
             }
 
             if (fullName.length > 255) {
-                return {valid: false, message: i18n.filenameTooLong};
+                return {valid: false, message: i18n.filenameTooLong || 'Filename is too long'};
             }
 
             // Check for invalid characters
             if (/[<>:"|?*\/\\]/.test(nameWithoutExt)) {
-                return {valid: false, message: i18n.filenameInvalid};
+                return {valid: false, message: i18n.filenameInvalid || 'Filename contains invalid characters'};
             }
 
             // Check if starts with problematic characters
             if (/^[.\-_]/.test(nameWithoutExt)) {
-                return {valid: false, message: i18n.filenameInvalid};
+                return {valid: false, message: i18n.filenameInvalid || 'Filename contains invalid characters'};
             }
 
             // Check for relative path indicators
             if (nameWithoutExt.includes('..')) {
-                return {valid: false, message: i18n.filenameInvalid};
+                return {valid: false, message: i18n.filenameInvalid || 'Filename contains invalid characters'};
             }
 
             // Check if the new name is the same as current
             if (this.currentRename && fullName === this.currentRename.filename) {
-                return {valid: false, message: i18n.filenameSame};
+                return {valid: false, message: i18n.filenameSame || 'The new filename is the same as the current filename'};
             }
 
             return {valid: true, message: ''};
@@ -681,7 +761,7 @@
 
             var self = this;
 
-            this.setModalLoading('s3RenameModal', true, this.i18n.renamingFile);
+            this.setModalLoading('s3RenameModal', true, this.i18n.renamingFile || 'Renaming file...');
 
             this.makeAjaxRequest('s3_rename_object_', {
                 bucket: this.currentRename.bucket,
@@ -705,7 +785,7 @@
 
             // Show success message immediately
             this.showNotification(
-                response.data.message || this.i18n.renameSuccess,
+                response.data.message || this.i18n.renameSuccess || 'File renamed successfully',
                 'success'
             );
 
@@ -718,7 +798,6 @@
                 window.location.reload();
             }, 1500);
         },
-
 
         /**
          * Get file extension from filename
@@ -814,7 +893,9 @@
         deleteFile: function ($button) {
             var self = this;
             var filename = $button.data('filename');
-            var confirmMessage = this.i18n.confirmDelete.replace('{filename}', filename);
+            var confirmMessage = this.i18n.confirmDelete
+                ? this.i18n.confirmDelete.replace('{filename}', filename)
+                : 'Are you sure you want to delete "' + filename + '"?\n\nThis action cannot be undone.';
 
             if (!window.confirm(confirmMessage)) return;
 
@@ -825,7 +906,10 @@
                 key: $button.data('key')
             }, {
                 success: function (response) {
-                    self.showNotification(response.data.message || self.i18n.deleteSuccess, 'success');
+                    self.showNotification(
+                        response.data.message || self.i18n.deleteSuccess || 'File successfully deleted',
+                        'success'
+                    );
                     $button.closest('tr').fadeOut(300, function () {
                         $(this).remove();
                         self.totalLoadedItems--;
@@ -882,7 +966,7 @@
 
                 $otherButton.contents().filter(function () {
                     return this.nodeType === 3;
-                }).replaceWith(self.i18n.setDefault);
+                }).replaceWith(self.i18n.setDefault || 'Set Default');
             });
 
             // Update clicked button if it was added as favorite
@@ -894,7 +978,7 @@
 
                 $button.contents().filter(function () {
                     return this.nodeType === 3;
-                }).replaceWith(self.i18n.defaultText);
+                }).replaceWith(self.i18n.defaultText || 'Default');
             }
         },
 
@@ -918,7 +1002,10 @@
                 prefix: $button.data('prefix') || ''
             }, {
                 success: function (response) {
-                    self.showNotification(response.data.message || self.i18n.cacheRefreshed, 'success');
+                    self.showNotification(
+                        response.data.message || self.i18n.cacheRefreshed || 'Cache refreshed successfully',
+                        'success'
+                    );
                     setTimeout(function () {
                         window.location.reload();
                     }, 1500);
@@ -982,8 +1069,8 @@
                 this.showNoSearchResults($tbody, $stats, searchTerm);
             } else {
                 var matchText = this.i18n.itemsMatch
-                    .replace('{visible}', visibleRows)
-                    .replace('{total}', totalRows);
+                    ? this.i18n.itemsMatch.replace('{visible}', visibleRows).replace('{total}', totalRows)
+                    : visibleRows + ' of ' + totalRows + ' items match';
                 $stats.text(matchText);
             }
         },
@@ -992,9 +1079,11 @@
          * Show no results message when search finds nothing
          */
         showNoSearchResults: function ($tbody, $stats, searchTerm) {
-            $stats.text(this.i18n.noMatchesFound);
+            $stats.text(this.i18n.noMatchesFound || 'No matches found');
             var colCount = $('.wp-list-table thead th').length;
-            var noResultsText = this.i18n.noFilesFound.replace('{term}', $('<div>').text(searchTerm).html());
+            var noResultsText = this.i18n.noFilesFound
+                ? this.i18n.noFilesFound.replace('{term}', $('<div>').text(searchTerm).html())
+                : 'No files or folders found matching "' + $('<div>').text(searchTerm).html() + '"';
 
             $tbody.append(
                 '<tr class="s3-no-results"><td colspan="' + colCount + '">' + noResultsText + '</td></tr>'
@@ -1055,7 +1144,7 @@
             self.isLoading = true;
 
             $button.prop('disabled', true)
-                .find('.s3-button-text').text(self.i18n.loadingText)
+                .find('.s3-button-text').text(self.i18n.loadingText || 'Loading...')
                 .end().find('.spinner').show();
 
             this.makeAjaxRequest('s3_load_more_', {
@@ -1106,7 +1195,7 @@
         updateLoadMoreButton: function ($button, token) {
             $button.data('token', token)
                 .prop('disabled', false)
-                .find('.s3-button-text').text(this.i18n.loadMoreItems)
+                .find('.s3-button-text').text(this.i18n.loadMoreItems || 'Load More Items')
                 .end().find('.spinner').hide();
         },
 
@@ -1115,7 +1204,7 @@
          */
         resetLoadMoreButton: function ($button) {
             $button.prop('disabled', false)
-                .find('.s3-button-text').text(this.i18n.loadMoreItems)
+                .find('.s3-button-text').text(this.i18n.loadMoreItems || 'Load More Items')
                 .end().find('.spinner').hide();
         },
 
@@ -1149,7 +1238,7 @@
                         $('.s3-upload-list').empty();
                     }, 300);
                 } else {
-                    self.showNotification(self.i18n.waitForUploads, 'info');
+                    self.showNotification(self.i18n.waitForUploads || 'Please wait for uploads to complete before closing', 'info');
                 }
             });
 
@@ -1238,9 +1327,11 @@
             var $countSpan = $('#s3-total-count');
             if (!$countSpan.length) return;
 
-            var itemText = this.totalLoadedItems === 1 ? this.i18n.singleItem : this.i18n.multipleItems;
+            var itemText = this.totalLoadedItems === 1
+                ? (this.i18n.singleItem || 'item')
+                : (this.i18n.multipleItems || 'items');
             var text = this.totalLoadedItems + ' ' + itemText;
-            if (hasMore) text += this.i18n.moreAvailable;
+            if (hasMore) text += (this.i18n.moreAvailable || ' (more available)');
 
             $countSpan.text(text);
         },

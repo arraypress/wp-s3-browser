@@ -1,8 +1,8 @@
 <?php
 /**
- * Browser AJAX Handlers Trait
+ * Browser AJAX Handlers Trait - Enhanced with Folder Delete
  *
- * Handles AJAX operations for the S3 Browser.
+ * Handles AJAX operations for the S3 Browser including folder deletion.
  *
  * @package     ArrayPress\S3\Traits
  * @copyright   Copyright (c) 2025, ArrayPress Limited
@@ -63,6 +63,58 @@ trait AjaxHandlers {
 			'message' => __( 'File successfully deleted', 'arraypress' ),
 			'bucket'  => $bucket,
 			'key'     => $object_key
+		] );
+	}
+
+	/**
+	 * Handle AJAX delete folder request
+	 */
+	public function handle_ajax_delete_folder(): void {
+		if ( ! check_ajax_referer( 's3_browser_nonce_' . $this->provider_id, 'nonce', false ) ) {
+			wp_send_json_error( [ 'message' => __( 'Security check failed', 'arraypress' ) ] );
+
+			return;
+		}
+
+		if ( ! current_user_can( $this->capability ) ) {
+			wp_send_json_error( [ 'message' => __( 'You do not have permission to perform this action', 'arraypress' ) ] );
+
+			return;
+		}
+
+		$bucket      = isset( $_POST['bucket'] ) ? sanitize_text_field( $_POST['bucket'] ) : '';
+		$folder_path = isset( $_POST['folder_path'] ) ? sanitize_text_field( $_POST['folder_path'] ) : '';
+		$recursive   = isset( $_POST['recursive'] ) ? filter_var( $_POST['recursive'], FILTER_VALIDATE_BOOLEAN ) : false;
+
+		if ( empty( $bucket ) || empty( $folder_path ) ) {
+			wp_send_json_error( [ 'message' => __( 'Bucket and folder path are required', 'arraypress' ) ] );
+
+			return;
+		}
+
+		// Use batch delete if available for better performance
+		$result = method_exists( $this->client, 'delete_folder_batch' )
+			? $this->client->delete_folder_batch( $bucket, $folder_path, $recursive, true )
+			: $this->client->delete_folder( $bucket, $folder_path, $recursive, true );
+
+		if ( ! $result->is_successful() ) {
+			wp_send_json_error( [ 'message' => $result->get_error_message() ] );
+
+			return;
+		}
+
+		$this->client->clear_all_cache();
+
+		$data    = $result->get_data();
+		$message = isset( $data['deleted_count'] ) && $data['deleted_count'] > 0
+			? sprintf( __( 'Folder deleted successfully (%d items removed)', 'arraypress' ), $data['deleted_count'] )
+			: __( 'Folder deleted successfully', 'arraypress' );
+
+		wp_send_json_success( [
+			'message'     => $message,
+			'bucket'      => $bucket,
+			'folder_path' => $folder_path,
+			'data'        => $data
 		] );
 	}
 
