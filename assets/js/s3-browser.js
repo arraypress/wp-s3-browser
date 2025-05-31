@@ -434,19 +434,14 @@
                 recursive: true  // Always delete recursively for user-initiated deletions
             }, {
                 success: function (response) {
-                    // After successful deletion, try additional cleanup
-                    self.performFolderCleanup(bucket, folderPath, function (cleanupSuccess) {
-                        self.showNotification(
-                            response.data.message || self.i18n.deleteFolderSuccess || 'Folder deleted successfully',
-                            'success'
-                        );
-                        $button.closest('tr').fadeOut(300, function () {
-                            $(this).remove();
-                            self.totalLoadedItems--;
-                            self.updateTotalCount(false);
-                            self.refreshSearch();
-                        });
-                    });
+                    self.showNotification(
+                        response.data.message || self.i18n.deleteFolderSuccess || 'Folder deleted successfully',
+                        'success'
+                    );
+                    // Reload the page after successful deletion to ensure cache is properly cleared
+                    setTimeout(function () {
+                        window.location.reload();
+                    }, 1500);
                 },
                 error: function (message) {
                     self.showNotification(message, 'error');
