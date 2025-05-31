@@ -130,17 +130,23 @@
             var self = this;
 
             $(document).off('click.s3files').on('click.s3files', '.s3-browser-container', function (e) {
-                var $target = $(e.target).closest('a');
+                var $target = $(e.target);
 
-                // Skip if this is a row action (handled separately)
-                if ($target.closest('.row-actions').length) {
-                    return;
-                }
-
-                if ($target.hasClass('s3-favorite-bucket')) {
+                // Check if clicked element is the star or has star classes
+                if ($target.hasClass('s3-favorite-bucket') || $target.hasClass('s3-favorite-star')) {
                     e.preventDefault();
                     e.stopPropagation();
                     self.toggleFavoriteBucket($target);
+                    return;
+                }
+
+                // Also check closest in case of nested elements
+                var $starTarget = $target.closest('.s3-favorite-bucket, .s3-favorite-star');
+                if ($starTarget.length) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    self.toggleFavoriteBucket($starTarget);
+                    return;
                 }
             });
         },
@@ -1004,6 +1010,8 @@
          */
         toggleFavoriteBucket: function ($button) {
             var self = this;
+
+            // Add processing class for visual feedback
             $button.addClass('s3-processing');
 
             this.makeAjaxRequest('s3_toggle_favorite_', {
@@ -1031,7 +1039,7 @@
             var self = this;
 
             // Reset all star buttons to empty/inactive
-            $('.s3-favorite-bucket').each(function () {
+            $('.s3-favorite-bucket, .s3-favorite-star').each(function () {
                 var $otherButton = $(this);
                 $otherButton.removeClass('dashicons-star-filled s3-favorite-active')
                     .addClass('dashicons-star-empty')
