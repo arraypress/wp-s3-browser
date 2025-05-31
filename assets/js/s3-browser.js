@@ -1030,30 +1030,21 @@
         updateFavoriteButtons: function (response, $button) {
             var self = this;
 
-            // Reset all buttons
+            // Reset all star buttons to empty/inactive
             $('.s3-favorite-bucket').each(function () {
                 var $otherButton = $(this);
-                var $otherIcon = $otherButton.find('.dashicons');
-
-                $otherIcon.removeClass('dashicons-star-filled s3-favorite-active')
-                    .addClass('dashicons-star-empty');
-                $otherButton.data('action', 'add');
-
-                $otherButton.contents().filter(function () {
-                    return this.nodeType === 3;
-                }).replaceWith(self.i18n.setDefault || 'Set Default');
+                $otherButton.removeClass('dashicons-star-filled s3-favorite-active')
+                    .addClass('dashicons-star-empty')
+                    .data('action', 'add')
+                    .attr('title', self.i18n.setDefault || 'Set as default bucket');
             });
 
             // Update clicked button if it was added as favorite
             if (response.data.status === 'added') {
-                var $icon = $button.find('.dashicons');
-                $icon.removeClass('dashicons-star-empty')
-                    .addClass('dashicons-star-filled s3-favorite-active');
-                $button.data('action', 'remove');
-
-                $button.contents().filter(function () {
-                    return this.nodeType === 3;
-                }).replaceWith(self.i18n.defaultText || 'Default');
+                $button.removeClass('dashicons-star-empty')
+                    .addClass('dashicons-star-filled s3-favorite-active')
+                    .data('action', 'remove')
+                    .attr('title', self.i18n.removeDefault || 'Remove as default bucket');
             }
         },
 

@@ -522,6 +522,40 @@
     cursor: not-allowed !important;
 }
 
+/* Star-based Favorites (WooCommerce style) */
+.s3-favorite-star {
+    cursor: pointer;
+    display: inline-block;
+    font-size: 20px;
+    color: #c3c4c7;
+    transition: color 0.2s ease;
+    text-decoration: none;
+    margin-right: 4px;
+}
+
+.s3-favorite-star:hover {
+    color: #ffb900;
+}
+
+.s3-favorite-star.s3-favorite-active {
+    color: #ffb900;
+}
+
+.s3-favorite-star.s3-processing {
+    opacity: 0.6;
+    animation: s3-spin 1s linear infinite;
+}
+
+/* Actions column alignment */
+.wp-list-table .column-actions {
+    text-align: center;
+    vertical-align: middle;
+}
+
+.wp-list-table .column-actions .s3-favorite-star {
+    vertical-align: middle;
+}
+
 /* Mobile Responsiveness */
 @media screen and (max-width: 782px) {
     .s3-browser-container {
