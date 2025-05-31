@@ -204,6 +204,7 @@
 /* Icon Colors */
 .dashicons-category, .s3-folder-icon {
     color: #dba617;
+    margin-right: 4px;
 }
 
 .dashicons-format-image {

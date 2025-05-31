@@ -123,7 +123,7 @@ class Buckets extends WP_List_Table {
 	}
 
 	/**
-	 * Column actions - Fixed to use JS navigation
+	 * Column actions - Updated to use star-only favorites like WooCommerce
 	 */
 	public function column_actions( $item ) {
 		$bucket    = $item['name'];
@@ -133,35 +133,25 @@ class Buckets extends WP_List_Table {
 		// Get current user ID
 		$user_id = get_current_user_id();
 
-		// Create a browse button instance
-		$output = sprintf(
-			'<a href="#" class="button s3-icon-button browse-bucket-button" data-bucket="%s"><span class="dashicons dashicons-visibility"></span>%s</a>',
-			esc_attr( $bucket ),
-			esc_html__( 'Browse', 'arraypress' )
-		);
-
 		// Check if this bucket is a favorite using straightforward meta-check
 		$meta_key        = "s3_favorite_{$this->provider_id}_{$post_type}";
 		$favorite_bucket = get_user_meta( $user_id, $meta_key, true );
 		$is_favorite     = ( $favorite_bucket === $bucket );
 
-		// Create a favorite button with the appropriate star icon and text
+		// Create a favorite star with the appropriate icon and tooltip
 		$favorite_class  = $is_favorite ? 'dashicons-star-filled s3-favorite-active' : 'dashicons-star-empty';
-		$favorite_text   = $is_favorite ? __( 'Default', 'arraypress' ) : __( 'Set Default', 'arraypress' );
+		$favorite_title  = $is_favorite ? __( 'Remove as default bucket', 'arraypress' ) : __( 'Set as default bucket', 'arraypress' );
 		$favorite_action = $is_favorite ? 'remove' : 'add';
 
-		$output .= sprintf(
-			' <a href="#" class="button s3-icon-button s3-favorite-bucket" data-bucket="%s" data-provider="%s" data-action="%s" data-post-type="%s">' .
-			'<span class="dashicons %s"></span>%s</a>',
+		return sprintf(
+			'<span class="s3-favorite-star dashicons %s s3-favorite-bucket" data-bucket="%s" data-provider="%s" data-action="%s" data-post-type="%s" title="%s"></span>',
+			esc_attr( $favorite_class ),
 			esc_attr( $bucket ),
 			esc_attr( $this->provider_id ),
 			esc_attr( $favorite_action ),
 			esc_attr( $post_type ),
-			esc_attr( $favorite_class ),
-			esc_html( $favorite_text )
+			esc_attr( $favorite_title )
 		);
-
-		return $output;
 	}
 
 	/**
