@@ -46,10 +46,10 @@ trait Batch {
 			'object_keys'  => $object_keys
 		] );
 
-		// R2 compatibility: Reduce batch size limit
+		// S3 compatibility: Reduce batch size limit
 		if ( count( $object_keys ) > 100 ) {
 			return new ErrorResponse(
-				__( 'Maximum 100 objects can be deleted per batch request for R2 compatibility', 'arraypress' ),
+				__( 'Maximum 100 objects can be deleted per batch request for S3 compatibility', 'arraypress' ),
 				'too_many_objects',
 				400
 			);
@@ -85,7 +85,7 @@ trait Batch {
 			'method'     => 'POST',
 			'headers'    => $headers,
 			'body'       => $delete_xml,
-			'timeout'    => 60,  // Reduced timeout for R2
+			'timeout'    => 60,
 			'blocking'   => true,
 			'sslverify'  => true,
 			'user-agent' => 'ArrayPress-S3-Client/1.0'

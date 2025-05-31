@@ -1,5 +1,5 @@
 /**
- * S3 Browser Core Functionality - Enhanced with Folder Cleanup
+ * S3 Browser Core Functionality - Enhanced with Progress Indicators
  * Handles browsing, searching, file operations, folder management, and WordPress integrations
  */
 (function ($) {
@@ -69,7 +69,7 @@
                 } else if ($link.hasClass('s3-rename-file')) {
                     self.openRenameModal($link);
                 }
-                // Note: 'open' folder links are handled by regular navigation
+                // Removed 'open' folder action - let the main folder link handle it
             });
 
             // Show/hide row actions on hover - WordPress standard behavior
@@ -190,6 +190,70 @@
             $(document).off('click.s3refresh').on('click.s3refresh', '.s3-refresh-button', function (e) {
                 e.preventDefault();
                 self.refreshCache($(this));
+            });
+        },
+
+        /* ========================================
+         * PROGRESS INDICATOR SYSTEM
+         * ======================================== */
+
+        /**
+         * Show progress overlay for long operations
+         */
+        showProgressOverlay: function (message, canCancel) {
+            var self = this;
+
+            // Remove any existing overlay
+            $('.s3-progress-overlay').remove();
+
+            var overlay = $([
+                '<div class="s3-progress-overlay">',
+                '  <div class="s3-progress-modal">',
+                '    <div class="s3-progress-content">',
+                '      <div class="s3-progress-spinner">',
+                '        <div class="spinner is-active"></div>',
+                '      </div>',
+                '      <div class="s3-progress-message">' + message + '</div>',
+                '      <div class="s3-progress-details"></div>',
+                canCancel ? '      <button type="button" class="button s3-progress-cancel">Cancel</button>' : '',
+                '    </div>',
+                '  </div>',
+                '</div>'
+            ].join(''));
+
+            $('body').append(overlay);
+            overlay.fadeIn(200);
+
+            // Handle cancel if enabled
+            if (canCancel) {
+                overlay.find('.s3-progress-cancel').on('click', function () {
+                    self.hideProgressOverlay();
+                    // You could add actual cancellation logic here if needed
+                });
+            }
+
+            return overlay;
+        },
+
+        /**
+         * Update progress overlay message
+         */
+        updateProgressOverlay: function (message, details) {
+            var $overlay = $('.s3-progress-overlay');
+            if ($overlay.length) {
+                $overlay.find('.s3-progress-message').text(message);
+                if (details) {
+                    $overlay.find('.s3-progress-details').text(details);
+                }
+            }
+        },
+
+        /**
+         * Hide progress overlay
+         */
+        hideProgressOverlay: function () {
+            $('.s3-progress-overlay').fadeOut(200, function () {
+                $(this).remove();
             });
         },
 
@@ -404,12 +468,14 @@
         },
 
         /**
-         * Confirm folder deletion
+         * Confirm folder deletion with proper message formatting
          */
         deleteFolderConfirm: function ($button) {
             var folderName = $button.data('folder-name');
+
+            // Fix the \n\n issue by using proper line breaks
             var confirmMessage = this.i18n.confirmDeleteFolder
-                ? this.i18n.confirmDeleteFolder.replace('{foldername}', folderName)
+                ? this.i18n.confirmDeleteFolder.replace('{foldername}', folderName).replace(/\\n/g, '\n')
                 : 'Are you sure you want to delete the folder "' + folderName + '" and all its contents?\n\nThis action cannot be undone.';
 
             if (!window.confirm(confirmMessage)) return;
@@ -418,7 +484,7 @@
         },
 
         /**
-         * Delete a folder from S3 with enhanced cleanup
+         * Delete a folder from S3 with progress indicator
          */
         deleteFolder: function ($button) {
             var self = this;
@@ -426,52 +492,37 @@
             var bucket = $button.data('bucket');
             var folderPath = $button.data('prefix');
 
-            this.setButtonLoading($button, true);
+            // Show progress overlay for bulk operations
+            var progressOverlay = this.showProgressOverlay(
+                'Deleting folder "' + folderName + '"...',
+                false // Don't allow cancel for now
+            );
 
             this.makeAjaxRequest('s3_delete_folder_', {
                 bucket: bucket,
                 folder_path: folderPath,
-                recursive: true  // Always delete recursively for user-initiated deletions
+                recursive: true
             }, {
                 success: function (response) {
-                    self.showNotification(
-                        response.data.message || self.i18n.deleteFolderSuccess || 'Folder deleted successfully',
-                        'success'
-                    );
-                    // Reload the page after successful deletion to ensure cache is properly cleared
+                    self.updateProgressOverlay('Folder deleted successfully!');
+
                     setTimeout(function () {
-                        window.location.reload();
-                    }, 1500);
+                        self.hideProgressOverlay();
+                        self.showNotification(
+                            response.data.message || self.i18n.deleteFolderSuccess || 'Folder deleted successfully',
+                            'success'
+                        );
+
+                        // Reload the page after successful deletion
+                        setTimeout(function () {
+                            window.location.reload();
+                        }, 1500);
+                    }, 500);
                 },
                 error: function (message) {
+                    self.hideProgressOverlay();
                     self.showNotification(message, 'error');
                     self.setButtonLoading($button, false);
-                }
-            });
-        },
-
-        /**
-         * Perform additional folder cleanup after deletion
-         */
-        performFolderCleanup: function (bucket, folderPath, callback) {
-            var self = this;
-
-            // Try cleanup via AJAX
-            this.makeAjaxRequest('s3_cleanup_folder_', {
-                bucket: bucket,
-                folder_path: folderPath
-            }, {
-                success: function (cleanupResponse) {
-                    self.debug('Folder cleanup successful', cleanupResponse);
-                    if (callback) callback(true);
-                },
-                error: function (cleanupError) {
-                    self.debug('Folder cleanup failed, but main deletion succeeded', cleanupError);
-                    if (callback) callback(false);
-                },
-                complete: function () {
-                    // Always call callback even if cleanup fails
-                    // The main deletion was successful
                 }
             });
         },
@@ -561,10 +612,7 @@
                 return {valid: false, message: i18n.folderNameTooLong || 'Folder name cannot exceed 63 characters'};
             }
             if (!/^[a-zA-Z0-9._-]+$/.test(folderName)) {
-                return {
-                    valid: false,
-                    message: i18n.folderNameInvalidChars || 'Folder name can only contain letters, numbers, dots, hyphens, and underscores'
-                };
+                return {valid: false, message: i18n.folderNameInvalidChars || 'Folder name can only contain letters, numbers, dots, hyphens, and underscores'};
             }
             if (['.', '-'].includes(folderName[0]) || ['.', '-'].includes(folderName[folderName.length - 1])) {
                 return {valid: false, message: 'Folder name cannot start or end with dots or hyphens'};
@@ -755,10 +803,7 @@
 
             // Check if the new name is the same as current
             if (this.currentRename && fullName === this.currentRename.filename) {
-                return {
-                    valid: false,
-                    message: i18n.filenameSame || 'The new filename is the same as the current filename'
-                };
+                return {valid: false, message: i18n.filenameSame || 'The new filename is the same as the current filename'};
             }
 
             return {valid: true, message: ''};
@@ -924,7 +969,7 @@
             var self = this;
             var filename = $button.data('filename');
             var confirmMessage = this.i18n.confirmDelete
-                ? this.i18n.confirmDelete.replace('{filename}', filename)
+                ? this.i18n.confirmDelete.replace('{filename}', filename).replace(/\\n/g, '\n')
                 : 'Are you sure you want to delete "' + filename + '"?\n\nThis action cannot be undone.';
 
             if (!window.confirm(confirmMessage)) return;

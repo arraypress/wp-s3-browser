@@ -365,12 +365,6 @@ class Objects extends WP_List_Table {
 				'prefix'     => $item['prefix']
 			], remove_query_arg( [ 'continuation_token' ] ) );
 
-			$actions['open'] = sprintf(
-				'<a href="%s">%s</a>',
-				esc_url( $url ),
-				esc_html__( 'Open', 'arraypress' )
-			);
-
 			$actions['delete'] = sprintf(
 				'<a href="#" class="s3-delete-folder" data-folder-name="%s" data-bucket="%s" data-prefix="%s">%s</a>',
 				esc_attr( $item['name'] ),
