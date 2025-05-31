@@ -1,8 +1,8 @@
 <?php
 /**
- * Browser AJAX Handlers Trait - Enhanced with Folder Delete
+ * Browser AJAX Handlers Trait - Fixed Folder Delete (Original Approach)
  *
- * Handles AJAX operations for the S3 Browser including folder deletion.
+ * Handles AJAX operations for the S3 Browser including proper folder deletion.
  *
  * @package     ArrayPress\S3\Traits
  * @copyright   Copyright (c) 2025, ArrayPress Limited
@@ -67,7 +67,7 @@ trait AjaxHandlers {
 	}
 
 	/**
-	 * Handle AJAX delete folder request
+	 * Handle AJAX delete folder request - Fixed to properly handle empty folders
 	 */
 	public function handle_ajax_delete_folder(): void {
 		if ( ! check_ajax_referer( 's3_browser_nonce_' . $this->provider_id, 'nonce', false ) ) {
@@ -84,7 +84,6 @@ trait AjaxHandlers {
 
 		$bucket      = isset( $_POST['bucket'] ) ? sanitize_text_field( $_POST['bucket'] ) : '';
 		$folder_path = isset( $_POST['folder_path'] ) ? sanitize_text_field( $_POST['folder_path'] ) : '';
-		$recursive   = isset( $_POST['recursive'] ) ? filter_var( $_POST['recursive'], FILTER_VALIDATE_BOOLEAN ) : false;
 
 		if ( empty( $bucket ) || empty( $folder_path ) ) {
 			wp_send_json_error( [ 'message' => __( 'Bucket and folder path are required', 'arraypress' ) ] );
@@ -92,10 +91,14 @@ trait AjaxHandlers {
 			return;
 		}
 
-		// Use batch delete if available for better performance
+		// Ensure folder path ends with / for proper S3 folder handling
+		$normalized_folder_path = rtrim( $folder_path, '/' ) . '/';
+
+		// Always use recursive deletion and force=true for user-initiated folder deletion
+		// This ensures both the placeholder object and any contents are removed
 		$result = method_exists( $this->client, 'delete_folder_batch' )
-			? $this->client->delete_folder_batch( $bucket, $folder_path, $recursive, true )
-			: $this->client->delete_folder( $bucket, $folder_path, $recursive, true );
+			? $this->client->delete_folder_batch( $bucket, $normalized_folder_path, true, true )
+			: $this->client->delete_folder( $bucket, $normalized_folder_path, true, true );
 
 		if ( ! $result->is_successful() ) {
 			wp_send_json_error( [ 'message' => $result->get_error_message() ] );
@@ -113,7 +116,7 @@ trait AjaxHandlers {
 		wp_send_json_success( [
 			'message'     => $message,
 			'bucket'      => $bucket,
-			'folder_path' => $folder_path,
+			'folder_path' => $normalized_folder_path,
 			'data'        => $data
 		] );
 	}
