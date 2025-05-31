@@ -22,6 +22,7 @@ use ArrayPress\S3\Traits\Client\Folders;
 use ArrayPress\S3\Traits\Client\Objects;
 use ArrayPress\S3\Traits\Client\Permissions;
 use ArrayPress\S3\Traits\Client\PresignedUrls;
+use ArrayPress\S3\Traits\Client\Batch;
 use ArrayPress\S3\Traits\Common\Debug;
 use ArrayPress\S3\Traits\Common\Context;
 
@@ -35,6 +36,7 @@ class Client {
 	use Objects;
 	use Permissions;
 	use PresignedUrls;
+	use Batch;
 	use Debug;
 	use Context;
 

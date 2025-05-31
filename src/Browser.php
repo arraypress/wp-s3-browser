@@ -45,7 +45,7 @@ class Browser {
 	/**
 	 * Handle for the global S3 browser configuration script
 	 *
-	 * This script contains shared configuration data that's used across
+	 * This script contains shared configuration data used across
 	 * all S3 browser instances and components.
 	 *
 	 * @var string
@@ -151,7 +151,7 @@ class Browser {
 			true, // Use cache
 			HOUR_IN_SECONDS,
 			false, // debug
-			$this->get_context() // Pass context to client
+			$this->get_context()
 		);
 
 		// Initialize WordPress hooks

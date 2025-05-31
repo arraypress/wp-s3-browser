@@ -25,6 +25,7 @@ use ArrayPress\S3\Traits\Signer\Formatter;
 use ArrayPress\S3\Traits\Signer\Objects;
 use ArrayPress\S3\Traits\Signer\PresignedUrls;
 use ArrayPress\S3\Traits\Signer\ErrorHandling;
+use ArrayPress\S3\Traits\Signer\Batch;
 use ArrayPress\S3\Traits\Common\Debug;
 
 /**
@@ -39,6 +40,7 @@ class Signer implements SignerInterface {
 	use PresignedUrls;
 	use Extraction;
 	use Formatter;
+	use Batch;
 	use Debug;
 
 	/**
@@ -61,13 +63,6 @@ class Signer implements SignerInterface {
 	 * @var string
 	 */
 	private string $secret_key;
-
-	/**
-	 * Debug callback
-	 *
-	 * @var callable|null
-	 */
-	private $debug_callback = null;
 
 	/**
 	 * Constructor
