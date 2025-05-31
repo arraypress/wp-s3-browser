@@ -1,5 +1,5 @@
 /**
- * S3 Browser Core Functionality - Enhanced with Row Actions and Folder Delete
+ * S3 Browser Core Functionality - Enhanced with Folder Cleanup
  * Handles browsing, searching, file operations, folder management, and WordPress integrations
  */
 (function ($) {
@@ -418,7 +418,7 @@
         },
 
         /**
-         * Delete a folder from S3
+         * Delete a folder from S3 with enhanced cleanup
          */
         deleteFolder: function ($button) {
             var self = this;
@@ -434,20 +434,49 @@
                 recursive: true  // Always delete recursively for user-initiated deletions
             }, {
                 success: function (response) {
-                    self.showNotification(
-                        response.data.message || self.i18n.deleteFolderSuccess || 'Folder deleted successfully',
-                        'success'
-                    );
-                    $button.closest('tr').fadeOut(300, function () {
-                        $(this).remove();
-                        self.totalLoadedItems--;
-                        self.updateTotalCount(false);
-                        self.refreshSearch();
+                    // After successful deletion, try additional cleanup
+                    self.performFolderCleanup(bucket, folderPath, function (cleanupSuccess) {
+                        self.showNotification(
+                            response.data.message || self.i18n.deleteFolderSuccess || 'Folder deleted successfully',
+                            'success'
+                        );
+                        $button.closest('tr').fadeOut(300, function () {
+                            $(this).remove();
+                            self.totalLoadedItems--;
+                            self.updateTotalCount(false);
+                            self.refreshSearch();
+                        });
                     });
                 },
                 error: function (message) {
                     self.showNotification(message, 'error');
                     self.setButtonLoading($button, false);
+                }
+            });
+        },
+
+        /**
+         * Perform additional folder cleanup after deletion
+         */
+        performFolderCleanup: function (bucket, folderPath, callback) {
+            var self = this;
+
+            // Try cleanup via AJAX
+            this.makeAjaxRequest('s3_cleanup_folder_', {
+                bucket: bucket,
+                folder_path: folderPath
+            }, {
+                success: function (cleanupResponse) {
+                    self.debug('Folder cleanup successful', cleanupResponse);
+                    if (callback) callback(true);
+                },
+                error: function (cleanupError) {
+                    self.debug('Folder cleanup failed, but main deletion succeeded', cleanupError);
+                    if (callback) callback(false);
+                },
+                complete: function () {
+                    // Always call callback even if cleanup fails
+                    // The main deletion was successful
                 }
             });
         },
@@ -537,7 +566,10 @@
                 return {valid: false, message: i18n.folderNameTooLong || 'Folder name cannot exceed 63 characters'};
             }
             if (!/^[a-zA-Z0-9._-]+$/.test(folderName)) {
-                return {valid: false, message: i18n.folderNameInvalidChars || 'Folder name can only contain letters, numbers, dots, hyphens, and underscores'};
+                return {
+                    valid: false,
+                    message: i18n.folderNameInvalidChars || 'Folder name can only contain letters, numbers, dots, hyphens, and underscores'
+                };
             }
             if (['.', '-'].includes(folderName[0]) || ['.', '-'].includes(folderName[folderName.length - 1])) {
                 return {valid: false, message: 'Folder name cannot start or end with dots or hyphens'};
@@ -728,7 +760,10 @@
 
             // Check if the new name is the same as current
             if (this.currentRename && fullName === this.currentRename.filename) {
-                return {valid: false, message: i18n.filenameSame || 'The new filename is the same as the current filename'};
+                return {
+                    valid: false,
+                    message: i18n.filenameSame || 'The new filename is the same as the current filename'
+                };
             }
 
             return {valid: true, message: ''};
@@ -1372,6 +1407,15 @@
                     $(this).remove();
                 });
             }, 5000);
+        },
+
+        /**
+         * Debug helper function
+         */
+        debug: function (message, data) {
+            if (console && console.log) {
+                console.log('[S3Browser] ' + message, data || '');
+            }
         }
     };
 

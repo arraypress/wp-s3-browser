@@ -149,7 +149,7 @@ trait Batch {
 	}
 
 	/**
-	 * Enhanced delete folder using batch delete
+	 * Enhanced delete folder using batch delete with proper folder cleanup
 	 *
 	 * @param string $bucket      Bucket name
 	 * @param string $folder_path Folder path
@@ -216,6 +216,20 @@ trait Batch {
 			return $object->get_key();
 		}, $objects );
 
+		// CRITICAL: Always include the folder placeholder object itself
+		// This ensures the folder disappears after all contents are deleted
+		if ( ! in_array( $normalized_path, $object_keys, true ) ) {
+			// Check if folder placeholder exists as a separate call
+			$folder_exists = $this->object_exists( $bucket, $normalized_path, false );
+			if ( $folder_exists->is_successful() ) {
+				$exists_data = $folder_exists->get_data();
+				if ( $exists_data['exists'] ) {
+					$object_keys[] = $normalized_path;
+					$this->debug( 'Added folder placeholder to deletion list', $normalized_path );
+				}
+			}
+		}
+
 		if ( empty( $object_keys ) ) {
 			return new SuccessResponse(
 				sprintf( __( 'Folder "%s" is already empty or does not exist', 'arraypress' ), $normalized_path ),
@@ -224,12 +238,17 @@ trait Batch {
 			);
 		}
 
+		$this->debug( 'Delete Folder Batch - Final object list', [
+			'folder_path' => $normalized_path,
+			'object_keys' => $object_keys,
+			'total_count' => count( $object_keys )
+		] );
+
 		// Use batch delete if enabled and we have multiple objects
 		if ( $use_batch && count( $object_keys ) > 1 ) {
 			$delete_result = $this->batch_delete_objects( $bucket, $object_keys );
 
-			$data = $delete_result->get_data();
-
+			$data          = $delete_result->get_data();
 			$response_data = array_merge( $data, [ 'folder_path' => $normalized_path ] );
 
 			$message = sprintf(
@@ -243,6 +262,9 @@ trait Batch {
 				? new SuccessResponse( $message, 200, $response_data )
 				: new ErrorResponse( $message, 'folder_batch_delete_partial_failure', 207, $response_data );
 
+			// FINAL CLEANUP: Ensure folder placeholder is removed
+			$this->cleanup_folder_placeholder( $bucket, $normalized_path );
+
 			// Apply contextual filter to final response
 			return $this->apply_contextual_filters(
 				'arraypress_s3_delete_folder_batch_response',
@@ -255,6 +277,80 @@ trait Batch {
 
 		// Fallback to individual deletes for single objects or if batch is disabled
 		return $this->delete_folder( $bucket, $folder_path, $recursive );
+	}
+
+	/**
+	 * Clean up folder placeholder after deletion
+	 *
+	 * @param string $bucket          Bucket name
+	 * @param string $normalized_path Normalized folder path
+	 *
+	 * @return void
+	 */
+	private function cleanup_folder_placeholder( string $bucket, string $normalized_path ): void {
+		// Try to delete the folder placeholder object
+		$placeholder_result = $this->delete_object( $bucket, $normalized_path );
+		if ( $placeholder_result->is_successful() ) {
+			$this->debug( 'Successfully cleaned up folder placeholder', $normalized_path );
+		} else {
+			$this->debug( 'Failed to clean up folder placeholder', [
+				'folder' => $normalized_path,
+				'error'  => $placeholder_result->get_error_message()
+			] );
+		}
+
+		// Double-check by listing objects again
+		$check_result = $this->get_object_models( $bucket, 10, $normalized_path, '' );
+		if ( $check_result->is_successful() ) {
+			$check_data = $check_result->get_data();
+			if ( ! empty( $check_data['objects'] ) ) {
+				$this->debug( 'Found remaining objects after cleanup', [
+					'folder'            => $normalized_path,
+					'remaining_objects' => array_map( function ( $obj ) {
+						return $obj->get_key();
+					}, $check_data['objects'] )
+				] );
+			}
+		}
+	}
+
+	/**
+	 * Ensure a folder is completely removed including any placeholder objects
+	 *
+	 * @param string $bucket      Bucket name
+	 * @param string $folder_path Folder path
+	 *
+	 * @return ResponseInterface Response
+	 */
+	public function cleanup_folder_after_deletion( string $bucket, string $folder_path ): ResponseInterface {
+		$normalized_path = Directory::normalize( $folder_path );
+
+		// Try to delete the folder placeholder object
+		$placeholder_result = $this->delete_object( $bucket, $normalized_path );
+
+		// Check if the folder still appears in listings
+		$check_result = $this->folder_exists( $bucket, $folder_path );
+		if ( $check_result->is_successful() ) {
+			$data = $check_result->get_data();
+			if ( $data['exists'] ) {
+				// Folder still exists, try to list and delete any remaining objects
+				$remaining_objects = $this->get_object_models( $bucket, 100, $normalized_path, '' );
+				if ( $remaining_objects->is_successful() ) {
+					$remaining_data = $remaining_objects->get_data();
+					if ( ! empty( $remaining_data['objects'] ) ) {
+						foreach ( $remaining_data['objects'] as $object ) {
+							$this->delete_object( $bucket, $object->get_key() );
+						}
+					}
+				}
+			}
+		}
+
+		return new SuccessResponse(
+			sprintf( __( 'Folder cleanup completed for "%s"', 'arraypress' ), $normalized_path ),
+			200,
+			[ 'folder_path' => $normalized_path ]
+		);
 	}
 
 }

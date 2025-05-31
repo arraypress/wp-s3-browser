@@ -50,6 +50,13 @@ trait Batch {
 			);
 		}
 
+		// Debug logging
+		$this->debug( 'Batch Delete Request', [
+			'bucket'       => $bucket,
+			'object_count' => count( $object_keys ),
+			'object_keys'  => $object_keys
+		] );
+
 		// S3 batch delete supports max 1000 objects per request
 		if ( count( $object_keys ) > 1000 ) {
 			return new ErrorResponse(
@@ -61,6 +68,8 @@ trait Batch {
 
 		// Build the XML for batch delete using utility
 		$delete_xml = $this->build_batch_delete_xml( $object_keys );
+
+		$this->debug( 'Batch Delete XML', $delete_xml );
 
 		// Generate authorization headers for POST request
 		$headers = $this->generate_auth_headers(
@@ -81,41 +90,53 @@ trait Batch {
 		// Debug the request
 		$this->debug( "Batch Delete Request URL", $url );
 		$this->debug( "Batch Delete Request Headers", $headers );
-		$this->debug( "Batch Delete XML Body", $delete_xml );
 
-		// Make the request
+		// Make the request with longer timeout for batch operations
 		$response = wp_remote_request( $url, [
 			'method'  => 'POST',
 			'headers' => $headers,
 			'body'    => $delete_xml,
-			'timeout' => 60
+			'timeout' => 120  // Increase timeout for batch operations
 		] );
 
 		// Handle WP_Error responses
 		if ( is_wp_error( $response ) ) {
+			$this->debug( 'Batch Delete WP_Error', $response->get_error_message() );
+
 			return ErrorResponse::from_wp_error( $response );
 		}
 
-		$status_code = wp_remote_retrieve_response_code( $response );
-		$body        = wp_remote_retrieve_body( $response );
+		$status_code      = wp_remote_retrieve_response_code( $response );
+		$body             = wp_remote_retrieve_body( $response );
+		$response_headers = wp_remote_retrieve_headers( $response );
 
 		// Debug the response
 		$this->debug( "Batch Delete Response Status", $status_code );
+		$this->debug( "Batch Delete Response Headers", $response_headers );
 		$this->debug( "Batch Delete Response Body", $body );
 
 		// Check for error status codes
 		if ( $status_code < 200 || $status_code >= 300 ) {
+			$this->debug( 'Batch Delete Error Response', [
+				'status' => $status_code,
+				'body'   => $body
+			] );
+
 			return $this->handle_error_response( $status_code, $body, 'Failed to batch delete objects' );
 		}
 
 		// Parse XML response using existing parser
 		$xml = $this->parse_xml_response( $body );
 		if ( $xml instanceof ErrorResponse ) {
+			$this->debug( 'Batch Delete XML Parse Error', $xml->get_error_message() );
+
 			return $xml;
 		}
 
 		// Parse the batch delete results using XML utilities
 		$results = $this->parse_batch_delete_response( $xml );
+
+		$this->debug( 'Batch Delete Results', $results );
 
 		return new SuccessResponse(
 			sprintf(
@@ -135,7 +156,7 @@ trait Batch {
 	}
 
 	/**
-	 * Build XML for batch delete request
+	 * Build XML for batch delete request with enhanced compatibility
 	 * Uses proper XML escaping and structure
 	 *
 	 * @param array $object_keys Array of object keys
@@ -148,9 +169,11 @@ trait Batch {
 		$xml .= '  <Quiet>false</Quiet>' . "\n";
 
 		foreach ( $object_keys as $key ) {
-			$xml .= '  <Object>' . "\n";
-			$xml .= '    <Key>' . htmlspecialchars( $key, ENT_XML1, 'UTF-8' ) . '</Key>' . "\n";
-			$xml .= '  </Object>' . "\n";
+			// Ensure the key is properly handled but not double-encoded
+			$clean_key = rawurldecode( $key ); // Decode first to avoid double encoding
+			$xml       .= '  <Object>' . "\n";
+			$xml       .= '    <Key>' . htmlspecialchars( $clean_key, ENT_XML1 | ENT_COMPAT, 'UTF-8' ) . '</Key>' . "\n";
+			$xml       .= '  </Object>' . "\n";
 		}
 
 		$xml .= '</Delete>';

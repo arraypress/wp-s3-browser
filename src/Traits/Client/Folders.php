@@ -587,6 +587,21 @@ trait Folders {
 			}
 		}
 
+		// CRITICAL: Always try to delete the folder placeholder as a final step
+		// This ensures the folder disappears from listings
+		if ( $recursive || $force ) {
+			$final_cleanup_result = $this->delete_object( $bucket, $normalized_path );
+			if ( $final_cleanup_result->is_successful() ) {
+				$this->debug( 'Successfully deleted folder placeholder in final cleanup', $normalized_path );
+			} else {
+				$this->debug( 'Failed to delete folder placeholder in final cleanup', [
+					'folder' => $normalized_path,
+					'error'  => $final_cleanup_result->get_error_message()
+				] );
+				// Don't count this as a failure if other deletions succeeded
+			}
+		}
+
 		// Prepare result data
 		$result_data = [
 			'bucket'        => $bucket,
