@@ -20,7 +20,8 @@ use ArrayPress\S3\Responses\ObjectsResponse;
 use ArrayPress\S3\Responses\ObjectResponse;
 use ArrayPress\S3\Responses\ErrorResponse;
 use ArrayPress\S3\Responses\SuccessResponse;
-use ArrayPress\S3\Utils\Request;
+use ArrayPress\S3\Utils\Encode;
+use ArrayPress\S3\Utils\File;
 
 /**
  * Trait Objects
@@ -74,15 +75,22 @@ trait Objects {
 			$query_params
 		);
 
-		// Build the URL using provider utility
-		$url = $this->provider->build_service_url( $bucket, '', $query_params );
+		// Build the URL
+		$url = $this->provider->format_url( $bucket );
+
+		if ( ! empty( $query_params ) ) {
+			$url .= '?' . http_build_query( $query_params );
+		}
 
 		// Debug the request
 		$this->debug( "List Objects Request URL", $url );
 		$this->debug( "List Objects Request Headers", $headers );
 
-		// Make the request using Request convenience method
-		$response = Request::get( $url, $headers );
+		// Make the request
+		$response = wp_remote_get( $url, [
+			'headers' => $headers,
+			'timeout' => 30
+		] );
 
 		// Handle errors
 		if ( is_wp_error( $response ) ) {
@@ -195,15 +203,18 @@ trait Objects {
 			$object_key
 		);
 
-		// Build the URL using provider utility
-		$url = $this->provider->build_request_url( $bucket, $object_key );
+		// Build the URL
+		$url = $this->provider->format_url( $bucket, $object_key );
 
 		// Debug the request
 		$this->debug( "Get Object Request URL", $url );
 		$this->debug( "Get Object Request Headers", $headers );
 
-		// Make the request using Request convenience method
-		$response = Request::get( $url, $headers );
+		// Make the request
+		$response = wp_remote_get( $url, [
+			'headers' => $headers,
+			'timeout' => 30
+		] );
 
 		// Handle errors
 		if ( is_wp_error( $response ) ) {
@@ -265,15 +276,18 @@ trait Objects {
 			$object_key
 		);
 
-		// Build the URL using provider utility
-		$url = $this->provider->build_request_url( $bucket, $object_key );
+		// Build the URL
+		$url = $this->provider->format_url( $bucket, $object_key );
 
 		// Debug the request
 		$this->debug( "Head Object Request URL", $url );
 		$this->debug( "Head Object Request Headers", $headers );
 
-		// Make the request using Request convenience method (HEAD requests don't need user agent)
-		$response = Request::head( $url, $headers );
+		// Make the request
+		$response = wp_remote_head( $url, [
+			'headers' => $headers,
+			'timeout' => 15
+		] );
 
 		// Handle errors
 		if ( is_wp_error( $response ) ) {
@@ -325,22 +339,35 @@ trait Objects {
 			);
 		}
 
-		// Generate authorization headers
+		// Use our special encoding method to properly handle special characters
+		$encoded_key = Encode::object_key( $object_key );
+
+		// Generate authorization headers with the encoded key
 		$headers = $this->generate_auth_headers(
 			'DELETE',
 			$bucket,
-			$object_key
+			$encoded_key
 		);
 
-		// Build the URL using provider utility (encoding handled automatically)
-		$url = $this->provider->build_request_url( $bucket, $object_key );
+		// Add Content-Length header which is required for DELETE operations
+		$headers['Content-Length'] = '0';
 
-		// Debug the request
-		$this->debug( "Delete Object Request URL", $url );
-		$this->debug( "Delete Object Request Headers", $headers );
+		// Build the URL based on path style setting
+		$host = $this->provider->get_endpoint();
 
-		// Make the request using Request convenience method
-		$response = Request::delete( $url, $headers, $this->get_user_agent() );
+		if ( $this->provider->uses_path_style() ) {
+			$url = 'https://' . $host . '/' . $bucket . '/' . $encoded_key;
+		} else {
+			$url = 'https://' . $bucket . '.' . $host . '/' . $encoded_key;
+		}
+
+		// Make the request
+		$response = wp_remote_request( $url, [
+			'method'  => 'DELETE',
+			'headers' => $headers,
+			'timeout' => 15,
+			'body'    => ''
+		] );
 
 		// Handle WP_Error responses
 		if ( is_wp_error( $response ) ) {
@@ -349,10 +376,6 @@ trait Objects {
 
 		$status_code = wp_remote_retrieve_response_code( $response );
 		$body        = wp_remote_retrieve_body( $response );
-
-		// Debug the response
-		$this->debug( "Delete Object Response Status", $status_code );
-		$this->debug( "Delete Object Response Body", $body );
 
 		// Check for error status codes
 		if ( $status_code < 200 || $status_code >= 300 ) {
@@ -397,23 +420,26 @@ trait Objects {
 			);
 		}
 
+		// Encode the target key for URL usage
+		$encoded_target_key = Encode::object_key( $target_key );
+
 		// Generate authorization headers for PUT request to the target
 		$headers = $this->generate_auth_headers(
 			'PUT',
 			$target_bucket,
-			$target_key
+			$encoded_target_key
 		);
 
 		// Create the source path for x-amz-copy-source header
-		// Use the provider's URL building to ensure proper encoding
-		$encoded_source_key = \ArrayPress\S3\Utils\Encode::object_key( $source_key );
+		// The source path should be: bucket/key where key is URL-encoded
+		$encoded_source_key = Encode::object_key( $source_key );
 		$source_path        = $source_bucket . '/' . $encoded_source_key;
 
 		// Add the source header - this tells S3 to copy from the source object
 		$headers['x-amz-copy-source'] = $source_path;
 
-		// Build the URL using provider utility
-		$url = $this->provider->build_request_url( $target_bucket, $target_key );
+		// Build the URL
+		$url = $this->provider->format_url( $target_bucket, $encoded_target_key );
 
 		// Debug the request
 		$this->debug( "Copy Object Request URL", $url );
@@ -422,8 +448,13 @@ trait Objects {
 		$this->debug( "Copy Object Encoded Source Key", $encoded_source_key );
 		$this->debug( "Copy Object Source Path", $source_path );
 
-		// Make the request using Request convenience method
-		$response = Request::put( $url, $headers, '', $this->get_user_agent() );
+		// Make the request
+		$response = wp_remote_request( $url, [
+			'method'  => 'PUT',
+			'headers' => $headers,
+			'timeout' => 30,
+			'body'    => '' // Empty body for copy operation
+		] );
 
 		// Handle WP_Error responses
 		if ( is_wp_error( $response ) ) {

@@ -10,7 +10,6 @@ namespace ArrayPress\S3\Traits\Signer;
 use ArrayPress\S3\Interfaces\Response as ResponseInterface;
 use ArrayPress\S3\Responses\SuccessResponse;
 use ArrayPress\S3\Responses\ErrorResponse;
-use ArrayPress\S3\Utils\Request;
 
 trait Batch {
 
@@ -73,15 +72,23 @@ trait Batch {
 		$headers['Content-MD5']    = base64_encode( md5( $delete_xml, true ) );
 		$headers['Content-Length'] = strlen( $delete_xml );
 
-		// Build the URL using provider utility
-		$url = $this->provider->build_service_url( $bucket, '', [ 'delete' => '' ] );
+		// Build the URL
+		$url = $this->provider->format_url( $bucket ) . '?delete';
 
 		// Debug the request
 		$this->debug( "Batch Delete Request URL", $url );
 		$this->debug( "Batch Delete Request Headers", $headers );
 
-		// Make the request using Request convenience method
-		$response = Request::batch( $url, $headers, $delete_xml, $this->get_user_agent() );
+		// Enhanced request with better timeout handling for R2
+		$response = wp_remote_request( $url, [
+			'method'     => 'POST',
+			'headers'    => $headers,
+			'body'       => $delete_xml,
+			'timeout'    => 60,
+			'blocking'   => true,
+			'sslverify'  => true,
+			'user-agent' => 'ArrayPress-S3-Client/1.0'
+		] );
 
 		// Enhanced error handling
 		if ( is_wp_error( $response ) ) {

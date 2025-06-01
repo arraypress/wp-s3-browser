@@ -18,7 +18,6 @@ namespace ArrayPress\S3\Traits\Signer;
 use ArrayPress\S3\Interfaces\Response as ResponseInterface;
 use ArrayPress\S3\Responses\BucketsResponse;
 use ArrayPress\S3\Responses\ErrorResponse;
-use ArrayPress\S3\Utils\Request;
 
 /**
  * Trait Buckets
@@ -58,15 +57,23 @@ trait Buckets {
 			$query_params
 		);
 
-		// Build the URL using provider utility
-		$url = $this->provider->build_service_url( '', '', $query_params );
+		// Build the URL
+		$endpoint = $this->provider->get_endpoint();
+		$url      = 'https://' . $endpoint;
+
+		if ( ! empty( $query_params ) ) {
+			$url .= '?' . http_build_query( $query_params );
+		}
 
 		// Debug the request
 		$this->debug( "List Buckets Request URL", $url );
 		$this->debug( "List Buckets Request Headers", $headers );
 
-		// Make the request using Request convenience method
-		$response = Request::get( $url, $headers );
+		// Make the request
+		$response = wp_remote_get( $url, [
+			'headers' => $headers,
+			'timeout' => 30
+		] );
 
 		// Handle errors
 		if ( is_wp_error( $response ) ) {

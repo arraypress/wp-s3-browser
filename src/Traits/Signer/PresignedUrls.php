@@ -106,12 +106,12 @@ trait PresignedUrls {
 		// Calculate the signature
 		$signature = $this->calculate_signature( $string_to_sign, $datestamp );
 
-		// Build the final URL using provider utility
-		$base_url = $this->provider->build_request_url( $bucket, $object_key );
-
-		// Extract just the URL part without query parameters (if any)
-		$url_parts = parse_url( $base_url );
-		$url       = $url_parts['scheme'] . '://' . $url_parts['host'] . $url_parts['path'];
+		// Build the final URL based on the path style setting
+		if ( $this->provider->uses_path_style() ) {
+			$url = 'https://' . $host . '/' . $bucket . '/' . $encoded_key;
+		} else {
+			$url = 'https://' . $bucket . '.' . $host . '/' . $encoded_key;
+		}
 
 		$presigned_url = $url . '?' . $canonical_querystring . '&X-Amz-Signature=' . $signature;
 
@@ -200,12 +200,12 @@ trait PresignedUrls {
 		// Calculate the signature
 		$signature = $this->calculate_signature( $string_to_sign, $datestamp );
 
-		// Build the final URL using provider utility
-		$base_url = $this->provider->build_request_url( $bucket, $object_key );
-
-		// Extract just the URL part without query parameters (if any)
-		$url_parts = parse_url( $base_url );
-		$url       = $url_parts['scheme'] . '://' . $url_parts['host'] . $url_parts['path'];
+		// Build the final URL based on the path style setting
+		if ( $this->provider->uses_path_style() ) {
+			$url = 'https://' . $host . '/' . $bucket . '/' . $encoded_key;
+		} else {
+			$url = 'https://' . $bucket . '.' . $host . '/' . $encoded_key;
+		}
 
 		$presigned_url = $url . '?' . $canonical_querystring . '&X-Amz-Signature=' . $signature;
 
