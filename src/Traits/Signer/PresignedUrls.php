@@ -1,6 +1,6 @@
 <?php
 /**
- * Presigned URL Operations Trait - PHP 7.4 Compatible
+ * Presigned URL Operations Trait - Clean Version
  *
  * Handles presigned URL operations for S3-compatible storage.
  *
@@ -106,12 +106,7 @@ trait PresignedUrls {
 		// Calculate the signature
 		$signature = $this->calculate_signature( $string_to_sign, $datestamp );
 
-		// Build the final URL based on the path style setting
-		if ( $this->provider->uses_path_style() ) {
-			$url = 'https://' . $host . '/' . $bucket . '/' . $encoded_key;
-		} else {
-			$url = 'https://' . $bucket . '.' . $host . '/' . $encoded_key;
-		}
+		$url = $this->provider->format_url_with_encoded_key( $bucket, $encoded_key );
 
 		$presigned_url = $url . '?' . $canonical_querystring . '&X-Amz-Signature=' . $signature;
 
@@ -200,12 +195,7 @@ trait PresignedUrls {
 		// Calculate the signature
 		$signature = $this->calculate_signature( $string_to_sign, $datestamp );
 
-		// Build the final URL based on the path style setting
-		if ( $this->provider->uses_path_style() ) {
-			$url = 'https://' . $host . '/' . $bucket . '/' . $encoded_key;
-		} else {
-			$url = 'https://' . $bucket . '.' . $host . '/' . $encoded_key;
-		}
+		$url = $this->provider->format_url_with_encoded_key( $bucket, $encoded_key );
 
 		$presigned_url = $url . '?' . $canonical_querystring . '&X-Amz-Signature=' . $signature;
 
