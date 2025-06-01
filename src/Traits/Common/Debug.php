@@ -88,9 +88,9 @@ trait Debug {
 	 * @param string $operation    Operation name
 	 * @param int    $status_code  HTTP status code
 	 * @param mixed  $body         Response body (optional)
-	 * @param array  $headers      Response headers (optional)
+	 * @param mixed  $headers      Response headers (optional - array or CaseInsensitiveDictionary)
 	 */
-	protected function debug_response_details( string $operation, int $status_code, $body = null, array $headers = [] ): void {
+	protected function debug_response_details( string $operation, int $status_code, $body = null, $headers = null ): void {
 		if ( ! $this->debug ) {
 			return;
 		}
@@ -100,7 +100,11 @@ trait Debug {
 		$this->debug( "{$operation_title} Response Status", $status_code );
 
 		if ( ! empty( $headers ) ) {
-			$this->debug( "{$operation_title} Response Headers", $headers );
+			// Convert headers to array if it's a CaseInsensitiveDictionary
+			$headers_array = $this->normalize_headers( $headers );
+			if ( ! empty( $headers_array ) ) {
+				$this->debug( "{$operation_title} Response Headers", $headers_array );
+			}
 		}
 
 		if ( $body !== null ) {
@@ -110,6 +114,41 @@ trait Debug {
 				: $body;
 			$this->debug( "{$operation_title} Response Body", $debug_body );
 		}
+	}
+
+	/**
+	 * Normalize headers to array format
+	 *
+	 * @param mixed $headers Headers in various formats
+	 *
+	 * @return array Normalized headers array
+	 */
+	private function normalize_headers( $headers ): array {
+		if ( is_array( $headers ) ) {
+			return $headers;
+		}
+
+		// Handle WordPress CaseInsensitiveDictionary
+		if ( is_object( $headers ) && method_exists( $headers, 'getAll' ) ) {
+			return $headers->getAll();
+		}
+
+		// Handle other objects that might be iterable
+		if ( is_object( $headers ) && method_exists( $headers, 'toArray' ) ) {
+			return $headers->toArray();
+		}
+
+		// Try to convert iterable objects to array
+		if ( is_iterable( $headers ) ) {
+			$result = [];
+			foreach ( $headers as $key => $value ) {
+				$result[ $key ] = $value;
+			}
+			return $result;
+		}
+
+		// Fallback for unexpected types
+		return [];
 	}
 
 	/**
