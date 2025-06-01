@@ -27,6 +27,7 @@ use ArrayPress\S3\Traits\Signer\PresignedUrls;
 use ArrayPress\S3\Traits\Signer\ErrorHandling;
 use ArrayPress\S3\Traits\Signer\Batch;
 use ArrayPress\S3\Traits\Common\Debug;
+use ArrayPress\S3\Traits\Common\Context;
 
 /**
  * Class Signer
@@ -42,6 +43,7 @@ class Signer implements SignerInterface {
 	use Formatter;
 	use Batch;
 	use Debug;
+	use Context;
 
 	/**
 	 * Provider instance
