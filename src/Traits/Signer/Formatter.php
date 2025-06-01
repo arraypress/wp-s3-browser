@@ -29,6 +29,7 @@ trait Formatter {
 		if ( is_array( $xml_node ) ) {
 			return (string) ( $xml_node['value'] ?? $xml_node['@text'] ?? '' );
 		}
+
 		return (string) $xml_node;
 	}
 
@@ -37,6 +38,7 @@ trait Formatter {
 	 */
 	private function get_clean_etag( $etag_node ): string {
 		$etag = $this->get_xml_text_value( $etag_node );
+
 		return trim( $etag, '"' );
 	}
 

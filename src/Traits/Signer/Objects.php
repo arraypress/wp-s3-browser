@@ -1,6 +1,6 @@
 <?php
 /**
- * Object Operations Trait - PHP 7.4 Compatible
+ * Object Operations Trait - Clean Version
  *
  * Handles object-related operations for S3-compatible storage.
  *
@@ -22,43 +22,23 @@ use ArrayPress\S3\Responses\ErrorResponse;
 use ArrayPress\S3\Responses\SuccessResponse;
 use ArrayPress\S3\Utils\Encode;
 use ArrayPress\S3\Utils\File;
+use ArrayPress\S3\Traits\Common\RequestTimeouts;
 
 /**
  * Trait Objects
  */
 trait Objects {
 
-	/**
-	 * Get timeout for specific operation
-	 *
-	 * @param string $operation Operation name
-	 *
-	 * @return int Timeout in seconds
-	 */
-	private function get_operation_timeout( string $operation ): int {
-		$timeouts = [
-			'head_object'    => 15,
-			'delete_object'  => 15,
-			'get_object'     => 30,
-			'put_object'     => 30,
-			'list_objects'   => 30,
-			'list_buckets'   => 30,
-			'copy_object'    => 30,
-			'batch_delete'   => 60,
-			'upload_object'  => 120,
-		];
-
-		return $timeouts[ $operation ] ?? 30;
-	}
+	use RequestTimeouts;
 
 	/**
 	 * Safe helper to build copy headers
 	 */
 	private function build_copy_headers( string $source_bucket, string $source_key, string $target_bucket, string $target_key ): array {
 		$encoded_target_key = Encode::object_key( $target_key );
-		$headers = $this->generate_auth_headers( 'PUT', $target_bucket, $encoded_target_key );
+		$headers            = $this->generate_auth_headers( 'PUT', $target_bucket, $encoded_target_key );
 
-		$encoded_source_key = Encode::object_key( $source_key );
+		$encoded_source_key           = Encode::object_key( $source_key );
 		$headers['x-amz-copy-source'] = $source_bucket . '/' . $encoded_source_key;
 
 		return $headers;
@@ -121,7 +101,7 @@ trait Objects {
 		// Debug the request
 		$this->debug_request_details( 'list_objects', $url, $headers );
 
-		// Make the request
+		// Make the request with appropriate timeout
 		$response = wp_remote_get( $url, [
 			'headers' => $headers,
 			'timeout' => $this->get_operation_timeout( 'list_objects' )
@@ -136,8 +116,7 @@ trait Objects {
 		$body        = wp_remote_retrieve_body( $response );
 
 		// Debug the response
-		$this->debug( "List Objects Response Status", $status_code );
-		$this->debug( "List Objects Response Body", $body );
+		$this->debug_response_details( 'list_objects', $status_code, $body );
 
 		// Check for error status code
 		if ( $status_code < 200 || $status_code >= 300 ) {
@@ -244,7 +223,7 @@ trait Objects {
 		// Debug the request
 		$this->debug_request_details( 'get_object', $url, $headers );
 
-		// Make the request
+		// Make the request with appropriate timeout
 		$response = wp_remote_get( $url, [
 			'headers' => $headers,
 			'timeout' => $this->get_operation_timeout( 'get_object' )
@@ -260,8 +239,7 @@ trait Objects {
 		$response_headers = wp_remote_retrieve_headers( $response );
 
 		// Debug the response
-		$this->debug( "Get Object Response Status", $status_code );
-		$this->debug( "Get Object Response Headers", $response_headers );
+		$this->debug_response_details( 'get_object', $status_code, null, $response_headers );
 
 		// Check for error status code
 		if ( $status_code < 200 || $status_code >= 300 ) {
@@ -316,7 +294,7 @@ trait Objects {
 		// Debug the request
 		$this->debug_request_details( 'head_object', $url, $headers );
 
-		// Make the request
+		// Make the request with appropriate timeout
 		$response = wp_remote_head( $url, [
 			'headers' => $headers,
 			'timeout' => $this->get_operation_timeout( 'head_object' )
@@ -331,8 +309,7 @@ trait Objects {
 		$response_headers = wp_remote_retrieve_headers( $response );
 
 		// Debug the response
-		$this->debug( "Head Object Response Status", $status_code );
-		$this->debug( "Head Object Response Headers", $response_headers );
+		$this->debug_response_details( 'head_object', $status_code, null, $response_headers );
 
 		// Check for error status code
 		if ( $status_code < 200 || $status_code >= 300 ) {
@@ -397,7 +374,7 @@ trait Objects {
 		// Debug the request
 		$this->debug_request_details( 'delete_object', $url, $headers );
 
-		// Make the request
+		// Make the request with appropriate timeout
 		$response = wp_remote_request( $url, [
 			'method'  => 'DELETE',
 			'headers' => $headers,
@@ -412,6 +389,9 @@ trait Objects {
 
 		$status_code = wp_remote_retrieve_response_code( $response );
 		$body        = wp_remote_retrieve_body( $response );
+
+		// Debug the response
+		$this->debug_response_details( 'delete_object', $status_code );
 
 		// Check for error status codes
 		if ( $status_code < 200 || $status_code >= 300 ) {
@@ -465,7 +445,7 @@ trait Objects {
 		// Debug the request
 		$this->debug_request_details( 'copy_object', $url, $headers );
 
-		// Make the request
+		// Make the request with appropriate timeout
 		$response = wp_remote_request( $url, [
 			'method'  => 'PUT',
 			'headers' => $headers,
@@ -483,8 +463,7 @@ trait Objects {
 		$body        = wp_remote_retrieve_body( $response );
 
 		// Debug the response
-		$this->debug( "Copy Object Response Status", $status_code );
-		$this->debug( "Copy Object Response Body", $body );
+		$this->debug_response_details( 'copy_object', $status_code, $body );
 
 		// Check for error status codes
 		if ( $status_code < 200 || $status_code >= 300 ) {

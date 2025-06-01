@@ -18,74 +18,43 @@ namespace ArrayPress\S3\Traits\Signer;
 use ArrayPress\S3\Interfaces\Response as ResponseInterface;
 use ArrayPress\S3\Responses\BucketsResponse;
 use ArrayPress\S3\Responses\ErrorResponse;
+use ArrayPress\S3\Traits\Common\RequestTimeouts;
 
 /**
  * Trait Buckets
  */
 trait Buckets {
 
-	/**
-	 * Get timeout for specific operation
-	 *
-	 * @param string $operation Operation name
-	 *
-	 * @return int Timeout in seconds
-	 */
-	private function get_operation_timeout( string $operation ): int {
-		$timeouts = [
-			'list_buckets' => 30,
-			'head_bucket'  => 15,
-			'put_bucket'   => 30,
-		];
-
-		return $timeouts[ $operation ] ?? 30;
-	}
+	use RequestTimeouts;
 
 	/**
 	 * List all buckets
-	 *
-	 * @param int    $max_keys Maximum number of buckets to return
-	 * @param string $prefix   Optional prefix to filter buckets
-	 * @param string $marker   Optional marker for pagination
-	 *
-	 * @return ResponseInterface Operation result
 	 */
 	public function list_buckets( int $max_keys = 1000, string $prefix = '', string $marker = '' ): ResponseInterface {
 		// Prepare query parameters
 		$query_params = [];
-
 		if ( $max_keys !== 1000 ) {
 			$query_params['max-keys'] = $max_keys;
 		}
-
 		if ( ! empty( $prefix ) ) {
 			$query_params['prefix'] = $prefix;
 		}
-
 		if ( ! empty( $marker ) ) {
 			$query_params['marker'] = $marker;
 		}
 
 		// Generate authorization headers
-		$headers = $this->generate_auth_headers(
-			'GET',
-			'',  // Empty bucket for list_buckets operation
-			'',
-			$query_params
-		);
+		$headers = $this->generate_auth_headers( 'GET', '', '', $query_params );
 
 		// Build the URL
 		$endpoint = $this->provider->get_endpoint();
 		$url      = 'https://' . $endpoint;
-
 		if ( ! empty( $query_params ) ) {
 			$url .= '?' . http_build_query( $query_params );
 		}
 
-		// Debug the request
+		// Debug and make request
 		$this->debug_request_details( 'list_buckets', $url, $headers );
-
-		// Make the request
 		$response = wp_remote_get( $url, [
 			'headers' => $headers,
 			'timeout' => $this->get_operation_timeout( 'list_buckets' )
@@ -99,7 +68,7 @@ trait Buckets {
 		$status_code = wp_remote_retrieve_response_code( $response );
 		$body        = wp_remote_retrieve_body( $response );
 
-		// Debug the response
+		// Debug response
 		$this->debug_response_details( 'list_buckets', $status_code, $body );
 
 		// Check for error status code
@@ -113,26 +82,17 @@ trait Buckets {
 			return $xml;
 		}
 
-		// Debug the parsed XML structure
-		$this->debug( "Parsed XML Structure", $xml );
-
-		// Extract owner - search recursively through the XML structure
-		$owner = $this->extract_owner_from_xml( $xml );
-
-		// Extract buckets - search recursively through the XML structure
-		$buckets = $this->extract_buckets_from_xml( $xml );
-
-		// Extract truncation info - search recursively
+		// Extract data
+		$owner           = $this->extract_owner_from_xml( $xml );
+		$buckets         = $this->extract_buckets_from_xml( $xml );
 		$truncation_info = $this->extract_truncation_info_from_xml( $xml );
-		$truncated       = $truncation_info['truncated'];
-		$next_marker     = $truncation_info['next_marker'];
 
 		return new BucketsResponse(
 			$buckets,
 			$status_code,
 			$owner,
-			$truncated,
-			$next_marker,
+			$truncation_info['truncated'],
+			$truncation_info['next_marker'],
 			$xml
 		);
 	}
