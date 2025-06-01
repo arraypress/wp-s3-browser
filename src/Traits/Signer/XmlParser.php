@@ -76,11 +76,106 @@ trait XmlParser {
 	}
 
 	/**
+	 * Build XML for batch delete request with R2 compatibility
+	 *
+	 * @param array $object_keys Array of object keys
+	 *
+	 * @return string XML string
+	 */
+	protected function build_batch_delete_xml( array $object_keys ): string {
+		$xml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
+
+		// Try without namespace first for R2 compatibility
+		$xml .= '<Delete>' . "\n";
+		$xml .= '  <Quiet>false</Quiet>' . "\n";
+
+		foreach ( $object_keys as $key ) {
+			// Ensure the key is properly handled but not double-encoded
+			$clean_key = rawurldecode( $key ); // Decode first to avoid double encoding
+			$xml       .= '  <Object>' . "\n";
+			$xml       .= '    <Key>' . htmlspecialchars( $clean_key, ENT_XML1 | ENT_COMPAT, 'UTF-8' ) . '</Key>' . "\n";
+			$xml       .= '  </Object>' . "\n";
+		}
+
+		$xml .= '</Delete>';
+
+		return $xml;
+	}
+
+	/**
+	 * Parse batch delete response XML with enhanced error handling
+	 *
+	 * @param array $xml Parsed XML response from parse_xml_response()
+	 *
+	 * @return array Results summary
+	 */
+	protected function parse_batch_delete_response( array $xml ): array {
+		$deleted = [];
+		$errors  = [];
+
+		// Handle DeleteResult format - search for the root element
+		$result_path = $xml['DeleteResult'] ?? $xml;
+
+		// Parse deleted objects using XML utility
+		$deleted_items = Xml::find_value( $result_path, 'Deleted' );
+		if ( $deleted_items !== null ) {
+			// Single deleted object
+			if ( isset( $deleted_items['Key'] ) ) {
+				$deleted[] = [
+					'key'        => $this->extract_text_value( $deleted_items['Key'] ),
+					'version_id' => $this->extract_text_value( $deleted_items['VersionId'] ?? null )
+				];
+			} // Multiple deleted objects (array format)
+			elseif ( is_array( $deleted_items ) ) {
+				foreach ( $deleted_items as $item ) {
+					if ( isset( $item['Key'] ) ) {
+						$deleted[] = [
+							'key'        => $this->extract_text_value( $item['Key'] ),
+							'version_id' => $this->extract_text_value( $item['VersionId'] ?? null )
+						];
+					}
+				}
+			}
+		}
+
+		// Parse error objects using XML utility
+		$error_items = Xml::find_value( $result_path, 'Error' );
+		if ( $error_items !== null ) {
+			// Single error
+			if ( isset( $error_items['Key'] ) ) {
+				$errors[] = [
+					'key'     => $this->extract_text_value( $error_items['Key'] ),
+					'code'    => $this->extract_text_value( $error_items['Code'] ?? 'Unknown' ),
+					'message' => $this->extract_text_value( $error_items['Message'] ?? 'Unknown error' )
+				];
+			} // Multiple errors (array format)
+			elseif ( is_array( $error_items ) ) {
+				foreach ( $error_items as $item ) {
+					if ( isset( $item['Key'] ) ) {
+						$errors[] = [
+							'key'     => $this->extract_text_value( $item['Key'] ),
+							'code'    => $this->extract_text_value( $item['Code'] ?? 'Unknown' ),
+							'message' => $this->extract_text_value( $item['Message'] ?? 'Unknown error' )
+						];
+					}
+				}
+			}
+		}
+
+		return [
+			'success_count' => count( $deleted ),
+			'error_count'   => count( $errors ),
+			'deleted'       => $deleted,
+			'errors'        => $errors
+		];
+	}
+
+	/**
 	 * Convert SimpleXML object to array
 	 *
 	 * @param SimpleXMLElement $xml       SimpleXML object
-	 * @param int               $depth     Current recursion depth
-	 * @param int               $max_depth Maximum recursion depth
+	 * @param int              $depth     Current recursion depth
+	 * @param int              $max_depth Maximum recursion depth
 	 *
 	 * @return array Converted array
 	 */
@@ -235,9 +330,9 @@ trait XmlParser {
 	 * Process XML namespaces
 	 *
 	 * @param SimpleXMLElement $xml       SimpleXML object
-	 * @param array             $result    Result array to modify
-	 * @param int               $depth     Current recursion depth
-	 * @param int               $max_depth Maximum recursion depth
+	 * @param array            $result    Result array to modify
+	 * @param int              $depth     Current recursion depth
+	 * @param int              $max_depth Maximum recursion depth
 	 */
 	protected function process_xml_namespaces( SimpleXMLElement $xml, array &$result, int $depth, int $max_depth ): void {
 		foreach ( $xml->getNamespaces( true ) as $prefix => $ns ) {

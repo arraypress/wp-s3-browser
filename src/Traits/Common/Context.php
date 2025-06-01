@@ -28,6 +28,13 @@ trait Context {
 	private ?string $context = null;
 
 	/**
+	 * User agent for HTTP requests
+	 *
+	 * @var string
+	 */
+	private string $user_agent = 'ArrayPress-S3-Client/1.0';
+
+	/**
 	 * Set the context for this client
 	 *
 	 * @param string|null $context Context identifier (e.g., 'edd_plugin', 'woocommerce', etc.)
@@ -70,6 +77,28 @@ trait Context {
 	}
 
 	/**
+	 * Set custom user agent for HTTP requests
+	 *
+	 * @param string $user_agent User agent string
+	 *
+	 * @return self
+	 */
+	public function set_user_agent( string $user_agent ): self {
+		$this->user_agent = $user_agent;
+
+		return $this;
+	}
+
+	/**
+	 * Get current user agent
+	 *
+	 * @return string Current user agent
+	 */
+	public function get_user_agent(): string {
+		return $this->user_agent;
+	}
+
+	/**
 	 * Apply a filter with context support
 	 *
 	 * @param string $filter_name Base filter name
@@ -107,7 +136,7 @@ trait Context {
 		// If we have a context, also apply the context-specific filter
 		if ( $this->has_context() ) {
 			$contextual_filter_name = $base_filter_name . '_' . $this->context;
-			$value = apply_filters( $contextual_filter_name, $value, ...$args );
+			$value                  = apply_filters( $contextual_filter_name, $value, ...$args );
 		}
 
 		return $value;

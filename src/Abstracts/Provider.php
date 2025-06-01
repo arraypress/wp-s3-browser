@@ -173,6 +173,69 @@ abstract class Provider implements ProviderInterface {
 	}
 
 	/**
+	 * Build service URL with query parameters
+	 *
+	 * @param string $bucket       Optional bucket name
+	 * @param string $object       Optional object key
+	 * @param array  $query_params Optional query parameters
+	 *
+	 * @return string Complete URL with query parameters
+	 */
+	public function build_service_url( string $bucket = '', string $object = '', array $query_params = [] ): string {
+		// For service-level operations (like list buckets), use endpoint directly
+		if ( empty( $bucket ) ) {
+			$url = 'https://' . $this->get_endpoint();
+		} else {
+			$url = $this->format_url( $bucket, $object );
+		}
+
+		// Add query parameters if provided
+		if ( ! empty( $query_params ) ) {
+			$url .= '?' . http_build_query( $query_params );
+		}
+
+		return $url;
+	}
+
+	/**
+	 * Build request URL with proper encoding
+	 *
+	 * @param string $bucket     Bucket name
+	 * @param string $object_key Object key (will be encoded)
+	 * @param array  $query_params Optional query parameters
+	 *
+	 * @return string Complete URL
+	 */
+	public function build_request_url( string $bucket, string $object_key = '', array $query_params = [] ): string {
+		$endpoint = $this->get_endpoint();
+
+		// Encode the object key properly
+		$encoded_key = empty( $object_key ) ? '' : Encode::object_key( $object_key );
+
+		// Build URL based on path style setting
+		if ( $this->uses_path_style() ) {
+			$url = 'https://' . $endpoint . '/' . $bucket;
+			if ( ! empty( $encoded_key ) ) {
+				$url .= '/' . $encoded_key;
+			}
+		} else {
+			$url = 'https://' . $bucket . '.' . $endpoint;
+			if ( ! empty( $encoded_key ) ) {
+				$url .= '/' . $encoded_key;
+			}
+		}
+
+		// Add query parameters if provided
+		if ( ! empty( $query_params ) ) {
+			$url .= '?' . http_build_query( $query_params );
+		}
+
+		return $url;
+	}
+
+
+
+	/**
 	 * Format object URI for signing
 	 *
 	 * @param string $bucket     Bucket name

@@ -53,7 +53,7 @@ class Buckets extends WP_List_Table {
 		return [
 			'name'    => __( 'Bucket Name', 'arraypress' ),
 			'created' => __( 'Creation Date', 'arraypress' ),
-			'actions' => __( 'Actions', 'arraypress' ),
+			'actions' => __( 'Favorite', 'arraypress' ),
 		];
 	}
 
