@@ -27,6 +27,11 @@ use ArrayPress\S3\Utils\Encode;
  */
 trait Objects {
 
+	// Include the utility traits
+	use HttpResponseHandler;
+	use RequestTimeouts;
+	use ObjectDataExtractor;
+
 	/**
 	 * List objects in a bucket
 	 *
