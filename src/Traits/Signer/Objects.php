@@ -29,8 +29,6 @@ use ArrayPress\S3\Traits\Common\RequestTimeouts;
  */
 trait Objects {
 
-	use RequestTimeouts;
-
 	/**
 	 * Safe helper to build copy headers
 	 */

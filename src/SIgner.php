@@ -17,9 +17,6 @@ namespace ArrayPress\S3;
 
 use ArrayPress\S3\Abstracts\Provider;
 use ArrayPress\S3\Interfaces\Signer as SignerInterface;
-use ArrayPress\S3\Traits\Signer\HttpResponseHandler;
-use ArrayPress\S3\Traits\Signer\ObjectDataExtractor;
-use ArrayPress\S3\Traits\Signer\RequestTimeouts;
 use ArrayPress\S3\Traits\Signer\XmlParser;
 use ArrayPress\S3\Traits\Signer\Authentication;
 use ArrayPress\S3\Traits\Signer\Buckets;
@@ -32,6 +29,7 @@ use ArrayPress\S3\Traits\Signer\Batch;
 use ArrayPress\S3\Traits\Common\Debug;
 use ArrayPress\S3\Traits\Common\Context;
 use ArrayPress\S3\Traits\Common\Config;
+use ArrayPress\S3\Traits\Common\RequestTimeouts;
 
 /**
  * Class Signer
@@ -49,6 +47,7 @@ class Signer implements SignerInterface {
 	use Debug;
 	use Context;
 	use Config;
+	use RequestTimeouts;
 
 	/**
 	 * Provider instance
