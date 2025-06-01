@@ -152,12 +152,25 @@ abstract class Provider implements ProviderInterface {
 	}
 
 	/**
-	 * Format bucket URL
+	 * Format bucket URL for HTTP requests
+	 *
+	 * This is the primary URL building method used throughout the S3 client.
+	 * It automatically handles object key encoding and chooses between path-style
+	 * and virtual-hosted style URLs based on the provider configuration.
+	 *
+	 * Used by:
+	 * - Signer traits for GET/PUT/DELETE operations
+	 * - Public URL generation
+	 * - Presigned URL generation (base URL)
+	 *
+	 * Examples:
+	 * Path-style (Cloudflare R2): https://account.r2.cloudflarestorage.com/bucket/folder/file.jpg
+	 * Virtual-hosted (AWS S3): https://bucket.s3.amazonaws.com/folder/file.jpg
 	 *
 	 * @param string $bucket Bucket name
-	 * @param string $object Optional object key
+	 * @param string $object Optional object key (will be URL-encoded automatically)
 	 *
-	 * @return string
+	 * @return string Complete HTTPS URL ready for HTTP requests
 	 */
 	public function format_url( string $bucket, string $object = '' ): string {
 		$endpoint       = $this->get_endpoint();
@@ -173,75 +186,25 @@ abstract class Provider implements ProviderInterface {
 	}
 
 	/**
-	 * Build service URL with query parameters
+	 * Format object URI for AWS Signature Version 4 signing
 	 *
-	 * @param string $bucket       Optional bucket name
-	 * @param string $object       Optional object key
-	 * @param array  $query_params Optional query parameters
+	 * This creates the canonical URI component used in AWS signature calculation.
+	 * Unlike format_url(), this does NOT URL-encode the object key because encoding
+	 * happens at a different stage in the signing process.
 	 *
-	 * @return string Complete URL with query parameters
-	 */
-	public function build_service_url( string $bucket = '', string $object = '', array $query_params = [] ): string {
-		// For service-level operations (like list buckets), use endpoint directly
-		if ( empty( $bucket ) ) {
-			$url = 'https://' . $this->get_endpoint();
-		} else {
-			$url = $this->format_url( $bucket, $object );
-		}
-
-		// Add query parameters if provided
-		if ( ! empty( $query_params ) ) {
-			$url .= '?' . http_build_query( $query_params );
-		}
-
-		return $url;
-	}
-
-	/**
-	 * Build request URL with proper encoding
+	 * Used exclusively by:
+	 * - Authentication trait (generate_auth_headers method)
+	 * - Presigned URL generation (for signature calculation)
+	 *
+	 * Examples:
+	 * Path-style: /bucket/folder/file with spaces.jpg
+	 * Virtual-hosted: /folder/file with spaces.jpg
+	 * Service-level (empty bucket): /
 	 *
 	 * @param string $bucket     Bucket name
-	 * @param string $object_key Object key (will be encoded)
-	 * @param array  $query_params Optional query parameters
+	 * @param string $object_key Object key (NOT URL-encoded)
 	 *
-	 * @return string Complete URL
-	 */
-	public function build_request_url( string $bucket, string $object_key = '', array $query_params = [] ): string {
-		$endpoint = $this->get_endpoint();
-
-		// Encode the object key properly
-		$encoded_key = empty( $object_key ) ? '' : Encode::object_key( $object_key );
-
-		// Build URL based on path style setting
-		if ( $this->uses_path_style() ) {
-			$url = 'https://' . $endpoint . '/' . $bucket;
-			if ( ! empty( $encoded_key ) ) {
-				$url .= '/' . $encoded_key;
-			}
-		} else {
-			$url = 'https://' . $bucket . '.' . $endpoint;
-			if ( ! empty( $encoded_key ) ) {
-				$url .= '/' . $encoded_key;
-			}
-		}
-
-		// Add query parameters if provided
-		if ( ! empty( $query_params ) ) {
-			$url .= '?' . http_build_query( $query_params );
-		}
-
-		return $url;
-	}
-
-
-
-	/**
-	 * Format object URI for signing
-	 *
-	 * @param string $bucket     Bucket name
-	 * @param string $object_key Object key
-	 *
-	 * @return string
+	 * @return string Canonical URI for signature calculation (starts with /)
 	 */
 	public function format_canonical_uri( string $bucket, string $object_key ): string {
 		if ( empty( $bucket ) ) {
@@ -262,7 +225,17 @@ abstract class Provider implements ProviderInterface {
 	/**
 	 * Check if a URL belongs to this provider
 	 *
-	 * @param string $url URL to check
+	 * Used for:
+	 * - URL validation before parsing
+	 * - Determining which provider handles a given URL
+	 * - Security checks to ensure URLs are from expected sources
+	 *
+	 * Checks against:
+	 * - Main provider endpoint
+	 * - Alternative endpoints (dev/staging)
+	 * - Custom domains configured via set_custom_domain()
+	 *
+	 * @param string $url URL to check (with or without protocol)
 	 *
 	 * @return bool True if the URL belongs to this provider
 	 */
@@ -302,7 +275,20 @@ abstract class Provider implements ProviderInterface {
 	/**
 	 * Extract bucket and object from a provider URL
 	 *
-	 * @param string $url Provider URL
+	 * Parses various URL formats to extract bucket and object information.
+	 * This is useful for:
+	 * - Processing URLs from external sources
+	 * - Converting between URL formats
+	 * - Extracting metadata from existing URLs
+	 *
+	 * Supports:
+	 * - Path-style URLs: https://endpoint/bucket/object
+	 * - Virtual-hosted URLs: https://bucket.endpoint/object
+	 * - Custom domain URLs: https://custom.domain.com/object
+	 *
+	 * Returns null if URL doesn't belong to this provider.
+	 *
+	 * @param string $url Provider URL to parse
 	 *
 	 * @return array|null Array with 'bucket' and 'object' keys, or null if invalid
 	 */
@@ -335,6 +321,16 @@ abstract class Provider implements ProviderInterface {
 
 	/**
 	 * Set a custom domain for a bucket
+	 *
+	 * Allows configuring custom domains for public bucket access.
+	 * Used for:
+	 * - CDN integration
+	 * - Brand-consistent URLs
+	 * - Public file serving
+	 *
+	 * Example:
+	 * $provider->set_custom_domain('my-bucket', 'cdn.mysite.com');
+	 * // Results in URLs like: https://cdn.mysite.com/file.jpg
 	 *
 	 * @param string $bucket        Bucket name
 	 * @param string $custom_domain Custom domain (without protocol)
@@ -391,6 +387,17 @@ abstract class Provider implements ProviderInterface {
 
 	/**
 	 * Get public URL for a bucket (if configured)
+	 *
+	 * Returns a public URL for accessing objects without authentication.
+	 * Used for:
+	 * - Public file downloads
+	 * - Image/asset serving
+	 * - Static website hosting
+	 *
+	 * Checks in order:
+	 * 1. Custom domain (via set_custom_domain)
+	 * 2. Public URL parameter (via set_param)
+	 * 3. Returns null if no public access configured
 	 *
 	 * @param string $bucket Bucket name
 	 * @param string $object Optional object key
@@ -479,6 +486,9 @@ abstract class Provider implements ProviderInterface {
 	/**
 	 * Check if URL matches an endpoint pattern
 	 *
+	 * Used internally by is_provider_url() to match URLs against endpoints.
+	 * Handles both direct matches and virtual-hosted style patterns.
+	 *
 	 * @param string $url_without_protocol URL without protocol
 	 * @param string $endpoint             Endpoint to match against
 	 *
@@ -502,9 +512,12 @@ abstract class Provider implements ProviderInterface {
 	/**
 	 * Parse path-style URL (host.com/bucket/object)
 	 *
+	 * Used internally by parse_provider_url().
+	 * Handles URLs like: https://endpoint.com/bucket/folder/file.jpg
+	 *
 	 * @param string $url_without_protocol URL without protocol
 	 *
-	 * @return array|null
+	 * @return array|null Array with bucket/object or null if parsing fails
 	 */
 	protected function parse_path_style_url( string $url_without_protocol ): ?array {
 		// Split by slash
@@ -533,9 +546,12 @@ abstract class Provider implements ProviderInterface {
 	/**
 	 * Parse virtual-hosted style URL (bucket.host.com/object)
 	 *
+	 * Used internally by parse_provider_url().
+	 * Handles URLs like: https://bucket.s3.amazonaws.com/folder/file.jpg
+	 *
 	 * @param string $url_without_protocol URL without protocol
 	 *
-	 * @return array|null
+	 * @return array|null Array with bucket/object or null if parsing fails
 	 */
 	protected function parse_virtual_hosted_style_url( string $url_without_protocol ): ?array {
 		// Split by slash to separate host from path
@@ -567,9 +583,13 @@ abstract class Provider implements ProviderInterface {
 	/**
 	 * Parse custom domain URL
 	 *
+	 * Used internally by parse_provider_url().
+	 * Handles URLs from custom domains set via set_custom_domain().
+	 * Example: https://cdn.mysite.com/folder/file.jpg
+	 *
 	 * @param string $url_without_protocol URL without protocol
 	 *
-	 * @return array|null
+	 * @return array|null Array with bucket/object or null if no custom domain matches
 	 */
 	protected function parse_custom_domain_url( string $url_without_protocol ): ?array {
 		// Check each custom domain to see which bucket it belongs to

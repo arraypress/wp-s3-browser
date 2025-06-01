@@ -28,6 +28,7 @@ use ArrayPress\S3\Traits\Signer\ErrorHandling;
 use ArrayPress\S3\Traits\Signer\Batch;
 use ArrayPress\S3\Traits\Common\Debug;
 use ArrayPress\S3\Traits\Common\Context;
+use ArrayPress\S3\Traits\Common\Config;
 
 /**
  * Class Signer
@@ -44,6 +45,7 @@ class Signer implements SignerInterface {
 	use Batch;
 	use Debug;
 	use Context;
+	use Config;
 
 	/**
 	 * Provider instance
