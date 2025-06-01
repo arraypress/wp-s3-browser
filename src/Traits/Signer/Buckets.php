@@ -65,8 +65,8 @@ trait Buckets {
 		$this->debug( "List Buckets Request URL", $url );
 		$this->debug( "List Buckets Request Headers", $headers );
 
-		// Make the request using Request utility
-		$response = wp_remote_get( $url, Request::get_args( $headers ) );
+		// Make the request using Request convenience method
+		$response = Request::get( $url, $headers );
 
 		// Handle errors
 		if ( is_wp_error( $response ) ) {

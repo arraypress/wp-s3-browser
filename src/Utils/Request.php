@@ -15,6 +15,8 @@ declare( strict_types=1 );
 
 namespace ArrayPress\S3\Utils;
 
+use WP_Error;
+
 /**
  * Class Request
  *
@@ -307,6 +309,107 @@ class Request {
 			default:
 				return 30;
 		}
+	}
+
+	/**
+	 * Perform GET request with automatic argument handling
+	 *
+	 * @param string $url        Request URL
+	 * @param array  $headers    Optional HTTP headers
+	 * @param string $user_agent Optional custom user agent
+	 * @param int    $timeout    Optional timeout in seconds
+	 *
+	 * @return array|WP_Error Response array or WP_Error on failure
+	 */
+	public static function get( string $url, array $headers = [], string $user_agent = '', int $timeout = 30 ) {
+		return wp_remote_get( $url, self::get_args( $headers, $user_agent, $timeout ) );
+	}
+
+	/**
+	 * Perform HEAD request with automatic argument handling
+	 *
+	 * @param string $url     Request URL
+	 * @param array  $headers Optional HTTP headers
+	 * @param int    $timeout Optional timeout in seconds
+	 *
+	 * @return array|WP_Error Response array or WP_Error on failure
+	 */
+	public static function head( string $url, array $headers = [], int $timeout = 15 ) {
+		return wp_remote_head( $url, self::head_args( $headers, $timeout ) );
+	}
+
+	/**
+	 * Perform POST request with automatic argument handling
+	 *
+	 * @param string $url        Request URL
+	 * @param array  $headers    Optional HTTP headers
+	 * @param string $body       Optional request body
+	 * @param string $user_agent Optional custom user agent
+	 * @param int    $timeout    Optional timeout in seconds
+	 *
+	 * @return array|WP_Error Response array or WP_Error on failure
+	 */
+	public static function post( string $url, array $headers = [], string $body = '', string $user_agent = '', int $timeout = 60 ) {
+		return wp_remote_post( $url, self::post_args( $headers, $body, $user_agent, $timeout ) );
+	}
+
+	/**
+	 * Perform PUT request with automatic argument handling
+	 *
+	 * @param string $url        Request URL
+	 * @param array  $headers    Optional HTTP headers
+	 * @param string $body       Optional request body
+	 * @param string $user_agent Optional custom user agent
+	 * @param int    $timeout    Optional timeout in seconds
+	 *
+	 * @return array|WP_Error Response array or WP_Error on failure
+	 */
+	public static function put( string $url, array $headers = [], string $body = '', string $user_agent = '', int $timeout = 30 ) {
+		return wp_remote_request( $url, self::put_args( $headers, $body, $user_agent, $timeout ) );
+	}
+
+	/**
+	 * Perform DELETE request with automatic argument handling
+	 *
+	 * @param string $url        Request URL
+	 * @param array  $headers    Optional HTTP headers
+	 * @param string $user_agent Optional custom user agent
+	 * @param int    $timeout    Optional timeout in seconds
+	 *
+	 * @return array|WP_Error Response array or WP_Error on failure
+	 */
+	public static function delete( string $url, array $headers = [], string $user_agent = '', int $timeout = 15 ) {
+		return wp_remote_request( $url, self::delete_args( $headers, $user_agent, $timeout ) );
+	}
+
+	/**
+	 * Perform batch operation request with automatic argument handling
+	 *
+	 * @param string $url        Request URL
+	 * @param array  $headers    Optional HTTP headers
+	 * @param string $body       Optional request body
+	 * @param string $user_agent Optional custom user agent
+	 * @param int    $timeout    Optional timeout in seconds (default 60 for batch ops)
+	 *
+	 * @return array|WP_Error Response array or WP_Error on failure
+	 */
+	public static function batch( string $url, array $headers = [], string $body = '', string $user_agent = '', int $timeout = 60 ) {
+		return wp_remote_request( $url, self::batch_args( $headers, $body, $user_agent, $timeout ) );
+	}
+
+	/**
+	 * Perform upload request with automatic argument handling
+	 *
+	 * @param string $url        Request URL
+	 * @param array  $headers    Optional HTTP headers
+	 * @param string $body       Optional request body (file content)
+	 * @param string $user_agent Optional custom user agent
+	 * @param int    $timeout    Optional timeout in seconds (default 120 for uploads)
+	 *
+	 * @return array|WP_Error Response array or WP_Error on failure
+	 */
+	public static function upload( string $url, array $headers = [], string $body = '', string $user_agent = '', int $timeout = 120 ) {
+		return wp_remote_request( $url, self::upload_args( $headers, $body, $user_agent, $timeout ) );
 	}
 
 }
