@@ -49,7 +49,6 @@ trait Formatter {
 	 * @param array $object  Object data to format and add
 	 */
 	private function add_formatted_object( array &$objects, array $object ): void {
-		// Use helpers for consistent extraction
 		$key_value     = $this->get_xml_text_value( $object['Key'] ?? '' );
 		$last_modified = $this->get_xml_text_value( $object['LastModified'] ?? '' );
 		$etag          = $this->get_clean_etag( $object['ETag'] ?? '' );

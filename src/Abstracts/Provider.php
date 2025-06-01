@@ -612,4 +612,72 @@ abstract class Provider implements ProviderInterface {
 		return null;
 	}
 
+	/**
+	 * Build URL with pre-encoded object key (for presigned URLs)
+	 *
+	 * Used when you already have an encoded key and don't want double-encoding.
+	 * Specifically for presigned URL generation.
+	 *
+	 * @param string $bucket      Bucket name
+	 * @param string $encoded_key Already URL-encoded object key
+	 *
+	 * @return string Complete HTTPS URL
+	 */
+	public function format_url_with_encoded_key( string $bucket, string $encoded_key ): string {
+		$endpoint = $this->get_endpoint();
+
+		if ( $this->uses_path_style() ) {
+			return 'https://' . $endpoint . '/' . $bucket . '/' . $encoded_key;
+		} else {
+			return 'https://' . $bucket . '.' . $endpoint . '/' . $encoded_key;
+		}
+	}
+
+	/**
+	 * Build URL with query parameters
+	 *
+	 * Handles both service-level and bucket/object operations with query params.
+	 *
+	 * @param string $bucket       Optional bucket name (empty for service-level)
+	 * @param string $object       Optional object key (will be URL-encoded)
+	 * @param array  $query_params Optional query parameters
+	 *
+	 * @return string Complete URL with query parameters
+	 */
+	public function build_url_with_query( string $bucket = '', string $object = '', array $query_params = [] ): string {
+		// For service-level operations (like list buckets), use endpoint directly
+		if ( empty( $bucket ) ) {
+			$url = 'https://' . $this->get_endpoint();
+		} else {
+			$url = $this->format_url( $bucket, $object );
+		}
+
+		// Add query parameters if provided
+		if ( ! empty( $query_params ) ) {
+			$url .= '?' . http_build_query( $query_params );
+		}
+
+		return $url;
+	}
+
+	/**
+	 * Get base bucket URL (for batch operations)
+	 *
+	 * Returns just the bucket URL without an object, useful for operations
+	 * like batch delete that append custom query strings.
+	 *
+	 * @param string $bucket Bucket name
+	 *
+	 * @return string Base bucket URL
+	 */
+	public function get_bucket_base_url( string $bucket ): string {
+		$endpoint = $this->get_endpoint();
+
+		if ( $this->uses_path_style() ) {
+			return 'https://' . $endpoint . '/' . $bucket;
+		} else {
+			return 'https://' . $bucket . '.' . $endpoint;
+		}
+	}
+
 }
