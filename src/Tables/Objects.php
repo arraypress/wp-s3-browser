@@ -369,6 +369,14 @@ class Objects extends WP_List_Table {
 
 		} else {
 
+			$actions['rename'] = sprintf(
+				'<a href="#" class="s3-rename-file" data-filename="%s" data-bucket="%s" data-key="%s">%s</a>',
+				esc_attr( $item['name'] ),
+				esc_attr( $this->bucket ),
+				esc_attr( $item['key'] ),
+				esc_html__( 'Rename', 'arraypress' )
+			);
+
 			// Download link
 			if ( isset( $item['object'] ) ) {
 				$presigned_url = $item['object']->get_presigned_url( $this->client, $this->bucket, 60 );
@@ -380,14 +388,6 @@ class Objects extends WP_List_Table {
 					);
 				}
 			}
-
-			$actions['rename'] = sprintf(
-				'<a href="#" class="s3-rename-file" data-filename="%s" data-bucket="%s" data-key="%s">%s</a>',
-				esc_attr( $item['name'] ),
-				esc_attr( $this->bucket ),
-				esc_attr( $item['key'] ),
-				esc_html__( 'Rename', 'arraypress' )
-			);
 
 			$actions['delete'] = sprintf(
 				'<a href="#" class="s3-delete-file button-delete" data-filename="%s" data-bucket="%s" data-key="%s">%s</a>',
@@ -411,7 +411,7 @@ class Objects extends WP_List_Table {
 	public function column_actions( array $item ): string {
 		if ( $item['type'] === 'file' ) {
 			return sprintf(
-				'<button type="button" class="button button-primary button-small s3-insert-file" data-filename="%s" data-bucket="%s" data-key="%s" title="%s">
+				'<button type="button" class="button button-primary s3-icon-button s3-insert-file" data-filename="%s" data-bucket="%s" data-key="%s" title="%s">
 					<span class="dashicons dashicons-insert"></span> %s
 				</button>',
 				esc_attr( $item['name'] ),

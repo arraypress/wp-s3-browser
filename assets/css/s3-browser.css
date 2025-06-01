@@ -32,34 +32,12 @@
 
 .wp-list-table th.column-actions, .wp-list-table td.column-actions {
     width: 10%;
-    text-align: center;
+    text-align: left;
     vertical-align: middle;
     min-width: 120px;
 }
 
-/* Insert File Button Styling */
-.s3-insert-file {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 4px 8px !important;
-    font-size: 12px !important;
-    line-height: 1.4 !important;
-    min-height: auto !important;
-    white-space: nowrap;
-}
-
-.s3-insert-file .dashicons {
-    font-size: 14px;
-    width: 14px;
-    height: 14px;
-    margin: 0;
-}
-
-.s3-insert-file:hover {
-    background-color: #0369a1 !important;
-    border-color: #0369a1 !important;
-}
+/* Remove custom Insert File button styling - use WordPress defaults */
 
 /* Row Actions - Keep WordPress defaults, just color delete links */
 .wp-list-table .row-actions .delete a {
@@ -664,17 +642,5 @@
     .wp-list-table th.column-actions, .wp-list-table td.column-actions {
         width: 15%;
         min-width: 80px;
-    }
-
-    /* Mobile Insert File button - make it smaller */
-    .s3-insert-file {
-        padding: 2px 6px !important;
-        font-size: 11px !important;
-    }
-
-    .s3-insert-file .dashicons {
-        font-size: 12px;
-        width: 12px;
-        height: 12px;
     }
 }
