@@ -1,6 +1,6 @@
 <?php
 /**
- * Presigned URL Operations Trait
+ * Presigned URL Operations Trait - PHP 7.4 Compatible
  *
  * Handles presigned URL operations for S3-compatible storage.
  *

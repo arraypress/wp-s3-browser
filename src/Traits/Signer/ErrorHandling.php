@@ -1,6 +1,6 @@
 <?php
 /**
- * Utilities Trait
+ * Error Handling Trait - PHP 7.4 Compatible
  *
  * Provides essential utility methods for S3 operations.
  *
@@ -23,11 +23,12 @@ use ArrayPress\S3\Responses\ErrorResponse;
 trait ErrorHandling {
 
 	/**
-	 * Handle error responses
+	 * Handle error responses with enhanced XML parsing
 	 *
-	 * @param int $status_code HTTP status code
-	 * @param string $body Response body
+	 * @param int    $status_code HTTP status code
+	 * @param string $body        Response body
 	 * @param string $default_msg Default error message
+	 *
 	 * @return ErrorResponse
 	 */
 	private function handle_error_response( int $status_code, string $body, string $default_msg ): ErrorResponse {

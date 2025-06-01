@@ -1,6 +1,6 @@
 <?php
 /**
- * Bucket Operations Trait
+ * Bucket Operations Trait - PHP 7.4 Compatible
  *
  * Handles bucket-related operations for S3-compatible storage.
  *
@@ -23,6 +23,23 @@ use ArrayPress\S3\Responses\ErrorResponse;
  * Trait Buckets
  */
 trait Buckets {
+
+	/**
+	 * Get timeout for specific operation
+	 *
+	 * @param string $operation Operation name
+	 *
+	 * @return int Timeout in seconds
+	 */
+	private function get_operation_timeout( string $operation ): int {
+		$timeouts = [
+			'list_buckets' => 30,
+			'head_bucket'  => 15,
+			'put_bucket'   => 30,
+		];
+
+		return $timeouts[ $operation ] ?? 30;
+	}
 
 	/**
 	 * List all buckets
@@ -66,13 +83,12 @@ trait Buckets {
 		}
 
 		// Debug the request
-		$this->debug( "List Buckets Request URL", $url );
-		$this->debug( "List Buckets Request Headers", $headers );
+		$this->debug_request_details( 'list_buckets', $url, $headers );
 
 		// Make the request
 		$response = wp_remote_get( $url, [
 			'headers' => $headers,
-			'timeout' => 30
+			'timeout' => $this->get_operation_timeout( 'list_buckets' )
 		] );
 
 		// Handle errors
@@ -84,8 +100,7 @@ trait Buckets {
 		$body        = wp_remote_retrieve_body( $response );
 
 		// Debug the response
-		$this->debug( "List Buckets Response Status", $status_code );
-		$this->debug( "List Buckets Response Body", $body );
+		$this->debug_response_details( 'list_buckets', $status_code, $body );
 
 		// Check for error status code
 		if ( $status_code < 200 || $status_code >= 300 ) {

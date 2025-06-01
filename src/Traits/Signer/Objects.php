@@ -1,6 +1,6 @@
 <?php
 /**
- * Object Operations Trait
+ * Object Operations Trait - PHP 7.4 Compatible
  *
  * Handles object-related operations for S3-compatible storage.
  *
@@ -27,6 +27,42 @@ use ArrayPress\S3\Utils\File;
  * Trait Objects
  */
 trait Objects {
+
+	/**
+	 * Get timeout for specific operation
+	 *
+	 * @param string $operation Operation name
+	 *
+	 * @return int Timeout in seconds
+	 */
+	private function get_operation_timeout( string $operation ): int {
+		$timeouts = [
+			'head_object'    => 15,
+			'delete_object'  => 15,
+			'get_object'     => 30,
+			'put_object'     => 30,
+			'list_objects'   => 30,
+			'list_buckets'   => 30,
+			'copy_object'    => 30,
+			'batch_delete'   => 60,
+			'upload_object'  => 120,
+		];
+
+		return $timeouts[ $operation ] ?? 30;
+	}
+
+	/**
+	 * Safe helper to build copy headers
+	 */
+	private function build_copy_headers( string $source_bucket, string $source_key, string $target_bucket, string $target_key ): array {
+		$encoded_target_key = Encode::object_key( $target_key );
+		$headers = $this->generate_auth_headers( 'PUT', $target_bucket, $encoded_target_key );
+
+		$encoded_source_key = Encode::object_key( $source_key );
+		$headers['x-amz-copy-source'] = $source_bucket . '/' . $encoded_source_key;
+
+		return $headers;
+	}
 
 	/**
 	 * List objects in a bucket
@@ -83,13 +119,12 @@ trait Objects {
 		}
 
 		// Debug the request
-		$this->debug( "List Objects Request URL", $url );
-		$this->debug( "List Objects Request Headers", $headers );
+		$this->debug_request_details( 'list_objects', $url, $headers );
 
 		// Make the request
 		$response = wp_remote_get( $url, [
 			'headers' => $headers,
-			'timeout' => 30
+			'timeout' => $this->get_operation_timeout( 'list_objects' )
 		] );
 
 		// Handle errors
@@ -207,13 +242,12 @@ trait Objects {
 		$url = $this->provider->format_url( $bucket, $object_key );
 
 		// Debug the request
-		$this->debug( "Get Object Request URL", $url );
-		$this->debug( "Get Object Request Headers", $headers );
+		$this->debug_request_details( 'get_object', $url, $headers );
 
 		// Make the request
 		$response = wp_remote_get( $url, [
 			'headers' => $headers,
-			'timeout' => 30
+			'timeout' => $this->get_operation_timeout( 'get_object' )
 		] );
 
 		// Handle errors
@@ -280,13 +314,12 @@ trait Objects {
 		$url = $this->provider->format_url( $bucket, $object_key );
 
 		// Debug the request
-		$this->debug( "Head Object Request URL", $url );
-		$this->debug( "Head Object Request Headers", $headers );
+		$this->debug_request_details( 'head_object', $url, $headers );
 
 		// Make the request
 		$response = wp_remote_head( $url, [
 			'headers' => $headers,
-			'timeout' => 15
+			'timeout' => $this->get_operation_timeout( 'head_object' )
 		] );
 
 		// Handle errors
@@ -361,11 +394,14 @@ trait Objects {
 			$url = 'https://' . $bucket . '.' . $host . '/' . $encoded_key;
 		}
 
+		// Debug the request
+		$this->debug_request_details( 'delete_object', $url, $headers );
+
 		// Make the request
 		$response = wp_remote_request( $url, [
 			'method'  => 'DELETE',
 			'headers' => $headers,
-			'timeout' => 15,
+			'timeout' => $this->get_operation_timeout( 'delete_object' ),
 			'body'    => ''
 		] );
 
@@ -420,39 +456,20 @@ trait Objects {
 			);
 		}
 
-		// Encode the target key for URL usage
-		$encoded_target_key = Encode::object_key( $target_key );
-
-		// Generate authorization headers for PUT request to the target
-		$headers = $this->generate_auth_headers(
-			'PUT',
-			$target_bucket,
-			$encoded_target_key
-		);
-
-		// Create the source path for x-amz-copy-source header
-		// The source path should be: bucket/key where key is URL-encoded
-		$encoded_source_key = Encode::object_key( $source_key );
-		$source_path        = $source_bucket . '/' . $encoded_source_key;
-
-		// Add the source header - this tells S3 to copy from the source object
-		$headers['x-amz-copy-source'] = $source_path;
+		// Use the helper to build copy headers
+		$headers = $this->build_copy_headers( $source_bucket, $source_key, $target_bucket, $target_key );
 
 		// Build the URL
-		$url = $this->provider->format_url( $target_bucket, $encoded_target_key );
+		$url = $this->provider->format_url( $target_bucket, $target_key );
 
 		// Debug the request
-		$this->debug( "Copy Object Request URL", $url );
-		$this->debug( "Copy Object Request Headers", $headers );
-		$this->debug( "Copy Object Source Key", $source_key );
-		$this->debug( "Copy Object Encoded Source Key", $encoded_source_key );
-		$this->debug( "Copy Object Source Path", $source_path );
+		$this->debug_request_details( 'copy_object', $url, $headers );
 
 		// Make the request
 		$response = wp_remote_request( $url, [
 			'method'  => 'PUT',
 			'headers' => $headers,
-			'timeout' => 30,
+			'timeout' => $this->get_operation_timeout( 'copy_object' ),
 			'body'    => '' // Empty body for copy operation
 		] );
 

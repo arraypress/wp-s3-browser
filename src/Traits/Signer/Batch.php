@@ -1,6 +1,6 @@
 <?php
 /**
- * Enhanced Signer Batch Trait with Better Error Handling
+ * Enhanced Signer Batch Trait - PHP 7.4 Compatible
  */
 
 declare( strict_types=1 );
@@ -12,6 +12,22 @@ use ArrayPress\S3\Responses\SuccessResponse;
 use ArrayPress\S3\Responses\ErrorResponse;
 
 trait Batch {
+
+	/**
+	 * Get timeout for specific operation
+	 *
+	 * @param string $operation Operation name
+	 *
+	 * @return int Timeout in seconds
+	 */
+	private function get_operation_timeout( string $operation ): int {
+		$timeouts = [
+			'batch_delete' => 60,
+			'batch_copy'   => 120,
+		];
+
+		return $timeouts[ $operation ] ?? 60;
+	}
 
 	/**
 	 * Delete multiple objects in batches with enhanced error handling
@@ -76,15 +92,14 @@ trait Batch {
 		$url = $this->provider->format_url( $bucket ) . '?delete';
 
 		// Debug the request
-		$this->debug( "Batch Delete Request URL", $url );
-		$this->debug( "Batch Delete Request Headers", $headers );
+		$this->debug_request_details( 'batch_delete', $url, $headers );
 
 		// Enhanced request with better timeout handling for R2
 		$response = wp_remote_request( $url, [
 			'method'     => 'POST',
 			'headers'    => $headers,
 			'body'       => $delete_xml,
-			'timeout'    => 60,
+			'timeout'    => $this->get_operation_timeout( 'batch_delete' ),
 			'blocking'   => true,
 			'sslverify'  => true,
 			'user-agent' => 'ArrayPress-S3-Client/1.0'
@@ -118,9 +133,7 @@ trait Batch {
 		$response_headers = wp_remote_retrieve_headers( $response );
 
 		// Debug the response
-		$this->debug( "Batch Delete Response Status", $status_code );
-		$this->debug( "Batch Delete Response Headers", $response_headers );
-		$this->debug( "Batch Delete Response Body", $body );
+		$this->debug_response_details( 'batch_delete', $status_code, $body, $response_headers );
 
 		// Check for error status codes
 		if ( $status_code < 200 || $status_code >= 300 ) {
