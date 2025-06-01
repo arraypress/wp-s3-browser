@@ -1,8 +1,9 @@
 <?php
 /**
- * Browser AJAX Handlers Trait - Fixed Folder Delete (Original Approach)
+ * Browser AJAX Handlers Trait - Complete Fixed Version
  *
- * Handles AJAX operations for the S3 Browser including proper folder deletion.
+ * Handles AJAX operations for the S3 Browser including proper character handling
+ * and comprehensive error management for all S3 operations.
  *
  * @package     ArrayPress\S3\Traits
  * @copyright   Copyright (c) 2025, ArrayPress Limited
@@ -21,11 +22,25 @@ use ArrayPress\S3\Utils\Validate;
 
 /**
  * Trait AjaxHandlers
+ *
+ * Provides AJAX endpoint handlers for S3 Browser operations including file management,
+ * folder operations, uploads, and cache management. All handlers include proper
+ * character encoding handling to prevent issues with special characters like apostrophes.
  */
 trait AjaxHandlers {
 
 	/**
 	 * Handle AJAX delete object request
+	 *
+	 * Processes requests to delete individual objects from S3 buckets.
+	 * Includes proper character handling for filenames with special characters.
+	 *
+	 * Expected POST parameters:
+	 * - bucket: S3 bucket name
+	 * - key: Object key to delete
+	 * - nonce: Security nonce
+	 *
+	 * @since 1.0.0
 	 */
 	public function handle_ajax_delete_object(): void {
 		if ( ! check_ajax_referer( 's3_browser_nonce_' . $this->provider_id, 'nonce', false ) ) {
@@ -41,7 +56,7 @@ trait AjaxHandlers {
 		}
 
 		$bucket     = isset( $_POST['bucket'] ) ? sanitize_text_field( $_POST['bucket'] ) : '';
-		$object_key = isset( $_POST['key'] ) ? sanitize_text_field( $_POST['key'] ) : '';
+		$object_key = isset( $_POST['key'] ) ? wp_unslash( sanitize_text_field( $_POST['key'] ) ) : '';
 
 		if ( empty( $bucket ) || empty( $object_key ) ) {
 			wp_send_json_error( [ 'message' => __( 'Bucket and object key are required', 'arraypress' ) ] );
@@ -67,7 +82,18 @@ trait AjaxHandlers {
 	}
 
 	/**
-	 * Handle AJAX delete folder request - Enhanced with better error handling
+	 * Handle AJAX delete folder request
+	 *
+	 * Processes requests to delete entire folders from S3 buckets, including all
+	 * contained objects. Uses batch deletion with fallback to individual deletion
+	 * for improved reliability across different S3 providers.
+	 *
+	 * Expected POST parameters:
+	 * - bucket: S3 bucket name
+	 * - folder_path: Folder path to delete (will be normalized)
+	 * - nonce: Security nonce
+	 *
+	 * @since 1.0.0
 	 */
 	public function handle_ajax_delete_folder(): void {
 		if ( ! check_ajax_referer( 's3_browser_nonce_' . $this->provider_id, 'nonce', false ) ) {
@@ -83,7 +109,7 @@ trait AjaxHandlers {
 		}
 
 		$bucket      = isset( $_POST['bucket'] ) ? sanitize_text_field( $_POST['bucket'] ) : '';
-		$folder_path = isset( $_POST['folder_path'] ) ? sanitize_text_field( $_POST['folder_path'] ) : '';
+		$folder_path = isset( $_POST['folder_path'] ) ? wp_unslash( sanitize_text_field( $_POST['folder_path'] ) ) : '';
 
 		if ( empty( $bucket ) || empty( $folder_path ) ) {
 			wp_send_json_error( [ 'message' => __( 'Bucket and folder path are required', 'arraypress' ) ] );
@@ -138,6 +164,18 @@ trait AjaxHandlers {
 
 	/**
 	 * Handle AJAX rename object request
+	 *
+	 * Processes requests to rename objects in S3 buckets. Performs validation
+	 * on the new filename and checks for conflicts before executing the rename
+	 * operation (which is implemented as copy + delete).
+	 *
+	 * Expected POST parameters:
+	 * - bucket: S3 bucket name
+	 * - current_key: Current object key
+	 * - new_filename: New filename (without path)
+	 * - nonce: Security nonce
+	 *
+	 * @since 1.0.0
 	 */
 	public function handle_ajax_rename_object(): void {
 		if ( ! check_ajax_referer( 's3_browser_nonce_' . $this->provider_id, 'nonce', false ) ) {
@@ -153,8 +191,8 @@ trait AjaxHandlers {
 		}
 
 		$bucket       = isset( $_POST['bucket'] ) ? sanitize_text_field( $_POST['bucket'] ) : '';
-		$current_key  = isset( $_POST['current_key'] ) ? sanitize_text_field( $_POST['current_key'] ) : '';
-		$new_filename = isset( $_POST['new_filename'] ) ? sanitize_text_field( $_POST['new_filename'] ) : '';
+		$current_key  = isset( $_POST['current_key'] ) ? wp_unslash( sanitize_text_field( $_POST['current_key'] ) ) : '';
+		$new_filename = isset( $_POST['new_filename'] ) ? wp_unslash( sanitize_text_field( $_POST['new_filename'] ) ) : '';
 
 		if ( empty( $bucket ) || empty( $current_key ) || empty( $new_filename ) ) {
 			wp_send_json_error( [ 'message' => __( 'Bucket, current key, and new filename are required', 'arraypress' ) ] );
@@ -217,6 +255,16 @@ trait AjaxHandlers {
 
 	/**
 	 * Handle AJAX load more request
+	 *
+	 * Processes pagination requests for object listings. Delegates to the
+	 * Objects table class for handling pagination logic and returning
+	 * additional object data.
+	 *
+	 * Expected POST parameters:
+	 * - Various pagination parameters handled by Objects::ajax_load_more()
+	 * - nonce: Security nonce
+	 *
+	 * @since 1.0.0
 	 */
 	public function handle_ajax_load_more(): void {
 		if ( ! check_ajax_referer( 's3_browser_nonce_' . $this->provider_id, 'nonce', false ) ) {
@@ -236,6 +284,21 @@ trait AjaxHandlers {
 
 	/**
 	 * Handle AJAX request for presigned upload URL
+	 *
+	 * Generates presigned URLs for direct browser uploads to S3. The presigned
+	 * URL allows the browser to upload files directly to S3 without passing
+	 * through the server, improving performance and reducing server load.
+	 *
+	 * Expected POST parameters:
+	 * - bucket: Target S3 bucket name
+	 * - object_key: Target object key (including path and filename)
+	 * - nonce: Security nonce
+	 *
+	 * Returns:
+	 * - url: Presigned upload URL
+	 * - expires: URL expiration timestamp
+	 *
+	 * @since 1.0.0
 	 */
 	public function handle_ajax_get_upload_url() {
 		if ( ! check_ajax_referer( 's3_browser_nonce_' . $this->provider_id, 'nonce', false ) ) {
@@ -251,7 +314,7 @@ trait AjaxHandlers {
 		}
 
 		$bucket     = isset( $_POST['bucket'] ) ? sanitize_text_field( $_POST['bucket'] ) : '';
-		$object_key = isset( $_POST['object_key'] ) ? sanitize_text_field( $_POST['object_key'] ) : '';
+		$object_key = isset( $_POST['object_key'] ) ? wp_unslash( sanitize_text_field( $_POST['object_key'] ) ) : '';
 
 		if ( empty( $bucket ) || empty( $object_key ) ) {
 			wp_send_json_error( [ 'message' => __( 'Bucket and object key are required', 'arraypress' ) ] );
@@ -277,6 +340,15 @@ trait AjaxHandlers {
 
 	/**
 	 * Handle AJAX cache clear request
+	 *
+	 * Processes requests to clear all cached S3 data. This includes object
+	 * listings, bucket information, and any other cached S3 responses.
+	 * Useful for forcing fresh data retrieval from S3.
+	 *
+	 * Expected POST parameters:
+	 * - nonce: Security nonce
+	 *
+	 * @since 1.0.0
 	 */
 	public function handle_ajax_clear_cache(): void {
 		if ( ! check_ajax_referer( 's3_browser_nonce_' . $this->provider_id, 'nonce', false ) ) {
@@ -308,6 +380,18 @@ trait AjaxHandlers {
 
 	/**
 	 * Handle AJAX toggle favorite request
+	 *
+	 * Processes requests to set or remove a bucket as the user's default/favorite
+	 * bucket for a specific post type context. This allows users to have different
+	 * default buckets for different contexts (e.g., media library vs. custom post types).
+	 *
+	 * Expected POST parameters:
+	 * - bucket: Bucket name to set as favorite
+	 * - favorite_action: 'add' or 'remove' (optional, toggles if not specified)
+	 * - post_type: Context for the favorite (defaults to 'default')
+	 * - nonce: Security nonce
+	 *
+	 * @since 1.0.0
 	 */
 	public function handle_ajax_toggle_favorite(): void {
 		if ( ! check_ajax_referer( 's3_browser_nonce_' . $this->provider_id, 'nonce', false ) ) {
@@ -368,6 +452,18 @@ trait AjaxHandlers {
 
 	/**
 	 * AJAX Handler for Folder Creation
+	 *
+	 * Processes requests to create new folders in S3 buckets. Validates the
+	 * folder name according to S3 naming conventions and creates the folder
+	 * marker object in the specified bucket and prefix location.
+	 *
+	 * Expected POST parameters:
+	 * - bucket: Target S3 bucket name
+	 * - prefix: Current folder prefix/path (optional)
+	 * - folder_name: Name of the new folder to create
+	 * - nonce: Security nonce
+	 *
+	 * @since 1.0.0
 	 */
 	public function handle_ajax_create_folder(): void {
 		if ( ! check_ajax_referer( 's3_browser_nonce_' . $this->provider_id, 'nonce', false ) ) {
@@ -383,8 +479,8 @@ trait AjaxHandlers {
 		}
 
 		$bucket         = isset( $_POST['bucket'] ) ? sanitize_text_field( $_POST['bucket'] ) : '';
-		$current_prefix = isset( $_POST['prefix'] ) ? sanitize_text_field( $_POST['prefix'] ) : '';
-		$folder_name    = isset( $_POST['folder_name'] ) ? sanitize_text_field( $_POST['folder_name'] ) : '';
+		$current_prefix = isset( $_POST['prefix'] ) ? wp_unslash( sanitize_text_field( $_POST['prefix'] ) ) : '';
+		$folder_name    = isset( $_POST['folder_name'] ) ? wp_unslash( sanitize_text_field( $_POST['folder_name'] ) ) : '';
 
 		if ( empty( $bucket ) ) {
 			wp_send_json_error( [ 'message' => __( 'Bucket name is required', 'arraypress' ) ] );
