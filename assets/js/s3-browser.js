@@ -47,7 +47,7 @@
         },
 
         /**
-         * Initialize WordPress-style row actions
+         * Initialize WordPress-style row actions and action buttons
          */
         initRowActions: function () {
             var self = this;
@@ -58,9 +58,7 @@
                 var $link = $(this);
 
                 // Handle different actions
-                if ($link.hasClass('s3-select-file')) {
-                    self.handleFileSelection($link);
-                } else if ($link.hasClass('s3-download-file')) {
+                if ($link.hasClass('s3-download-file')) {
                     window.open($link.data('url'), '_blank');
                 } else if ($link.hasClass('s3-delete-file')) {
                     self.deleteFile($link);
@@ -69,7 +67,12 @@
                 } else if ($link.hasClass('s3-rename-file')) {
                     self.openRenameModal($link);
                 }
-                // Removed 'open' folder action - let the main folder link handle it
+            });
+
+            // Handle Insert File button clicks
+            $(document).off('click.s3insertfile').on('click.s3insertfile', '.s3-insert-file', function (e) {
+                e.preventDefault();
+                self.handleFileSelection($(this));
             });
 
             // Show/hide row actions on hover - WordPress standard behavior
@@ -618,7 +621,10 @@
                 return {valid: false, message: i18n.folderNameTooLong || 'Folder name cannot exceed 63 characters'};
             }
             if (!/^[a-zA-Z0-9._-]+$/.test(folderName)) {
-                return {valid: false, message: i18n.folderNameInvalidChars || 'Folder name can only contain letters, numbers, dots, hyphens, and underscores'};
+                return {
+                    valid: false,
+                    message: i18n.folderNameInvalidChars || 'Folder name can only contain letters, numbers, dots, hyphens, and underscores'
+                };
             }
             if (['.', '-'].includes(folderName[0]) || ['.', '-'].includes(folderName[folderName.length - 1])) {
                 return {valid: false, message: 'Folder name cannot start or end with dots or hyphens'};
@@ -809,7 +815,10 @@
 
             // Check if the new name is the same as current
             if (this.currentRename && fullName === this.currentRename.filename) {
-                return {valid: false, message: i18n.filenameSame || 'The new filename is the same as the current filename'};
+                return {
+                    valid: false,
+                    message: i18n.filenameSame || 'The new filename is the same as the current filename'
+                };
             }
 
             return {valid: true, message: ''};

@@ -12,9 +12,9 @@
     margin-top: 15px;
 }
 
-/* Optimized Column Widths - Name takes most space */
+/* Optimized Column Widths - Updated for Actions column */
 .wp-list-table th.column-name, .wp-list-table td.column-name {
-    width: 70%;
+    width: 55%;
     min-width: 250px;
     overflow-wrap: break-word;
 }
@@ -26,8 +26,39 @@
 }
 
 .wp-list-table th.column-modified, .wp-list-table td.column-modified {
-    width: 15%;
+    width: 20%;
     white-space: nowrap;
+}
+
+.wp-list-table th.column-actions, .wp-list-table td.column-actions {
+    width: 10%;
+    text-align: center;
+    vertical-align: middle;
+    min-width: 120px;
+}
+
+/* Insert File Button Styling */
+.s3-insert-file {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px !important;
+    font-size: 12px !important;
+    line-height: 1.4 !important;
+    min-height: auto !important;
+    white-space: nowrap;
+}
+
+.s3-insert-file .dashicons {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    margin: 0;
+}
+
+.s3-insert-file:hover {
+    background-color: #0369a1 !important;
+    border-color: #0369a1 !important;
 }
 
 /* Row Actions - Keep WordPress defaults, just color delete links */
@@ -618,15 +649,32 @@
 
     /* Mobile column adjustments */
     .wp-list-table th.column-name, .wp-list-table td.column-name {
-        width: 60%;
+        width: 50%;
         min-width: 150px;
     }
 
     .wp-list-table th.column-size, .wp-list-table td.column-size {
-        width: 20%;
+        width: 15%;
     }
 
     .wp-list-table th.column-modified, .wp-list-table td.column-modified {
         width: 20%;
+    }
+
+    .wp-list-table th.column-actions, .wp-list-table td.column-actions {
+        width: 15%;
+        min-width: 80px;
+    }
+
+    /* Mobile Insert File button - make it smaller */
+    .s3-insert-file {
+        padding: 2px 6px !important;
+        font-size: 11px !important;
+    }
+
+    .s3-insert-file .dashicons {
+        font-size: 12px;
+        width: 12px;
+        height: 12px;
     }
 }

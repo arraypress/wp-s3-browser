@@ -109,6 +109,7 @@ class Objects extends WP_List_Table {
 			'name'     => __( 'Name', 'arraypress' ),
 			'size'     => __( 'Size', 'arraypress' ),
 			'modified' => __( 'Last Modified', 'arraypress' ),
+			'actions'  => __( 'Actions', 'arraypress' ),
 		];
 	}
 
@@ -340,6 +341,7 @@ class Objects extends WP_List_Table {
 		$output .= '<td class="column-name has-row-actions">' . $this->column_name( $item ) . '</td>';
 		$output .= '<td class="column-size">' . esc_html( $item['size'] ) . '</td>';
 		$output .= '<td class="column-modified">' . esc_html( $item['modified'] ) . '</td>';
+		$output .= '<td class="column-actions">' . $this->column_actions( $item ) . '</td>';
 		$output .= '</tr>';
 
 		return $output;
@@ -357,14 +359,6 @@ class Objects extends WP_List_Table {
 
 		if ( $item['type'] === 'folder' ) {
 			// Folder actions
-			$url = add_query_arg( [
-				'chromeless' => 1,
-				'post_id'    => isset( $_REQUEST['post_id'] ) ? intval( $_REQUEST['post_id'] ) : 0,
-				'tab'        => 's3_' . $this->provider_id,
-				'bucket'     => $this->bucket,
-				'prefix'     => $item['prefix']
-			], remove_query_arg( [ 'continuation_token' ] ) );
-
 			$actions['delete'] = sprintf(
 				'<a href="#" class="s3-delete-folder" data-folder-name="%s" data-bucket="%s" data-prefix="%s">%s</a>',
 				esc_attr( $item['name'] ),
@@ -374,14 +368,6 @@ class Objects extends WP_List_Table {
 			);
 
 		} else {
-			// File actions
-			$actions['select'] = sprintf(
-				'<a href="#" class="s3-select-file" data-filename="%s" data-bucket="%s" data-key="%s">%s</a>',
-				esc_attr( $item['name'] ),
-				esc_attr( $this->bucket ),
-				esc_attr( $item['key'] ),
-				esc_html__( 'Select', 'arraypress' )
-			);
 
 			// Download link
 			if ( isset( $item['object'] ) ) {
@@ -413,6 +399,31 @@ class Objects extends WP_List_Table {
 		}
 
 		return $actions;
+	}
+
+	/**
+	 * Render the actions column with Insert File button for files
+	 *
+	 * @param array $item Item data
+	 *
+	 * @return string Column HTML
+	 */
+	public function column_actions( array $item ): string {
+		if ( $item['type'] === 'file' ) {
+			return sprintf(
+				'<button type="button" class="button button-primary button-small s3-insert-file" data-filename="%s" data-bucket="%s" data-key="%s" title="%s">
+					<span class="dashicons dashicons-insert"></span> %s
+				</button>',
+				esc_attr( $item['name'] ),
+				esc_attr( $this->bucket ),
+				esc_attr( $item['key'] ),
+				esc_attr__( 'Insert this file', 'arraypress' ),
+				esc_html__( 'Insert File', 'arraypress' )
+			);
+		}
+
+		// Return empty for folders
+		return '';
 	}
 
 	/**
