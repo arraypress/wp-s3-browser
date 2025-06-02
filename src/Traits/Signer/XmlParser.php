@@ -113,7 +113,8 @@ trait XmlParser {
 			// Single object case
 			if ( isset( $contents['Key'] ) ) {
 				$objects[] = $this->extract_object_data( $contents );
-			} // Multiple objects case
+			}
+			// Multiple objects case
 			elseif ( is_array( $contents ) ) {
 				foreach ( $contents as $object ) {
 					if ( isset( $object['Key'] ) ) {
@@ -133,7 +134,8 @@ trait XmlParser {
 				if ( ! empty( $prefix_value ) ) {
 					$prefixes[] = $prefix_value;
 				}
-			} // Multiple prefixes case
+			}
+			// Multiple prefixes case
 			elseif ( is_array( $common_prefixes ) ) {
 				foreach ( $common_prefixes as $prefix_data ) {
 					if ( isset( $prefix_data['Prefix'] ) ) {
@@ -188,30 +190,96 @@ trait XmlParser {
 	/**
 	 * Parse ListBuckets XML response
 	 *
-	 * Extracts bucket information from S3 ListBuckets response.
+	 * Extracts bucket information, owner data, and truncation info from S3 ListBuckets response.
 	 *
 	 * @param array $xml Parsed XML array from parse_xml_response()
 	 *
-	 * @return array Array of bucket data
+	 * @return array Array containing buckets, owner, and truncation data
 	 */
 	protected function parse_buckets_list( array $xml ): array {
 		$buckets = [];
+		$owner = null;
+		$truncated = false;
+		$next_marker = '';
 
 		// Extract from ListAllMyBucketsResult format
 		$result_path = $xml['ListAllMyBucketsResult'] ?? $xml;
 
-		if ( isset( $result_path['Buckets']['Bucket'] ) ) {
-			$buckets_data = $result_path['Buckets']['Bucket'];
-
+		// Extract buckets using utility
+		$buckets_data = Xml::find_value( $result_path, 'Bucket' );
+		if ( $buckets_data !== null ) {
 			// Single bucket case
 			if ( isset( $buckets_data['Name'] ) ) {
 				$buckets[] = $this->extract_bucket_data( $buckets_data );
-			} // Multiple buckets case
+			}
+			// Multiple buckets case
 			elseif ( is_array( $buckets_data ) ) {
 				foreach ( $buckets_data as $bucket ) {
 					if ( isset( $bucket['Name'] ) ) {
 						$buckets[] = $this->extract_bucket_data( $bucket );
 					}
+				}
+			}
+		}
+
+		// If no buckets found through common paths, search recursively
+		if ( empty( $buckets ) ) {
+			$buckets = $this->search_for_buckets_recursively( $xml );
+		}
+
+		// Extract owner information
+		$owner_data = Xml::find_value( $xml, 'Owner' );
+		if ( $owner_data !== null ) {
+			$owner = [
+				'ID'          => $this->extract_text_value( $owner_data['ID'] ?? '' ),
+				'DisplayName' => $this->extract_text_value( $owner_data['DisplayName'] ?? '' )
+			];
+		}
+
+		// Extract truncation info
+		$is_truncated = Xml::find_value( $xml, 'IsTruncated' );
+		if ( $is_truncated !== null ) {
+			$truncated = ( $this->extract_text_value( $is_truncated ) === 'true' );
+		}
+
+		if ( $truncated ) {
+			$marker = Xml::find_value( $xml, 'NextMarker' );
+			if ( $marker !== null ) {
+				$next_marker = $this->extract_text_value( $marker );
+			}
+		}
+
+		return [
+			'buckets'     => $buckets,
+			'owner'       => $owner,
+			'truncated'   => $truncated,
+			'next_marker' => $next_marker
+		];
+	}
+
+	/**
+	 * Search recursively for buckets in the XML structure
+	 *
+	 * Fallback method for providers with non-standard XML structures.
+	 *
+	 * @param array $data XML data to search
+	 *
+	 * @return array Found buckets
+	 */
+	protected function search_for_buckets_recursively( array $data ): array {
+		$buckets = [];
+
+		// Look for patterns that might represent buckets
+		foreach ( $data as $key => $value ) {
+			// If we find something that looks like a bucket
+			if ( is_array( $value ) && isset( $value['Name'] ) && isset( $value['CreationDate'] ) ) {
+				$buckets[] = $this->extract_bucket_data( $value );
+			}
+			// Recursively search deeper
+			elseif ( is_array( $value ) ) {
+				$found_buckets = $this->search_for_buckets_recursively( $value );
+				if ( ! empty( $found_buckets ) ) {
+					$buckets = array_merge( $buckets, $found_buckets );
 				}
 			}
 		}

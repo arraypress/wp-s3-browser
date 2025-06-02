@@ -1,8 +1,9 @@
 <?php
 /**
- * Bucket Operations Trait - PHP 7.4 Compatible
+ * Bucket Operations Trait - Simplified Version
  *
- * Handles bucket-related operations for S3-compatible storage.
+ * Handles bucket-related operations for S3-compatible storage using
+ * centralized XML parsing methods.
  *
  * @package     ArrayPress\S3\Traits
  * @copyright   Copyright (c) 2025, ArrayPress Limited
@@ -122,7 +123,7 @@ trait Buckets {
 		// Generate authorization headers
 		$headers = $this->generate_auth_headers( 'GET', '', '', $query_params );
 
-		// ✅ USE PROVIDER METHOD - No more manual URL building!
+		// Use provider method for service-level URL building
 		$url = $this->provider->build_url_with_query( '', '', $query_params );
 
 		// Debug and make request
@@ -154,17 +155,15 @@ trait Buckets {
 			return $xml;
 		}
 
-		// Extract data
-		$owner           = $this->extract_owner_from_xml( $xml );
-		$buckets         = $this->extract_buckets_from_xml( $xml );
-		$truncation_info = $this->extract_truncation_info_from_xml( $xml );
+		// Use XML trait method to parse buckets list
+		$parsed = $this->parse_buckets_list( $xml );
 
 		return new BucketsResponse(
-			$buckets,
+			$parsed['buckets'],
 			$status_code,
-			$owner,
-			$truncation_info['truncated'],
-			$truncation_info['next_marker'],
+			$parsed['owner'],
+			$parsed['truncated'],
+			$parsed['next_marker'],
 			$xml
 		);
 	}
