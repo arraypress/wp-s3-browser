@@ -16,11 +16,11 @@ declare( strict_types=1 );
 namespace ArrayPress\S3\Traits\Common;
 
 /**
- * Trait RequestTimeouts
+ * Trait Timeouts
  *
  * Centralized timeout management for all S3 operations
  */
-trait RequestTimeouts {
+trait Timeouts {
 
 	/**
 	 * Operation timeout mappings

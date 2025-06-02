@@ -1,8 +1,9 @@
 <?php
 /**
- * XML Parser Trait
+ * XML Parser Trait - Enhanced with List Parsing
  *
- * Provides S3-specific XML parsing functionality.
+ * Provides S3-specific XML parsing functionality including specialized
+ * parsers for common S3 operations like list objects and copy results.
  *
  * @package     ArrayPress\S3\Traits\Signer
  * @copyright   Copyright (c) 2025, ArrayPress Limited
@@ -73,6 +74,180 @@ trait XmlParser {
 
 		// Convert SimpleXML to array
 		return $this->xml_to_array( $xml );
+	}
+
+	/**
+	 * Parse ListObjectsV2 XML response
+	 *
+	 * Extracts objects, prefixes, and pagination data from S3 ListObjectsV2 response.
+	 * Handles both single and multiple objects/prefixes in the response.
+	 *
+	 * @param array $xml Parsed XML array from parse_xml_response()
+	 *
+	 * @return array Array containing objects, prefixes, truncated status, and continuation token
+	 */
+	protected function parse_objects_list( array $xml ): array {
+		$objects            = [];
+		$prefixes           = [];
+		$truncated          = false;
+		$continuation_token = '';
+
+		// Extract from ListObjectsV2Result format
+		$result_path = $xml['ListObjectsV2Result'] ?? $xml;
+
+		// Check for truncation
+		if ( isset( $result_path['IsTruncated'] ) ) {
+			$is_truncated = $this->extract_text_value( $result_path['IsTruncated'] );
+			$truncated    = ( $is_truncated === 'true' || $is_truncated === '1' );
+		}
+
+		// Get continuation token if available
+		if ( $truncated && isset( $result_path['NextContinuationToken'] ) ) {
+			$continuation_token = $this->extract_text_value( $result_path['NextContinuationToken'] );
+		}
+
+		// Extract objects
+		if ( isset( $result_path['Contents'] ) ) {
+			$contents = $result_path['Contents'];
+
+			// Single object case
+			if ( isset( $contents['Key'] ) ) {
+				$objects[] = $this->extract_object_data( $contents );
+			} // Multiple objects case
+			elseif ( is_array( $contents ) ) {
+				foreach ( $contents as $object ) {
+					if ( isset( $object['Key'] ) ) {
+						$objects[] = $this->extract_object_data( $object );
+					}
+				}
+			}
+		}
+
+		// Extract prefixes (folders)
+		if ( isset( $result_path['CommonPrefixes'] ) ) {
+			$common_prefixes = $result_path['CommonPrefixes'];
+
+			// Single prefix case
+			if ( isset( $common_prefixes['Prefix'] ) ) {
+				$prefix_value = $this->extract_text_value( $common_prefixes['Prefix'] );
+				if ( ! empty( $prefix_value ) ) {
+					$prefixes[] = $prefix_value;
+				}
+			} // Multiple prefixes case
+			elseif ( is_array( $common_prefixes ) ) {
+				foreach ( $common_prefixes as $prefix_data ) {
+					if ( isset( $prefix_data['Prefix'] ) ) {
+						$prefix_value = $this->extract_text_value( $prefix_data['Prefix'] );
+						if ( ! empty( $prefix_value ) ) {
+							$prefixes[] = $prefix_value;
+						}
+					}
+				}
+			}
+		}
+
+		return [
+			'objects'            => $objects,
+			'prefixes'           => $prefixes,
+			'truncated'          => $truncated,
+			'continuation_token' => $continuation_token
+		];
+	}
+
+	/**
+	 * Parse copy object result XML
+	 *
+	 * Extracts ETag and LastModified from S3 copy operation response.
+	 *
+	 * @param array $xml Parsed XML array from parse_xml_response()
+	 *
+	 * @return array Array containing etag and last_modified
+	 */
+	protected function parse_copy_result( array $xml ): array {
+		$etag          = '';
+		$last_modified = '';
+
+		if ( isset( $xml['CopyObjectResult'] ) ) {
+			$result = $xml['CopyObjectResult'];
+
+			if ( isset( $result['ETag'] ) ) {
+				$etag = trim( $this->extract_text_value( $result['ETag'] ), '"' );
+			}
+
+			if ( isset( $result['LastModified'] ) ) {
+				$last_modified = $this->extract_text_value( $result['LastModified'] );
+			}
+		}
+
+		return [
+			'etag'          => $etag,
+			'last_modified' => $last_modified
+		];
+	}
+
+	/**
+	 * Parse ListBuckets XML response
+	 *
+	 * Extracts bucket information from S3 ListBuckets response.
+	 *
+	 * @param array $xml Parsed XML array from parse_xml_response()
+	 *
+	 * @return array Array of bucket data
+	 */
+	protected function parse_buckets_list( array $xml ): array {
+		$buckets = [];
+
+		// Extract from ListAllMyBucketsResult format
+		$result_path = $xml['ListAllMyBucketsResult'] ?? $xml;
+
+		if ( isset( $result_path['Buckets']['Bucket'] ) ) {
+			$buckets_data = $result_path['Buckets']['Bucket'];
+
+			// Single bucket case
+			if ( isset( $buckets_data['Name'] ) ) {
+				$buckets[] = $this->extract_bucket_data( $buckets_data );
+			} // Multiple buckets case
+			elseif ( is_array( $buckets_data ) ) {
+				foreach ( $buckets_data as $bucket ) {
+					if ( isset( $bucket['Name'] ) ) {
+						$buckets[] = $this->extract_bucket_data( $bucket );
+					}
+				}
+			}
+		}
+
+		return $buckets;
+	}
+
+	/**
+	 * Extract object data from XML node
+	 *
+	 * @param array $object_node XML object node
+	 *
+	 * @return array Formatted object data
+	 */
+	protected function extract_object_data( array $object_node ): array {
+		return [
+			'Key'          => $this->extract_text_value( $object_node['Key'] ?? '' ),
+			'LastModified' => $this->extract_text_value( $object_node['LastModified'] ?? '' ),
+			'ETag'         => trim( $this->extract_text_value( $object_node['ETag'] ?? '' ), '"' ),
+			'Size'         => (int) $this->extract_text_value( $object_node['Size'] ?? '0' ),
+			'StorageClass' => $this->extract_text_value( $object_node['StorageClass'] ?? 'STANDARD' ),
+		];
+	}
+
+	/**
+	 * Extract bucket data from XML node
+	 *
+	 * @param array $bucket_node XML bucket node
+	 *
+	 * @return array Formatted bucket data
+	 */
+	protected function extract_bucket_data( array $bucket_node ): array {
+		return [
+			'Name'         => $this->extract_text_value( $bucket_node['Name'] ?? '' ),
+			'CreationDate' => $this->extract_text_value( $bucket_node['CreationDate'] ?? '' ),
+		];
 	}
 
 	/**

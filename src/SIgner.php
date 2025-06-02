@@ -26,10 +26,11 @@ use ArrayPress\S3\Traits\Signer\Objects;
 use ArrayPress\S3\Traits\Signer\PresignedUrls;
 use ArrayPress\S3\Traits\Signer\ErrorHandling;
 use ArrayPress\S3\Traits\Signer\Batch;
+use ArrayPress\S3\Traits\Signer\Headers;
 use ArrayPress\S3\Traits\Common\Debug;
 use ArrayPress\S3\Traits\Common\Context;
 use ArrayPress\S3\Traits\Common\Config;
-use ArrayPress\S3\Traits\Common\RequestTimeouts;
+use ArrayPress\S3\Traits\Common\Timeouts;
 
 /**
  * Class Signer
@@ -44,10 +45,11 @@ class Signer implements SignerInterface {
 	use Extraction;
 	use Formatter;
 	use Batch;
+	use Headers;
 	use Debug;
 	use Context;
 	use Config;
-	use RequestTimeouts;
+	use Timeouts;
 
 	/**
 	 * Provider instance

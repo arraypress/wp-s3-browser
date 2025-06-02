@@ -1,9 +1,9 @@
 <?php
 /**
- * Object Operations Trait - Complete Version with Provider Methods
+ * Object Operations Trait - Refactored Version
  *
  * Handles object-related operations for S3-compatible storage using centralized
- * Provider URL building methods and consistent timeout management.
+ * Provider URL building methods, Headers trait, and XML parsing methods.
  *
  * @package     ArrayPress\S3\Traits
  * @copyright   Copyright (c) 2025, ArrayPress Limited
@@ -22,8 +22,6 @@ use ArrayPress\S3\Responses\ObjectResponse;
 use ArrayPress\S3\Responses\ErrorResponse;
 use ArrayPress\S3\Responses\SuccessResponse;
 use ArrayPress\S3\Utils\Encode;
-use ArrayPress\S3\Utils\File;
-use ArrayPress\S3\Traits\Common\RequestTimeouts;
 
 /**
  * Trait Objects
@@ -32,31 +30,6 @@ use ArrayPress\S3\Traits\Common\RequestTimeouts;
  * including listing, retrieval, upload, deletion, and copying of objects.
  */
 trait Objects {
-
-	use RequestTimeouts;
-
-	/**
-	 * Safe helper to build copy headers
-	 *
-	 * Creates the necessary headers for S3 copy operations including the
-	 * special x-amz-copy-source header with properly encoded source path.
-	 *
-	 * @param string $source_bucket Source bucket name
-	 * @param string $source_key    Source object key
-	 * @param string $target_bucket Target bucket name
-	 * @param string $target_key    Target object key
-	 *
-	 * @return array Complete headers array for copy operation
-	 */
-	private function build_copy_headers( string $source_bucket, string $source_key, string $target_bucket, string $target_key ): array {
-		$encoded_target_key = Encode::object_key( $target_key );
-		$headers = $this->generate_auth_headers( 'PUT', $target_bucket, $encoded_target_key );
-
-		$encoded_source_key = Encode::object_key( $source_key );
-		$headers['x-amz-copy-source'] = $source_bucket . '/' . $encoded_source_key;
-
-		return $headers;
-	}
 
 	/**
 	 * List objects in a bucket
@@ -99,8 +72,6 @@ trait Objects {
 	 * }
 	 * ```
 	 *
-	 * @since 1.0.0
-	 *
 	 * @param string $bucket             Bucket name to list objects from
 	 * @param int    $max_keys           Maximum number of objects to return (1-1000, default: 1000)
 	 * @param string $prefix             Optional prefix to filter objects (e.g., 'photos/' for photos folder)
@@ -109,8 +80,10 @@ trait Objects {
 	 *
 	 * @return ResponseInterface ObjectsResponse on success with object/folder data, or ErrorResponse on failure
 	 *
-	 * @see ObjectsResponse For detailed response structure and methods
-	 * @see ErrorResponse For error response structure and methods
+	 * @since 1.0.0
+	 *
+	 * @see   ObjectsResponse For detailed response structure and methods
+	 * @see   ErrorResponse For error response structure and methods
 	 */
 	public function list_objects(
 		string $bucket,
@@ -148,7 +121,7 @@ trait Objects {
 			$query_params
 		);
 
-		//  USE PROVIDER METHOD for URL building with query parameters
+		// Use provider method for URL building with query parameters
 		$url = $this->provider->build_url_with_query( $bucket, '', $query_params );
 
 		// Debug the request
@@ -182,69 +155,16 @@ trait Objects {
 			return $xml;
 		}
 
-		$objects            = [];
-		$prefixes           = [];
-		$truncated          = false;
-		$continuation_token = '';
-
-		// Extract from ListObjectsV2Result format
-		$result_path = $xml['ListObjectsV2Result'] ?? $xml;
-
-		// Check for truncation
-		if ( isset( $result_path['IsTruncated'] ) ) {
-			$is_truncated = $result_path['IsTruncated'];
-			$truncated    = ( $is_truncated === 'true' || $is_truncated === true );
-		}
-
-		// Get continuation token if available
-		if ( $truncated && isset( $result_path['NextContinuationToken'] ) ) {
-			$continuation_token = $result_path['NextContinuationToken']['value'] ?? '';
-		}
-
-		// Extract objects
-		if ( isset( $result_path['Contents'] ) ) {
-			$contents = $result_path['Contents'];
-
-			// Single object case
-			if ( isset( $contents['Key'] ) ) {
-				$this->add_formatted_object( $objects, $contents );
-			} // Multiple objects case
-			elseif ( is_array( $contents ) ) {
-				foreach ( $contents as $object ) {
-					$this->add_formatted_object( $objects, $object );
-				}
-			}
-		}
-
-		// Extract prefixes (folders)
-		if ( isset( $result_path['CommonPrefixes'] ) ) {
-			$common_prefixes = $result_path['CommonPrefixes'];
-
-			// Single prefix case
-			if ( isset( $common_prefixes['Prefix'] ) ) {
-				$prefix_value = $common_prefixes['Prefix']['value'] ?? '';
-				if ( ! empty( $prefix_value ) ) {
-					$prefixes[] = $prefix_value;
-				}
-			} // Multiple prefixes case
-			elseif ( is_array( $common_prefixes ) ) {
-				foreach ( $common_prefixes as $prefix_data ) {
-					if ( isset( $prefix_data['Prefix']['value'] ) ) {
-						$prefixes[] = $prefix_data['Prefix']['value'];
-					} elseif ( isset( $prefix_data['Prefix'] ) ) {
-						$prefixes[] = $prefix_data['Prefix'];
-					}
-				}
-			}
-		}
+		// Use the new XML parsing method
+		$parsed = $this->parse_objects_list( $xml );
 
 		// Pass the current prefix to ObjectsResponse for filtering
 		return new ObjectsResponse(
-			$objects,
-			$prefixes,
+			$parsed['objects'],
+			$parsed['prefixes'],
 			$status_code,
-			$truncated,
-			$continuation_token,
+			$parsed['truncated'],
+			$parsed['continuation_token'],
 			$xml,
 			$prefix
 		);
@@ -276,29 +196,25 @@ trait Objects {
 	 * }
 	 * ```
 	 *
-	 * @since 1.0.0
-	 *
 	 * @param string $bucket     Bucket name containing the object
 	 * @param string $object_key Object key (path) to retrieve
 	 *
 	 * @return ResponseInterface ObjectResponse with content and metadata on success, or ErrorResponse on failure
 	 *
-	 * @see ObjectResponse For detailed response structure and methods
-	 * @see head_object() For retrieving only metadata without content
+	 * @since 1.0.0
+	 *
+	 * @see   ObjectResponse For detailed response structure and methods
+	 * @see   head_object() For retrieving only metadata without content
 	 */
 	public function get_object( string $bucket, string $object_key ): ResponseInterface {
 		if ( empty( $bucket ) || empty( $object_key ) ) {
 			return new ErrorResponse( 'Bucket and object key are required', 'invalid_parameters', 400 );
 		}
 
-		// Generate authorization headers
-		$headers = $this->generate_auth_headers(
-			'GET',
-			$bucket,
-			$object_key
-		);
+		// Generate authorization headers using provider method
+		$headers = $this->generate_auth_headers( 'GET', $bucket, $object_key );
 
-		//  USE PROVIDER METHOD for standard URL building
+		// Use provider method for standard URL building
 		$url = $this->provider->format_url( $bucket, $object_key );
 
 		// Debug the request
@@ -373,29 +289,25 @@ trait Objects {
 	 * }
 	 * ```
 	 *
-	 * @since 1.0.0
-	 *
 	 * @param string $bucket     Bucket name containing the object
 	 * @param string $object_key Object key (path) to check
 	 *
 	 * @return ResponseInterface ObjectResponse with metadata on success, or ErrorResponse on failure
 	 *
-	 * @see ObjectResponse For detailed response structure and methods
-	 * @see get_object() For retrieving both content and metadata
+	 * @since 1.0.0
+	 *
+	 * @see   ObjectResponse For detailed response structure and methods
+	 * @see   get_object() For retrieving both content and metadata
 	 */
 	public function head_object( string $bucket, string $object_key ): ResponseInterface {
 		if ( empty( $bucket ) || empty( $object_key ) ) {
 			return new ErrorResponse( 'Bucket and object key are required', 'invalid_parameters', 400 );
 		}
 
-		// Generate authorization headers
-		$headers = $this->generate_auth_headers(
-			'HEAD',
-			$bucket,
-			$object_key
-		);
+		// Use headers trait method
+		$headers = $this->build_head_headers( $bucket, $object_key );
 
-		//  USE PROVIDER METHOD for standard URL building
+		// Use provider method for standard URL building
 		$url = $this->provider->format_url( $bucket, $object_key );
 
 		// Debug the request
@@ -459,15 +371,15 @@ trait Objects {
 	 * }
 	 * ```
 	 *
-	 * @since 1.0.0
-	 *
 	 * @param string $bucket     Bucket name containing the object
 	 * @param string $object_key Object key (path) to delete
 	 *
 	 * @return ResponseInterface SuccessResponse on successful deletion, or ErrorResponse on failure
 	 *
-	 * @see SuccessResponse For successful operation response structure
-	 * @see ErrorResponse For error response structure and methods
+	 * @since 1.0.0
+	 *
+	 * @see   SuccessResponse For successful operation response structure
+	 * @see   ErrorResponse For error response structure and methods
 	 */
 	public function delete_object( string $bucket, string $object_key ): ResponseInterface {
 		if ( empty( $bucket ) || empty( $object_key ) ) {
@@ -478,27 +390,12 @@ trait Objects {
 			);
 		}
 
-		// Use our special encoding method to properly handle special characters
+		// Use headers trait method for delete headers
+		$headers = $this->build_delete_headers( $bucket, $object_key );
+
+		// Use provider method for URL building with encoded key
 		$encoded_key = Encode::object_key( $object_key );
-
-		// Generate authorization headers with the encoded key
-		$headers = $this->generate_auth_headers(
-			'DELETE',
-			$bucket,
-			$encoded_key
-		);
-
-		// Add Content-Length header which is required for DELETE operations
-		$headers['Content-Length'] = '0';
-
-		// Build the URL based on path style setting
-		$host = $this->provider->get_endpoint();
-
-		if ( $this->provider->uses_path_style() ) {
-			$url = 'https://' . $host . '/' . $bucket . '/' . $encoded_key;
-		} else {
-			$url = 'https://' . $bucket . '.' . $host . '/' . $encoded_key;
-		}
+		$url         = $this->provider->build_url_with_encoded_key( $bucket, $encoded_key );
 
 		// Debug the request
 		$this->debug_request_details( 'delete_object', $url, $headers );
@@ -570,8 +467,6 @@ trait Objects {
 	 * }
 	 * ```
 	 *
-	 * @since 1.0.0
-	 *
 	 * @param string $source_bucket Source bucket name
 	 * @param string $source_key    Source object key
 	 * @param string $target_bucket Target bucket name
@@ -579,8 +474,10 @@ trait Objects {
 	 *
 	 * @return ResponseInterface SuccessResponse with copy metadata on success, or ErrorResponse on failure
 	 *
-	 * @see SuccessResponse For successful operation response structure
-	 * @see ErrorResponse For error response structure and methods
+	 * @since 1.0.0
+	 *
+	 * @see   SuccessResponse For successful operation response structure
+	 * @see   ErrorResponse For error response structure and methods
 	 */
 	public function copy_object(
 		string $source_bucket,
@@ -596,10 +493,10 @@ trait Objects {
 			);
 		}
 
-		// Use the helper to build copy headers
+		// Use headers trait method for copy headers
 		$headers = $this->build_copy_headers( $source_bucket, $source_key, $target_bucket, $target_key );
 
-		//  USE PROVIDER METHOD for standard URL building
+		// Use provider method for standard URL building
 		$url = $this->provider->format_url( $target_bucket, $target_key );
 
 		// Debug the request
@@ -638,7 +535,7 @@ trait Objects {
 			);
 		}
 
-		// Parse XML response for metadata
+		// Parse XML response for metadata using XML trait method
 		$xml_data = $this->parse_xml_response( $body );
 		if ( $xml_data instanceof ErrorResponse ) {
 			// Even if we can't parse the XML, the operation was successful
@@ -658,11 +555,8 @@ trait Objects {
 			);
 		}
 
-		// Extract ETag if available
-		$etag = '';
-		if ( isset( $xml_data['CopyObjectResult']['ETag']['value'] ) ) {
-			$etag = trim( $xml_data['CopyObjectResult']['ETag']['value'], '"' );
-		}
+		// Use XML trait method to parse copy result
+		$copy_data = $this->parse_copy_result( $xml_data );
 
 		// Return success response with metadata
 		return new SuccessResponse(
@@ -677,8 +571,8 @@ trait Objects {
 				'source_key'    => $source_key,
 				'target_bucket' => $target_bucket,
 				'target_key'    => $target_key,
-				'etag'          => $etag,
-				'last_modified' => $xml_data['CopyObjectResult']['LastModified']['value'] ?? ''
+				'etag'          => $copy_data['etag'],
+				'last_modified' => $copy_data['last_modified']
 			],
 			$xml_data
 		);
