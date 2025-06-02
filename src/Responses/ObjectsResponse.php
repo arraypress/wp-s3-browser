@@ -1,9 +1,9 @@
 <?php
 /**
- * Response for object listing operations
+ * Response for object listing operations - Simplified
  *
  * Handles the response data from S3-compatible storage listing operations including
- * pagination support.
+ * pagination support without the separate Pagination trait.
  *
  * @package     ArrayPress\S3\Responses
  * @copyright   Copyright (c) 2025, ArrayPress Limited
@@ -19,13 +19,11 @@ namespace ArrayPress\S3\Responses;
 use ArrayPress\S3\Abstracts\Response;
 use ArrayPress\S3\Models\S3Object;
 use ArrayPress\S3\Models\S3Prefix;
-use ArrayPress\S3\Traits\Response\Pagination;
 
 /**
  * Response class for S3 object listing operations
  */
 class ObjectsResponse extends Response {
-	use Pagination;
 
 	/**
 	 * List of objects
@@ -83,36 +81,12 @@ class ObjectsResponse extends Response {
 		string $current_prefix = ''
 	) {
 		parent::__construct( $status_code, $status_code >= 200 && $status_code < 300, $raw_data );
-		$this->objects  = $objects;
-		$this->prefixes = $prefixes;
-		$this->current_prefix = $current_prefix;
 
-		// Extract pagination information from raw data if available
-		if ( $raw_data !== null ) {
-			$this->extract_pagination_info( $raw_data, $truncated, $continuation_token );
-		} else {
-			$this->truncated          = $truncated;
-			$this->continuation_token = $continuation_token;
-		}
-	}
-
-	/**
-	 * Extract pagination information from raw XML data
-	 *
-	 * @param array  $raw_data          Raw XML data
-	 * @param bool   $default_truncated Default truncation value
-	 * @param string $default_token     Default continuation token
-	 */
-	private function extract_pagination_info( array $raw_data, bool $default_truncated, string $default_token ): void {
-		// Extract IsTruncated flag
-		$this->truncated = $this->extract_is_truncated( $raw_data, $default_truncated );
-
-		// Extract continuation token
-		$this->continuation_token = $this->extract_token(
-			$raw_data,
-			[ 'NextContinuationToken', 'ns:NextContinuationToken' ],
-			$default_token
-		);
+		$this->objects            = $objects;
+		$this->prefixes           = $prefixes;
+		$this->truncated          = $truncated;
+		$this->continuation_token = $continuation_token;
+		$this->current_prefix     = $current_prefix;
 	}
 
 	/**
@@ -204,19 +178,20 @@ class ObjectsResponse extends Response {
 	 * @return string|null URL for the next page or null if not truncated
 	 */
 	public function get_next_page_url( string $bucket, string $prefix, string $admin_url, array $query_args = [] ): ?string {
-		// Add bucket and prefix to query args
+		// If not truncated or no token, no next page
+		if ( ! $this->is_truncated() || empty( $this->continuation_token ) || empty( $admin_url ) ) {
+			return null;
+		}
+
+		// Add bucket, prefix, and continuation token to query args
 		$args = array_merge( [
-			'bucket' => $bucket,
-			'prefix' => $prefix
+			'bucket'             => $bucket,
+			'prefix'             => $prefix,
+			'continuation_token' => urlencode( $this->continuation_token )
 		], $query_args );
 
-		return $this->generate_next_page_url(
-			$admin_url,
-			$args,
-			$this->is_truncated(),
-			'continuation_token',
-			urlencode( $this->continuation_token )
-		);
+		// Build the URL
+		return add_query_arg( $args, $admin_url );
 	}
 
 	/**

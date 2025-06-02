@@ -1,6 +1,6 @@
 <?php
 /**
- * Response for bucket listing operations
+ * Response for bucket listing operations - Simplified
  *
  * @package     ArrayPress\S3\Responses
  * @copyright   Copyright (c) 2025, ArrayPress Limited
@@ -15,13 +15,11 @@ namespace ArrayPress\S3\Responses;
 
 use ArrayPress\S3\Abstracts\Response;
 use ArrayPress\S3\Models\S3Bucket;
-use ArrayPress\S3\Traits\Response\Pagination;
 
 /**
  * Response for bucket listing operations
  */
 class BucketsResponse extends Response {
-	use Pagination;
 
 	/**
 	 * List of buckets
@@ -70,35 +68,11 @@ class BucketsResponse extends Response {
 		$raw_data = null
 	) {
 		parent::__construct( $status_code, $status_code >= 200 && $status_code < 300, $raw_data );
-		$this->buckets = $buckets;
-		$this->owner   = $owner;
 
-		// Extract pagination information from raw data if available
-		if ( $raw_data !== null ) {
-			$this->extract_pagination_info( $raw_data, $truncated, $next_marker );
-		} else {
-			$this->truncated   = $truncated;
-			$this->next_marker = $next_marker;
-		}
-	}
-
-	/**
-	 * Extract pagination information from raw XML data
-	 *
-	 * @param array  $raw_data          Raw XML data
-	 * @param bool   $default_truncated Default truncation value
-	 * @param string $default_marker    Default marker
-	 */
-	private function extract_pagination_info( array $raw_data, bool $default_truncated, string $default_marker ): void {
-		// Extract IsTruncated flag
-		$this->truncated = $this->extract_is_truncated( $raw_data, $default_truncated );
-
-		// Extract NextMarker
-		$this->next_marker = $this->extract_token(
-			$raw_data,
-			[ 'NextMarker', 'ns:NextMarker' ],
-			$default_marker
-		);
+		$this->buckets     = $buckets;
+		$this->owner       = $owner;
+		$this->truncated   = $truncated;
+		$this->next_marker = $next_marker;
 	}
 
 	/**
@@ -169,13 +143,18 @@ class BucketsResponse extends Response {
 	 * @return string|null URL for the next page or null if not truncated
 	 */
 	public function get_next_page_url( string $admin_url, array $query_args = [] ): ?string {
-		return $this->generate_next_page_url(
-			$admin_url,
-			$query_args,
-			$this->is_truncated(),
-			'marker',
-			$this->next_marker
-		);
+		// If not truncated or no marker, no next page
+		if ( ! $this->is_truncated() || empty( $this->next_marker ) || empty( $admin_url ) ) {
+			return null;
+		}
+
+		// Add the marker to query params
+		$args = array_merge( [
+			'marker' => $this->next_marker
+		], $query_args );
+
+		// Build the URL
+		return add_query_arg( $args, $admin_url );
 	}
 
 	/**
