@@ -1,6 +1,6 @@
 <?php
 /**
- * Enhanced Signer Batch Trait - PHP 7.4 Compatible
+ * Enhanced Signer Batch Trait - Using Headers Method
  */
 
 declare( strict_types=1 );
@@ -47,16 +47,13 @@ trait Batch {
 			);
 		}
 
-		// Build the XML for batch delete
+		// Build the XML for batch delete using XML trait method
 		$delete_xml = $this->build_batch_delete_xml( $object_keys );
 
-		// Generate authorization headers
-		$headers                   = $this->generate_auth_headers( 'POST', $bucket, '', [ 'delete' => '' ] );
-		$headers['Content-Type']   = 'application/xml';
-		$headers['Content-MD5']    = base64_encode( md5( $delete_xml, true ) );
-		$headers['Content-Length'] = strlen( $delete_xml );
+		// Use headers trait method for batch delete headers
+		$headers = $this->build_batch_delete_headers( $bucket, $delete_xml );
 
-		// Build the URL
+		// Build the URL using provider method
 		$url = $this->provider->format_url( $bucket ) . '?delete';
 
 		// Debug and make request
@@ -104,13 +101,13 @@ trait Batch {
 			return $this->handle_error_response( $status_code, $body, 'Failed to batch delete objects' );
 		}
 
-		// Parse XML response
+		// Parse XML response using XML trait method
 		$xml = $this->parse_xml_response( $body );
 		if ( $xml instanceof ErrorResponse ) {
 			return $xml;
 		}
 
-		// Parse results
+		// Parse results using XML trait method
 		$results = $this->parse_batch_delete_response( $xml );
 
 		return new SuccessResponse(

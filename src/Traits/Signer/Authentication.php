@@ -1,6 +1,6 @@
 <?php
 /**
- * Authentication Trait
+ * Authentication Trait - Improved Version
  *
  * Handles AWS Signature Version 4 authentication for S3-compatible storage.
  *
@@ -58,17 +58,8 @@ trait Authentication {
 
 		$signed_headers = 'host;x-amz-content-sha256;x-amz-date';
 
-		// Create canonical query string
-		ksort( $query_params );
-		$canonical_querystring = '';
-
-		foreach ( $query_params as $key => $value ) {
-			if ( $canonical_querystring !== '' ) {
-				$canonical_querystring .= '&';
-			}
-			// URL-encode keys and values separately
-			$canonical_querystring .= rawurlencode( $key ) . '=' . rawurlencode( (string) $value );
-		}
+		// Create canonical query string using helper method
+		$canonical_querystring = $this->build_canonical_query_string( $query_params );
 
 		// Create canonical request
 		$canonical_request = $method . "\n" .
@@ -111,6 +102,37 @@ trait Authentication {
 			// Explicitly request XML format
 			'Accept'               => 'application/xml'
 		];
+	}
+
+	/**
+	 * Build canonical query string for AWS Signature V4
+	 *
+	 * This method is extracted from the main authentication method to make it reusable
+	 * and testable. It follows AWS specifications exactly.
+	 *
+	 * @param array $query_params Query parameters to encode
+	 *
+	 * @return string Canonical query string
+	 */
+	protected function build_canonical_query_string( array $query_params ): string {
+		if ( empty( $query_params ) ) {
+			return '';
+		}
+
+		// Sort parameters by key name
+		ksort( $query_params );
+
+		$canonical_querystring = '';
+
+		foreach ( $query_params as $key => $value ) {
+			if ( $canonical_querystring !== '' ) {
+				$canonical_querystring .= '&';
+			}
+			// URL-encode keys and values separately per AWS spec
+			$canonical_querystring .= rawurlencode( $key ) . '=' . rawurlencode( (string) $value );
+		}
+
+		return $canonical_querystring;
 	}
 
 	/**

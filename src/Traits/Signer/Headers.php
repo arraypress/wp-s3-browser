@@ -150,4 +150,25 @@ trait Headers {
 		return $headers;
 	}
 
+	/**
+	 * Build headers for batch delete operations
+	 *
+	 * Creates headers for batch delete operations including required
+	 * Content-Type, Content-MD5, and Content-Length headers.
+	 *
+	 * @param string $bucket     Bucket name
+	 * @param string $delete_xml XML content for the delete request
+	 *
+	 * @return array Complete headers array for batch delete operation
+	 */
+	protected function build_batch_delete_headers( string $bucket, string $delete_xml ): array {
+		$headers = $this->generate_auth_headers( 'POST', $bucket, '', [ 'delete' => '' ] );
+
+		$headers['Content-Type']   = 'application/xml';
+		$headers['Content-MD5']    = base64_encode( md5( $delete_xml, true ) );
+		$headers['Content-Length'] = (string) strlen( $delete_xml );
+
+		return $headers;
+	}
+
 }
