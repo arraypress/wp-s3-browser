@@ -42,14 +42,6 @@
     min-width: 120px;
 }
 
-/* Type Column Styling */
-.s3-type-folder {
-    color: #dba617;
-    font-weight: 500;
-    font-family: inherit;
-    font-size: 13px;
-}
-
 /* Row Actions - Keep WordPress defaults, just color delete links */
 .wp-list-table .row-actions .delete a {
     color: #b32d2e;
