@@ -1,6 +1,22 @@
 /**
- * S3 Browser Core Functionality - Enhanced with Progress Indicators
+ * S3 Browser Core Functionality - Organized Edition
  * Handles browsing, searching, file operations, folder management, and WordPress integrations
+ *
+ * ========================================
+ * TABLE OF CONTENTS
+ * ========================================
+ * 1. INITIALIZATION & SETUP (line 50)
+ * 2. EVENT BINDING SYSTEM (line 150)
+ * 3. PROGRESS INDICATORS & OVERLAYS (line 350)
+ * 4. MODAL SYSTEM (line 450)
+ * 5. FOLDER MANAGEMENT (line 650)
+ * 6. FILE OPERATIONS (line 900)
+ * 7. SEARCH & FILTERING (line 1100)
+ * 8. LOAD MORE & PAGINATION (line 1300)
+ * 9. CACHE & REFRESH (line 1450)
+ * 10. UPLOAD INTEGRATION (line 1500)
+ * 11. UTILITY FUNCTIONS (line 1600)
+ * ========================================
  */
 (function ($) {
     'use strict';
@@ -23,6 +39,10 @@
 
         // Translation strings (populated by PHP)
         i18n: {},
+
+        /* ========================================
+         * 1. INITIALIZATION & SETUP
+         * ======================================== */
 
         /**
          * Initialize the S3 Browser
@@ -75,7 +95,7 @@
                 self.handleFileSelection($(this));
             });
 
-            // Handle Open Folder button clicks - NEW ADDITION
+            // Handle Open Folder button clicks
             $(document).off('click.s3openfolder').on('click.s3openfolder', '.s3-open-folder', function (e) {
                 e.preventDefault();
                 self.handleFolderOpen($(this));
@@ -90,6 +110,10 @@
                     $(this).find('.row-actions').css('visibility', 'hidden');
                 });
         },
+
+        /* ========================================
+         * 2. EVENT BINDING SYSTEM
+         * ======================================== */
 
         /**
          * Bind all event handlers
@@ -117,7 +141,6 @@
                 if ($link.hasClass('bucket-name') || $link.hasClass('browse-bucket-button')) {
                     e.preventDefault();
                     self.navigateTo({bucket: $link.data('bucket')});
-                    return;
                 }
 
                 if ($link.hasClass('s3-folder-link')) {
@@ -127,7 +150,6 @@
                         bucket: $link.data('bucket') || $('#s3-load-more').data('bucket') || config.defaultBucket,
                         prefix: $link.data('prefix')
                     });
-                    return;
                 }
             });
         },
@@ -155,7 +177,6 @@
                     e.preventDefault();
                     e.stopPropagation();
                     self.toggleFavoriteBucket($starTarget);
-                    return;
                 }
             });
         },
@@ -209,7 +230,7 @@
         },
 
         /* ========================================
-         * PROGRESS INDICATOR SYSTEM
+         * 3. PROGRESS INDICATORS & OVERLAYS
          * ======================================== */
 
         /**
@@ -273,7 +294,7 @@
         },
 
         /* ========================================
-         * GENERIC MODAL SYSTEM
+         * 4. MODAL SYSTEM
          * ======================================== */
 
         /**
@@ -465,7 +486,7 @@
         },
 
         /* ========================================
-         * FOLDER MANAGEMENT
+         * 5. FOLDER MANAGEMENT
          * ======================================== */
 
         /**
@@ -488,7 +509,6 @@
         handleFolderOpen: function ($button) {
             var prefix = $button.data('prefix');
             var bucket = $button.data('bucket');
-            var folderName = $button.data('folder-name');
 
             // Add loading state to the button
             var originalHtml = $button.html();
@@ -538,7 +558,7 @@
             var folderPath = $button.data('prefix');
 
             // Show progress overlay for bulk operations
-            var progressOverlay = this.showProgressOverlay(
+            this.showProgressOverlay(
                 'Deleting folder "' + folderName + '"...',
                 false // Don't allow cancel for now
             );
@@ -718,7 +738,7 @@
         },
 
         /* ========================================
-         * RENAME FUNCTIONALITY
+         * 6. FILE OPERATIONS
          * ======================================== */
 
         /**
@@ -895,7 +915,7 @@
                 new_filename: newFilename
             }, {
                 success: function (response) {
-                    self.handleRenameSuccess(response, newFilename);
+                    self.handleRenameSuccess(response);
                 },
                 error: function (message) {
                     self.showModalError('s3RenameModal', message);
@@ -906,7 +926,7 @@
         /**
          * Handle successful rename response
          */
-        handleRenameSuccess: function (response, newFilename) {
+        handleRenameSuccess: function (response) {
             var self = this;
 
             // Show success message immediately
@@ -940,10 +960,6 @@
             var lastDot = filename.lastIndexOf('.');
             return lastDot > 0 ? filename.substring(0, lastDot) : filename;
         },
-
-        /* ========================================
-         * FILE OPERATIONS
-         * ======================================== */
 
         /**
          * Handle file selection and integration with WordPress
@@ -1102,42 +1118,7 @@
         },
 
         /* ========================================
-         * CACHE & REFRESH
-         * ======================================== */
-
-        /**
-         * Refresh cache via AJAX
-         */
-        refreshCache: function ($button) {
-            var self = this;
-
-            if ($button.hasClass('refreshing')) return;
-
-            $button.addClass('refreshing').find('.dashicons').addClass('spin');
-
-            this.makeAjaxRequest('s3_clear_cache_', {
-                type: $button.data('type'),
-                bucket: $button.data('bucket') || '',
-                prefix: $button.data('prefix') || ''
-            }, {
-                success: function (response) {
-                    self.showNotification(
-                        response.data.message || self.i18n.cacheRefreshed || 'Cache refreshed successfully',
-                        'success'
-                    );
-                    setTimeout(function () {
-                        window.location.reload();
-                    }, 1500);
-                },
-                error: function (message) {
-                    self.showNotification(message, 'error');
-                    $button.removeClass('refreshing').find('.dashicons').removeClass('spin');
-                }
-            });
-        },
-
-        /* ========================================
-         * SEARCH & FILTERING
+         * 7. SEARCH & FILTERING
          * ======================================== */
 
         /**
@@ -1227,7 +1208,7 @@
         },
 
         /* ========================================
-         * LOAD MORE & PAGINATION
+         * 8. LOAD MORE & PAGINATION
          * ======================================== */
 
         /**
@@ -1328,7 +1309,42 @@
         },
 
         /* ========================================
-         * UPLOAD INTEGRATION
+         * 9. CACHE & REFRESH
+         * ======================================== */
+
+        /**
+         * Refresh cache via AJAX
+         */
+        refreshCache: function ($button) {
+            var self = this;
+
+            if ($button.hasClass('refreshing')) return;
+
+            $button.addClass('refreshing').find('.dashicons').addClass('spin');
+
+            this.makeAjaxRequest('s3_clear_cache_', {
+                type: $button.data('type'),
+                bucket: $button.data('bucket') || '',
+                prefix: $button.data('prefix') || ''
+            }, {
+                success: function (response) {
+                    self.showNotification(
+                        response.data.message || self.i18n.cacheRefreshed || 'Cache refreshed successfully',
+                        'success'
+                    );
+                    setTimeout(function () {
+                        window.location.reload();
+                    }, 1500);
+                },
+                error: function (message) {
+                    self.showNotification(message, 'error');
+                    $button.removeClass('refreshing').find('.dashicons').removeClass('spin');
+                }
+            });
+        },
+
+        /* ========================================
+         * 10. UPLOAD INTEGRATION
          * ======================================== */
 
         /**
@@ -1373,7 +1389,7 @@
         },
 
         /* ========================================
-         * UTILITY FUNCTIONS
+         * 11. UTILITY FUNCTIONS
          * ======================================== */
 
         /**
@@ -1384,8 +1400,8 @@
             params.post_id = s3BrowserConfig.postId || 0;
             params.tab = 's3_' + S3BrowserGlobalConfig.providerId;
 
-            var url = window.location.href.split('?')[0] + '?' + $.param(params);
-            window.location.href = url;
+            var queryString = $.param(params);
+            window.location.href = window.location.href.split('?')[0] + '?' + queryString;
         },
 
         /**

@@ -316,9 +316,10 @@ trait Assets {
 			'moreAvailable'          => __( ' (more available)', 'arraypress' ),
 
 			// Favorites
-			'favoritesError'         => __( 'Error updating default bucket', 'arraypress' ),
-			'setDefault'             => __( 'Set Default', 'arraypress' ),
-			'defaultText'            => __( 'Default', 'arraypress' ),
+			'opening'            => __( 'Opening...', 'arraypress' ),
+			'folderOpenError'    => __( 'Failed to open folder', 'arraypress' ),
+			'setDefault'         => __( 'Set as default bucket', 'arraypress' ),
+			'removeDefault'      => __( 'Remove as default bucket', 'arraypress' ),
 
 			// Folder creation translations
 			'newFolder'              => __( 'New Folder', 'arraypress' ),
