@@ -75,6 +75,12 @@
                 self.handleFileSelection($(this));
             });
 
+            // Handle Open Folder button clicks - NEW ADDITION
+            $(document).off('click.s3openfolder').on('click.s3openfolder', '.s3-open-folder', function (e) {
+                e.preventDefault();
+                self.handleFolderOpen($(this));
+            });
+
             // Show/hide row actions on hover - WordPress standard behavior
             $(document).off('mouseenter.s3rowactions mouseleave.s3rowactions')
                 .on('mouseenter.s3rowactions', '.wp-list-table tbody tr', function () {
@@ -474,6 +480,36 @@
                 var $button = $(this);
                 self.openCreateFolderModal($button.data('bucket'), $button.data('prefix'));
             });
+        },
+
+        /**
+         * Handle folder open button click
+         */
+        handleFolderOpen: function ($button) {
+            var prefix = $button.data('prefix');
+            var bucket = $button.data('bucket');
+            var folderName = $button.data('folder-name');
+
+            // Add loading state to the button
+            var originalHtml = $button.html();
+            $button.html('<span class="dashicons dashicons-update s3-spin"></span> ' + (this.i18n.opening || 'Opening...'));
+            $button.prop('disabled', true);
+
+            // Navigate to the folder using existing navigation method
+            try {
+                this.navigateTo({
+                    bucket: bucket,
+                    prefix: prefix
+                });
+            } catch (error) {
+                // Reset button state if navigation fails
+                $button.html(originalHtml);
+                $button.prop('disabled', false);
+                this.showNotification(
+                    this.i18n.folderOpenError || 'Failed to open folder',
+                    'error'
+                );
+            }
         },
 
         /**

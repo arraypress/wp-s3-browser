@@ -96,7 +96,7 @@ class Objects extends WP_List_Table {
 		$this->bucket      = $args['bucket'];
 		$this->prefix      = $args['prefix'] ?? '';
 		$this->provider_id = $args['provider_id'];
-		$this->per_page    = $args['per_page'] ?? 100;
+		$this->per_page    = $args['per_page'] ?? 1000;
 	}
 
 	/**
@@ -421,7 +421,7 @@ class Objects extends WP_List_Table {
 	}
 
 	/**
-	 * Render the actions column with Insert File button for files
+	 * Render the actions column with Insert File button for files and Open button for folders
 	 *
 	 * @param array $item Item data
 	 *
@@ -439,9 +439,20 @@ class Objects extends WP_List_Table {
 				esc_attr__( 'Insert this file', 'arraypress' ),
 				esc_html__( 'Insert File', 'arraypress' )
 			);
+		} elseif ( $item['type'] === 'folder' ) {
+			return sprintf(
+				'<button type="button" class="button button-secondary s3-icon-button s3-open-folder" data-prefix="%s" data-bucket="%s" data-folder-name="%s" title="%s">
+					<span class="dashicons dashicons-portfolio"></span> %s
+				</button>',
+				esc_attr( $item['prefix'] ),
+				esc_attr( $this->bucket ),
+				esc_attr( $item['name'] ),
+				esc_attr__( 'Open this folder', 'arraypress' ),
+				esc_html__( 'Open', 'arraypress' )
+			);
 		}
 
-		// Return empty for folders
+		// Return empty for other types
 		return '';
 	}
 
@@ -475,7 +486,7 @@ class Objects extends WP_List_Table {
 				esc_html( $item['name'] )
 			);
 		} else {
-			$icon_class      = $item['object']->get_dashicon_class();
+			$icon_class = $item['object']->get_dashicon_class();
 			$primary_content = sprintf(
 				'<span class="dashicons %s"></span> <span class="s3-filename" data-original-name="%s"><strong>%s</strong></span>',
 				esc_attr( $icon_class ),
