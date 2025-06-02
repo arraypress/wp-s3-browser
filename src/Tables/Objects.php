@@ -96,7 +96,7 @@ class Objects extends WP_List_Table {
 		$this->bucket      = $args['bucket'];
 		$this->prefix      = $args['prefix'] ?? '';
 		$this->provider_id = $args['provider_id'];
-		$this->per_page    = $args['per_page'] ?? 1000;
+		$this->per_page    = $args['per_page'] ?? 100;
 	}
 
 	/**

@@ -268,7 +268,7 @@ trait XmlParser {
 		$buckets = [];
 
 		// Look for patterns that might represent buckets
-		foreach ( $data as $key => $value ) {
+		foreach ( $data as $value ) {
 			// If we find something that looks like a bucket
 			if ( is_array( $value ) && isset( $value['Name'] ) && isset( $value['CreationDate'] ) ) {
 				$buckets[] = $this->extract_bucket_data( $value );
