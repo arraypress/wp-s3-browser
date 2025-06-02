@@ -122,12 +122,8 @@ trait Buckets {
 		// Generate authorization headers
 		$headers = $this->generate_auth_headers( 'GET', '', '', $query_params );
 
-		// Build the URL
-		$endpoint = $this->provider->get_endpoint();
-		$url      = 'https://' . $endpoint;
-		if ( ! empty( $query_params ) ) {
-			$url .= '?' . http_build_query( $query_params );
-		}
+		// ✅ USE PROVIDER METHOD - No more manual URL building!
+		$url = $this->provider->build_url_with_query( '', '', $query_params );
 
 		// Debug and make request
 		$this->debug_request_details( 'list_buckets', $url, $headers );

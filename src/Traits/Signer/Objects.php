@@ -1,8 +1,9 @@
 <?php
 /**
- * Object Operations Trait - Clean Version
+ * Object Operations Trait - Complete Version with Provider Methods
  *
- * Handles object-related operations for S3-compatible storage.
+ * Handles object-related operations for S3-compatible storage using centralized
+ * Provider URL building methods and consistent timeout management.
  *
  * @package     ArrayPress\S3\Traits
  * @copyright   Copyright (c) 2025, ArrayPress Limited
@@ -26,17 +27,32 @@ use ArrayPress\S3\Traits\Common\RequestTimeouts;
 
 /**
  * Trait Objects
+ *
+ * Provides comprehensive object management operations for S3-compatible storage
+ * including listing, retrieval, upload, deletion, and copying of objects.
  */
 trait Objects {
 
+	use RequestTimeouts;
+
 	/**
 	 * Safe helper to build copy headers
+	 *
+	 * Creates the necessary headers for S3 copy operations including the
+	 * special x-amz-copy-source header with properly encoded source path.
+	 *
+	 * @param string $source_bucket Source bucket name
+	 * @param string $source_key    Source object key
+	 * @param string $target_bucket Target bucket name
+	 * @param string $target_key    Target object key
+	 *
+	 * @return array Complete headers array for copy operation
 	 */
 	private function build_copy_headers( string $source_bucket, string $source_key, string $target_bucket, string $target_key ): array {
 		$encoded_target_key = Encode::object_key( $target_key );
-		$headers            = $this->generate_auth_headers( 'PUT', $target_bucket, $encoded_target_key );
+		$headers = $this->generate_auth_headers( 'PUT', $target_bucket, $encoded_target_key );
 
-		$encoded_source_key           = Encode::object_key( $source_key );
+		$encoded_source_key = Encode::object_key( $source_key );
 		$headers['x-amz-copy-source'] = $source_bucket . '/' . $encoded_source_key;
 
 		return $headers;
@@ -45,13 +61,56 @@ trait Objects {
 	/**
 	 * List objects in a bucket
 	 *
-	 * @param string $bucket             Bucket name
-	 * @param int    $max_keys           Maximum number of objects to return
-	 * @param string $prefix             Optional prefix to filter objects
-	 * @param string $delimiter          Optional delimiter for hierarchical listing
-	 * @param string $continuation_token Optional continuation token for pagination
+	 * Retrieves a list of objects from the specified S3 bucket with support for
+	 * pagination, filtering, and hierarchical listing. Uses ListObjectsV2 API
+	 * for improved performance and consistency across providers.
 	 *
-	 * @return ResponseInterface Operation result
+	 * The response includes:
+	 * - Array of object metadata (key, size, last modified, ETag, etc.)
+	 * - Array of common prefixes (folders) when using delimiter
+	 * - Pagination information for large result sets
+	 * - Formatted object data with additional metadata
+	 *
+	 * Usage Examples:
+	 * ```php
+	 * // List all objects in bucket
+	 * $response = $signer->list_objects( 'my-bucket' );
+	 *
+	 * // List objects with prefix filter
+	 * $response = $signer->list_objects( 'my-bucket', 1000, 'photos/' );
+	 *
+	 * // List with pagination
+	 * $response = $signer->list_objects( 'my-bucket', 50, '', '/', $continuation_token );
+	 *
+	 * // Process results
+	 * if ( $response->is_successful() ) {
+	 *     $objects = $response->get_objects();
+	 *     $folders = $response->get_prefixes();
+	 *
+	 *     foreach ( $objects as $object ) {
+	 *         echo "File: " . $object['Filename'] . " (" . $object['FormattedSize'] . ")\n";
+	 *     }
+	 *
+	 *     // Handle pagination
+	 *     if ( $response->is_truncated() ) {
+	 *         $next_token = $response->get_continuation_token();
+	 *         // Make next request...
+	 *     }
+	 * }
+	 * ```
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $bucket             Bucket name to list objects from
+	 * @param int    $max_keys           Maximum number of objects to return (1-1000, default: 1000)
+	 * @param string $prefix             Optional prefix to filter objects (e.g., 'photos/' for photos folder)
+	 * @param string $delimiter          Optional delimiter for hierarchical listing (default: '/')
+	 * @param string $continuation_token Optional pagination token from previous response
+	 *
+	 * @return ResponseInterface ObjectsResponse on success with object/folder data, or ErrorResponse on failure
+	 *
+	 * @see ObjectsResponse For detailed response structure and methods
+	 * @see ErrorResponse For error response structure and methods
 	 */
 	public function list_objects(
 		string $bucket,
@@ -60,9 +119,9 @@ trait Objects {
 		string $delimiter = '/',
 		string $continuation_token = ''
 	): ResponseInterface {
-		// Prepare query parameters
+		// Prepare query parameters for ListObjectsV2
 		$query_params = [
-			'list-type' => '2' // Use ListObjectsV2
+			'list-type' => '2' // Use ListObjectsV2 API
 		];
 
 		if ( $max_keys !== 1000 ) {
@@ -89,12 +148,8 @@ trait Objects {
 			$query_params
 		);
 
-		// Build the URL
-		$url = $this->provider->format_url( $bucket );
-
-		if ( ! empty( $query_params ) ) {
-			$url .= '?' . http_build_query( $query_params );
-		}
+		//  USE PROVIDER METHOD for URL building with query parameters
+		$url = $this->provider->build_url_with_query( $bucket, '', $query_params );
 
 		// Debug the request
 		$this->debug_request_details( 'list_objects', $url, $headers );
@@ -198,10 +253,38 @@ trait Objects {
 	/**
 	 * Download an object
 	 *
-	 * @param string $bucket     Bucket name
-	 * @param string $object_key Object key
+	 * Retrieves the complete content and metadata of an object from S3.
+	 * This method downloads the entire object content into memory, so it
+	 * should be used carefully with large files.
 	 *
-	 * @return ResponseInterface Object data or error result
+	 * Usage Examples:
+	 * ```php
+	 * // Download a file
+	 * $response = $signer->get_object( 'my-bucket', 'documents/file.pdf' );
+	 *
+	 * if ( $response->is_successful() ) {
+	 *     $content = $response->get_content();
+	 *     $metadata = $response->get_metadata();
+	 *
+	 *     // Save to local file
+	 *     file_put_contents( 'local-file.pdf', $content );
+	 *
+	 *     // Access metadata
+	 *     echo "Content Type: " . $metadata['content_type'] . "\n";
+	 *     echo "File Size: " . $metadata['content_length'] . " bytes\n";
+	 *     echo "Last Modified: " . $metadata['last_modified'] . "\n";
+	 * }
+	 * ```
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $bucket     Bucket name containing the object
+	 * @param string $object_key Object key (path) to retrieve
+	 *
+	 * @return ResponseInterface ObjectResponse with content and metadata on success, or ErrorResponse on failure
+	 *
+	 * @see ObjectResponse For detailed response structure and methods
+	 * @see head_object() For retrieving only metadata without content
 	 */
 	public function get_object( string $bucket, string $object_key ): ResponseInterface {
 		if ( empty( $bucket ) || empty( $object_key ) ) {
@@ -215,7 +298,7 @@ trait Objects {
 			$object_key
 		);
 
-		// Build the URL
+		//  USE PROVIDER METHOD for standard URL building
 		$url = $this->provider->format_url( $bucket, $object_key );
 
 		// Debug the request
@@ -269,10 +352,36 @@ trait Objects {
 	/**
 	 * Get object metadata (HEAD request)
 	 *
-	 * @param string $bucket     Bucket name
-	 * @param string $object_key Object key
+	 * Retrieves only the metadata of an object without downloading its content.
+	 * This is more efficient than get_object() when you only need to check
+	 * if an object exists or get its metadata.
 	 *
-	 * @return ResponseInterface Object metadata or error result
+	 * Usage Examples:
+	 * ```php
+	 * // Check if object exists and get metadata
+	 * $response = $signer->head_object( 'my-bucket', 'documents/file.pdf' );
+	 *
+	 * if ( $response->is_successful() ) {
+	 *     $metadata = $response->get_metadata();
+	 *
+	 *     echo "File exists!\n";
+	 *     echo "Size: " . $metadata['content_length'] . " bytes\n";
+	 *     echo "Type: " . $metadata['content_type'] . "\n";
+	 *     echo "ETag: " . $metadata['etag'] . "\n";
+	 * } else {
+	 *     echo "File does not exist or access denied\n";
+	 * }
+	 * ```
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $bucket     Bucket name containing the object
+	 * @param string $object_key Object key (path) to check
+	 *
+	 * @return ResponseInterface ObjectResponse with metadata on success, or ErrorResponse on failure
+	 *
+	 * @see ObjectResponse For detailed response structure and methods
+	 * @see get_object() For retrieving both content and metadata
 	 */
 	public function head_object( string $bucket, string $object_key ): ResponseInterface {
 		if ( empty( $bucket ) || empty( $object_key ) ) {
@@ -286,7 +395,7 @@ trait Objects {
 			$object_key
 		);
 
-		// Build the URL
+		//  USE PROVIDER METHOD for standard URL building
 		$url = $this->provider->format_url( $bucket, $object_key );
 
 		// Debug the request
@@ -333,10 +442,32 @@ trait Objects {
 	/**
 	 * Delete an object from a bucket
 	 *
-	 * @param string $bucket     Bucket name
-	 * @param string $object_key Object key
+	 * Permanently removes an object from the specified S3 bucket.
+	 * This operation cannot be undone, so use with caution.
 	 *
-	 * @return ResponseInterface Operation result
+	 * Usage Examples:
+	 * ```php
+	 * // Delete a single file
+	 * $response = $signer->delete_object( 'my-bucket', 'old-file.txt' );
+	 *
+	 * if ( $response->is_successful() ) {
+	 *     echo $response->get_message(); // "File deleted successfully"
+	 *     $data = $response->get_data();
+	 *     echo "Deleted: " . $data['filename'] . "\n";
+	 * } else {
+	 *     echo "Error: " . $response->get_error_message() . "\n";
+	 * }
+	 * ```
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $bucket     Bucket name containing the object
+	 * @param string $object_key Object key (path) to delete
+	 *
+	 * @return ResponseInterface SuccessResponse on successful deletion, or ErrorResponse on failure
+	 *
+	 * @see SuccessResponse For successful operation response structure
+	 * @see ErrorResponse For error response structure and methods
 	 */
 	public function delete_object( string $bucket, string $object_key ): ResponseInterface {
 		if ( empty( $bucket ) || empty( $object_key ) ) {
@@ -413,12 +544,43 @@ trait Objects {
 	/**
 	 * Copy an object within or between buckets
 	 *
+	 * Creates a copy of an object in S3, either within the same bucket or to a different bucket.
+	 * The copy operation preserves the original object's metadata unless overridden.
+	 * This is also used internally for rename operations.
+	 *
+	 * Usage Examples:
+	 * ```php
+	 * // Copy within same bucket
+	 * $response = $signer->copy_object(
+	 *     'my-bucket', 'original-file.txt',
+	 *     'my-bucket', 'backup/original-file.txt'
+	 * );
+	 *
+	 * // Copy to different bucket
+	 * $response = $signer->copy_object(
+	 *     'source-bucket', 'documents/file.pdf',
+	 *     'backup-bucket', 'documents/file.pdf'
+	 * );
+	 *
+	 * if ( $response->is_successful() ) {
+	 *     $data = $response->get_data();
+	 *     echo "Copied successfully!\n";
+	 *     echo "ETag: " . $data['etag'] . "\n";
+	 *     echo "Modified: " . $data['last_modified'] . "\n";
+	 * }
+	 * ```
+	 *
+	 * @since 1.0.0
+	 *
 	 * @param string $source_bucket Source bucket name
 	 * @param string $source_key    Source object key
 	 * @param string $target_bucket Target bucket name
 	 * @param string $target_key    Target object key
 	 *
-	 * @return ResponseInterface Response or error
+	 * @return ResponseInterface SuccessResponse with copy metadata on success, or ErrorResponse on failure
+	 *
+	 * @see SuccessResponse For successful operation response structure
+	 * @see ErrorResponse For error response structure and methods
 	 */
 	public function copy_object(
 		string $source_bucket,
@@ -437,7 +599,7 @@ trait Objects {
 		// Use the helper to build copy headers
 		$headers = $this->build_copy_headers( $source_bucket, $source_key, $target_bucket, $target_key );
 
-		// Build the URL
+		//  USE PROVIDER METHOD for standard URL building
 		$url = $this->provider->format_url( $target_bucket, $target_key );
 
 		// Debug the request

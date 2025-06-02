@@ -107,6 +107,7 @@ class Objects extends WP_List_Table {
 	public function get_columns(): array {
 		return [
 			'name'     => __( 'Name', 'arraypress' ),
+			'type'     => __( 'Type', 'arraypress' ),
 			'size'     => __( 'Size', 'arraypress' ),
 			'modified' => __( 'Last Modified', 'arraypress' ),
 			'actions'  => __( 'Actions', 'arraypress' ),
@@ -176,6 +177,7 @@ class Objects extends WP_List_Table {
 				'prefix'   => $folder->get_prefix(),
 				'size'     => '-',
 				'modified' => '-',
+				'mime'     => 'folder',
 			];
 		}
 
@@ -339,12 +341,29 @@ class Objects extends WP_List_Table {
 	public function render_row( array $item ): string {
 		$output = '<tr>';
 		$output .= '<td class="column-name has-row-actions">' . $this->column_name( $item ) . '</td>';
+		$output .= '<td class="column-type">' . $this->column_type( $item ) . '</td>';
 		$output .= '<td class="column-size">' . esc_html( $item['size'] ) . '</td>';
 		$output .= '<td class="column-modified">' . esc_html( $item['modified'] ) . '</td>';
 		$output .= '<td class="column-actions">' . $this->column_actions( $item ) . '</td>';
 		$output .= '</tr>';
 
 		return $output;
+	}
+
+	/**
+	 * Render the type column
+	 *
+	 * @param array $item Item data
+	 *
+	 * @return string Column HTML
+	 */
+	public function column_type( array $item ): string {
+		if ( $item['type'] === 'folder' ) {
+			return '<span class="s3-type-folder">' . esc_html__( 'Folder', 'arraypress' ) . '</span>';
+		}
+
+		// For files, show the MIME type
+		return '<span class="s3-type-file" title="' . esc_attr( $item['mime'] ) . '">' . esc_html( $item['mime'] ) . '</span>';
 	}
 
 	/**
@@ -456,7 +475,7 @@ class Objects extends WP_List_Table {
 				esc_html( $item['name'] )
 			);
 		} else {
-			$icon_class = $item['object']->get_dashicon_class();
+			$icon_class      = $item['object']->get_dashicon_class();
 			$primary_content = sprintf(
 				'<span class="dashicons %s"></span> <span class="s3-filename" data-original-name="%s"><strong>%s</strong></span>',
 				esc_attr( $icon_class ),
