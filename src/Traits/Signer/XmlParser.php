@@ -16,6 +16,7 @@ declare( strict_types=1 );
 
 namespace ArrayPress\S3\Traits\Signer;
 
+use ArrayPress\S3\Utils\File;
 use ArrayPress\S3\Utils\Xml;
 use ArrayPress\S3\Responses\ErrorResponse;
 use SimpleXMLElement;
@@ -113,8 +114,7 @@ trait XmlParser {
 			// Single object case
 			if ( isset( $contents['Key'] ) ) {
 				$objects[] = $this->extract_object_data( $contents );
-			}
-			// Multiple objects case
+			} // Multiple objects case
 			elseif ( is_array( $contents ) ) {
 				foreach ( $contents as $object ) {
 					if ( isset( $object['Key'] ) ) {
@@ -134,8 +134,7 @@ trait XmlParser {
 				if ( ! empty( $prefix_value ) ) {
 					$prefixes[] = $prefix_value;
 				}
-			}
-			// Multiple prefixes case
+			} // Multiple prefixes case
 			elseif ( is_array( $common_prefixes ) ) {
 				foreach ( $common_prefixes as $prefix_data ) {
 					if ( isset( $prefix_data['Prefix'] ) ) {
@@ -197,9 +196,9 @@ trait XmlParser {
 	 * @return array Array containing buckets, owner, and truncation data
 	 */
 	protected function parse_buckets_list( array $xml ): array {
-		$buckets = [];
-		$owner = null;
-		$truncated = false;
+		$buckets     = [];
+		$owner       = null;
+		$truncated   = false;
 		$next_marker = '';
 
 		// Extract from ListAllMyBucketsResult format
@@ -211,8 +210,7 @@ trait XmlParser {
 			// Single bucket case
 			if ( isset( $buckets_data['Name'] ) ) {
 				$buckets[] = $this->extract_bucket_data( $buckets_data );
-			}
-			// Multiple buckets case
+			} // Multiple buckets case
 			elseif ( is_array( $buckets_data ) ) {
 				foreach ( $buckets_data as $bucket ) {
 					if ( isset( $bucket['Name'] ) ) {
@@ -274,8 +272,7 @@ trait XmlParser {
 			// If we find something that looks like a bucket
 			if ( is_array( $value ) && isset( $value['Name'] ) && isset( $value['CreationDate'] ) ) {
 				$buckets[] = $this->extract_bucket_data( $value );
-			}
-			// Recursively search deeper
+			} // Recursively search deeper
 			elseif ( is_array( $value ) ) {
 				$found_buckets = $this->search_for_buckets_recursively( $value );
 				if ( ! empty( $found_buckets ) ) {
@@ -288,20 +285,52 @@ trait XmlParser {
 	}
 
 	/**
-	 * Extract object data from XML node
+	 * Extract object data from XML node with full formatting
 	 *
 	 * @param array $object_node XML object node
 	 *
-	 * @return array Formatted object data
+	 * @return array Formatted object data with additional metadata
 	 */
 	protected function extract_object_data( array $object_node ): array {
+		$key_value     = $this->extract_text_value( $object_node['Key'] ?? '' );
+		$last_modified = $this->extract_text_value( $object_node['LastModified'] ?? '' );
+		$etag          = $this->extract_clean_etag( $object_node['ETag'] ?? '' );
+		$size          = (int) $this->extract_text_value( $object_node['Size'] ?? '0' );
+		$storage_class = $this->extract_text_value( $object_node['StorageClass'] ?? 'STANDARD' );
+
+		if ( empty( $key_value ) ) {
+			return [];
+		}
+
+		// Get filename from key
+		$filename = File::name( $key_value );
+
 		return [
-			'Key'          => $this->extract_text_value( $object_node['Key'] ?? '' ),
-			'LastModified' => $this->extract_text_value( $object_node['LastModified'] ?? '' ),
-			'ETag'         => trim( $this->extract_text_value( $object_node['ETag'] ?? '' ), '"' ),
-			'Size'         => (int) $this->extract_text_value( $object_node['Size'] ?? '0' ),
-			'StorageClass' => $this->extract_text_value( $object_node['StorageClass'] ?? 'STANDARD' ),
+			'Key'           => $key_value,
+			'Filename'      => $filename,
+			'LastModified'  => $last_modified,
+			'ETag'          => $etag,
+			'Size'          => $size,
+			'StorageClass'  => $storage_class,
+			'FormattedSize' => size_format( $size ),
+			'Type'          => File::type( $filename ),
+			'MimeType'      => File::mime_type( $filename )
 		];
+	}
+
+	/**
+	 * Extract and clean ETag from XML node
+	 *
+	 * Removes surrounding quotes from ETag values as returned by S3.
+	 *
+	 * @param mixed $etag_node XML ETag node
+	 *
+	 * @return string Clean ETag value
+	 */
+	protected function extract_clean_etag( $etag_node ): string {
+		$etag = $this->extract_text_value( $etag_node );
+
+		return trim( $etag, '"' );
 	}
 
 	/**
