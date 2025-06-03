@@ -852,7 +852,7 @@
 
             var modal = this.createModal({
                 id: 's3DetailsModal',
-                title: 'File Details: ' + fileData.filename,
+                title: fileData.filename,
                 width: '600px',
                 fields: [{
                     id: 's3DetailsContent',
