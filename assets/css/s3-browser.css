@@ -828,3 +828,139 @@
         max-width: 100%;
     }
 }
+
+/* Details Modal Specific Styles */
+#s3DetailsModal .s3-modal {
+    max-width: 700px;
+}
+
+.s3-details-content {
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.s3-details-section {
+    margin-bottom: 24px;
+}
+
+.s3-details-section:last-child {
+    margin-bottom: 0;
+}
+
+.s3-details-section h4 {
+    margin: 0 0 12px 0;
+    padding: 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: #23282d;
+    border-bottom: 1px solid #e1e1e1;
+    padding-bottom: 6px;
+}
+
+.s3-details-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0;
+}
+
+.s3-details-table td {
+    padding: 8px 12px 8px 0;
+    border-bottom: 1px solid #f1f1f1;
+    vertical-align: top;
+}
+
+.s3-details-table td:first-child {
+    width: 30%;
+    font-weight: 500;
+    color: #555;
+}
+
+.s3-details-table td:last-child {
+    width: 70%;
+    word-break: break-all;
+}
+
+.s3-details-table code {
+    background: #f8f9fa;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 13px;
+    color: #0073aa;
+    font-family: Consolas, Monaco, monospace;
+    word-break: break-all;
+}
+
+.s3-details-table .description {
+    margin: 6px 0 0 0;
+    font-size: 12px;
+    color: #666;
+    font-style: italic;
+    line-height: 1.4;
+}
+
+.s3-details-table tr:last-child td {
+    border-bottom: none;
+}
+
+/* Checksum styling in details */
+.s3-checksum-single {
+    color: #00a32a;
+}
+
+.s3-checksum-multipart {
+    color: #d63638;
+}
+
+.s3-checksum-none {
+    color: #666;
+    font-style: italic;
+}
+
+/* Enhanced modal spacing for details */
+#s3DetailsModal .s3-modal-body {
+    padding: 20px 24px;
+}
+
+#s3DetailsModal .s3-modal-footer {
+    background: #f9f9f9;
+    border-top: 1px solid #e5e5e5;
+    padding: 16px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+#s3DetailsModal .s3-modal-footer .button {
+    margin: 0;
+    min-width: 100px;
+}
+
+/* Mobile responsive for details modal */
+@media screen and (max-width: 782px) {
+    #s3DetailsModal .s3-modal {
+        max-width: 95vw;
+        margin: 10px;
+    }
+
+    .s3-details-table td:first-child {
+        width: 35%;
+        font-size: 13px;
+    }
+
+    .s3-details-table td:last-child {
+        font-size: 13px;
+    }
+
+    .s3-details-section h4 {
+        font-size: 14px;
+    }
+
+    #s3DetailsModal .s3-modal-footer {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    #s3DetailsModal .s3-modal-footer .button {
+        width: 100%;
+    }
+}
