@@ -361,9 +361,6 @@ class Objects extends WP_List_Table {
 		} else {
 			$icon_class      = $item['object']->get_dashicon_class();
 
-			// Build data attributes for the details modal
-			$data_attrs = $this->build_file_data_attributes( $item['object'] );
-
 			$primary_content = sprintf(
 				'<span class="dashicons %s"></span> <span class="s3-filename" data-original-name="%s" %s><strong>%s</strong></span>',
 				esc_attr( $icon_class ),
