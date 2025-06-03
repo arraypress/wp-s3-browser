@@ -652,3 +652,179 @@
         min-width: 80px;
     }
 }
+
+/* Copy Link Modal Specific Styles */
+#s3CopyLinkModal .s3-modal {
+    max-width: 600px;
+}
+
+/* Form Field Styling for Number and Textarea */
+.s3-modal-field input[type="number"] {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    font-size: 14px;
+    line-height: 1.4;
+    box-sizing: border-box;
+}
+
+.s3-modal-field input[type="number"]:focus {
+    border-color: #0073aa;
+    box-shadow: 0 0 0 1px #0073aa;
+    outline: none;
+}
+
+.s3-modal-field textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    font-size: 13px;
+    line-height: 1.4;
+    box-sizing: border-box;
+    resize: vertical;
+    font-family: Consolas, Monaco, monospace;
+    background-color: #f9f9f9;
+    color: #0073aa;
+    min-height: 80px;
+}
+
+.s3-modal-field textarea:focus {
+    border-color: #0073aa;
+    box-shadow: 0 0 0 1px #0073aa;
+    outline: none;
+    background-color: #fff;
+}
+
+.s3-modal-field textarea:read-only {
+    background-color: #f6f7f7;
+    color: #555;
+    cursor: default;
+}
+
+/* Select Field Styling */
+.s3-modal-field select {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    font-size: 14px;
+    line-height: 1.4;
+    box-sizing: border-box;
+    background-color: #fff;
+}
+
+.s3-modal-field select:focus {
+    border-color: #0073aa;
+    box-shadow: 0 0 0 1px #0073aa;
+    outline: none;
+}
+
+/* Success State for Generated URL */
+.s3-modal-field.s3-url-generated textarea {
+    border-color: #46b450;
+    background-color: #ecf7ed;
+}
+
+.s3-modal-field.s3-url-generated .description {
+    color: #1e8a27;
+    font-weight: 500;
+}
+
+/* Copy Link Modal Buttons */
+#s3CopyLinkModal .s3-modal-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+#s3CopyLinkModal .s3-modal-footer .button {
+    margin: 0;
+    min-width: 120px;
+    flex: 0 0 auto;
+}
+
+/* Button States */
+#s3CopyLinkModal .button[data-action="generate"] {
+    background: #0073aa;
+    border-color: #0073aa;
+    color: #fff;
+}
+
+#s3CopyLinkModal .button[data-action="generate"]:hover:not(:disabled) {
+    background: #005a87;
+    border-color: #005a87;
+}
+
+#s3CopyLinkModal .button[data-action="copy"] {
+    background: #00a32a;
+    border-color: #00a32a;
+    color: #fff;
+}
+
+#s3CopyLinkModal .button[data-action="copy"]:hover:not(:disabled) {
+    background: #008a20;
+    border-color: #008a20;
+}
+
+#s3CopyLinkModal .button[data-action="copy"]:disabled {
+    background: #ccd0d4 !important;
+    border-color: #ccd0d4 !important;
+    color: #a7aaad !important;
+}
+
+/* Enhanced Description Styling */
+.s3-modal-field .description strong {
+    color: #00a32a;
+}
+
+.s3-modal-field .description.success {
+    background: #ecf7ed;
+    border-left: 3px solid #46b450;
+    padding: 8px 12px;
+    border-radius: 0 3px 3px 0;
+    margin-top: 10px;
+}
+
+/* Duration Input Enhancements */
+.s3-modal-field input[type="number"][id="s3ExpiresInput"] {
+    text-align: center;
+    font-weight: 500;
+    max-width: 120px;
+}
+
+/* Generated URL Field Enhancements */
+.s3-modal-field textarea[id="s3GeneratedUrl"] {
+    word-break: break-all;
+    white-space: pre-wrap;
+}
+
+/* Mobile Responsive Adjustments */
+@media screen and (max-width: 782px) {
+    #s3CopyLinkModal .s3-modal {
+        max-width: 95vw;
+        margin: 10px;
+    }
+
+    #s3CopyLinkModal .s3-modal-footer {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    #s3CopyLinkModal .s3-modal-footer .button {
+        width: 100%;
+        min-width: auto;
+        margin-bottom: 8px;
+    }
+
+    #s3CopyLinkModal .s3-modal-footer .button:last-child {
+        margin-bottom: 0;
+    }
+
+    .s3-modal-field input[type="number"][id="s3ExpiresInput"] {
+        max-width: 100%;
+    }
+}
