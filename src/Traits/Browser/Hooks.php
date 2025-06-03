@@ -47,6 +47,7 @@ trait Hooks {
 		add_action( 'wp_ajax_s3_create_folder_' . $this->provider_id, [ $this, 'handle_ajax_create_folder' ] );
 		add_action( 'wp_ajax_s3_rename_object_' . $this->provider_id, [ $this, 'handle_ajax_rename_object' ] );
 		add_action( 'wp_ajax_s3_delete_folder_' . $this->provider_id, [ $this, 'handle_ajax_delete_folder' ] );
+		add_action( 'wp_ajax_s3_get_presigned_url_' . $this->provider_id, [ $this, 'handle_ajax_get_presigned_url' ] );
 
 		// Add plugin integrations
 		$this->add_edd_integration();

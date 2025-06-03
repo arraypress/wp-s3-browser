@@ -11,11 +11,11 @@
  * 4. MODAL SYSTEM (line 450)
  * 5. FOLDER MANAGEMENT (line 650)
  * 6. FILE OPERATIONS (line 900)
- * 7. SEARCH & FILTERING (line 1100)
- * 8. LOAD MORE & PAGINATION (line 1300)
- * 9. CACHE & REFRESH (line 1450)
- * 10. UPLOAD INTEGRATION (line 1500)
- * 11. UTILITY FUNCTIONS (line 1600)
+ * 7. SEARCH & FILTERING (line 1200)
+ * 8. LOAD MORE & PAGINATION (line 1400)
+ * 9. CACHE & REFRESH (line 1550)
+ * 10. UPLOAD INTEGRATION (line 1600)
+ * 11. UTILITY FUNCTIONS (line 1700)
  * ========================================
  */
 (function ($) {
@@ -36,6 +36,7 @@
         currentBucket: null,
         currentPrefix: null,
         currentRename: null,
+        currentCopyLink: null,
 
         // Translation strings (populated by PHP)
         i18n: {},
@@ -86,6 +87,8 @@
                     self.deleteFolderConfirm($link);
                 } else if ($link.hasClass('s3-rename-file')) {
                     self.openRenameModal($link);
+                } else if ($link.hasClass('s3-copy-link')) {
+                    self.openCopyLinkModal($link);
                 }
             });
 
@@ -125,6 +128,7 @@
             this.bindLoadMoreEvents();
             this.bindFolderEvents();
             this.bindRenameEvents();
+            this.bindCopyLinkEvents();
             this.bindRefreshEvents();
             this.bindModalEvents();
         },
@@ -229,6 +233,13 @@
             });
         },
 
+        /**
+         * Bind copy link event handlers
+         */
+        bindCopyLinkEvents: function () {
+            // No additional binding needed - handled by row actions
+        },
+
         /* ========================================
          * 3. PROGRESS INDICATORS & OVERLAYS
          * ======================================== */
@@ -329,6 +340,24 @@
                     fieldsHtml += '<input type="text" id="' + field.id + '" ' +
                         'placeholder="' + (field.placeholder || '') + '" ' +
                         'maxlength="' + (field.maxlength || '') + '" autocomplete="off">';
+                } else if (field.type === 'number') {
+                    fieldsHtml += '<input type="number" id="' + field.id + '" ' +
+                        'placeholder="' + (field.placeholder || '') + '" ' +
+                        'min="' + (field.min || '') + '" ' +
+                        'max="' + (field.max || '') + '" ' +
+                        'value="' + (field.value || '') + '">';
+                } else if (field.type === 'select') {
+                    fieldsHtml += '<select id="' + field.id + '">';
+                    if (field.options) {
+                        field.options.forEach(function (option) {
+                            var selected = option.value === field.value ? 'selected' : '';
+                            fieldsHtml += '<option value="' + option.value + '" ' + selected + '>' + option.label + '</option>';
+                        });
+                    }
+                    fieldsHtml += '</select>';
+                } else if (field.type === 'textarea') {
+                    fieldsHtml += '<textarea id="' + field.id + '" rows="' + (field.rows || 3) + '" ' +
+                        'placeholder="' + (field.placeholder || '') + '" readonly>' + (field.value || '') + '</textarea>';
                 }
 
                 if (field.description) {
@@ -746,6 +775,219 @@
          */
         bindRenameEvents: function () {
             // No additional binding needed - handled by row actions
+        },
+
+        /**
+         * Open copy link modal for a file
+         */
+        openCopyLinkModal: function ($button) {
+            var self = this;
+            var filename = $button.data('filename');
+            var bucket = $button.data('bucket');
+            var key = $button.data('key');
+
+            // Store current copy link context
+            this.currentCopyLink = {
+                filename: filename,
+                bucket: bucket,
+                key: key,
+                $button: $button
+            };
+
+            var modal = this.createModal({
+                id: 's3CopyLinkModal',
+                title: this.i18n.copyLink || 'Copy Link',
+                width: '600px',
+                fields: [{
+                    id: 's3ExpiresInput',
+                    type: 'number',
+                    label: this.i18n.linkDuration || 'Link Duration (minutes)',
+                    placeholder: '60',
+                    min: 1,
+                    max: 10080,
+                    value: 60,
+                    description: this.i18n.linkDurationHelp || 'Enter how long the link should remain valid (1 minute to 7 days).'
+                }, {
+                    id: 's3GeneratedUrl',
+                    type: 'textarea',
+                    label: this.i18n.generatedLink || 'Generated Link',
+                    placeholder: this.i18n.generateLinkFirst || 'Click "Generate Link" to create a shareable URL',
+                    rows: 4,
+                    value: ''
+                }],
+                buttons: [{
+                    text: this.i18n.cancel || 'Cancel',
+                    action: 'cancel',
+                    callback: function () {
+                        self.hideModal('s3CopyLinkModal');
+                        self.currentCopyLink = null;
+                    }
+                }, {
+                    text: this.i18n.generateLink || 'Generate Link',
+                    action: 'generate',
+                    classes: 'button-primary',
+                    callback: function () {
+                        self.generatePresignedUrl();
+                    }
+                }, {
+                    text: this.i18n.copyToClipboard || 'Copy to Clipboard',
+                    action: 'copy',
+                    classes: 'button-secondary',
+                    disabled: true,
+                    callback: function () {
+                        self.copyLinkToClipboard();
+                    }
+                }],
+                onClose: function () {
+                    self.currentCopyLink = null;
+                }
+            });
+
+            // Bind copy link specific validation
+            modal.on('keyup', '#s3ExpiresInput', function (e) {
+                self.validateCopyLinkInput(e, modal);
+            });
+
+            this.showModal('s3CopyLinkModal', function () {
+                $('#s3ExpiresInput').focus().select();
+            });
+        },
+
+        /**
+         * Validate copy link input
+         */
+        validateCopyLinkInput: function (e, $modal) {
+            var minutes = parseInt(e.target.value, 10);
+            var $generateBtn = $modal.find('button[data-action="generate"]');
+            var $error = $modal.find('.s3-modal-error');
+
+            $error.hide();
+
+            if (isNaN(minutes) || minutes < 1 || minutes > 10080) {
+                if (e.target.value.length > 0) {
+                    $error.text(this.i18n.invalidDuration || 'Duration must be between 1 minute and 7 days (10080 minutes)').show();
+                }
+                $generateBtn.prop('disabled', true);
+            } else {
+                $generateBtn.prop('disabled', false);
+            }
+        },
+
+        /**
+         * Generate presigned URL via AJAX
+         */
+        generatePresignedUrl: function () {
+            if (!this.currentCopyLink) return;
+
+            var self = this;
+            var expiresMinutes = parseInt($('#s3ExpiresInput').val(), 10) || 60;
+
+            this.setModalLoading('s3CopyLinkModal', true, this.i18n.generatingLink || 'Generating link...');
+
+            this.makeAjaxRequest('s3_get_presigned_url_', {
+                bucket: this.currentCopyLink.bucket,
+                object_key: this.currentCopyLink.key,
+                expires_minutes: expiresMinutes
+            }, {
+                success: function (response) {
+                    self.handlePresignedUrlSuccess(response, expiresMinutes);
+                },
+                error: function (message) {
+                    self.showModalError('s3CopyLinkModal', message);
+                }
+            });
+        },
+
+        /**
+         * Handle successful presigned URL generation
+         */
+        handlePresignedUrlSuccess: function (response, expiresMinutes) {
+            var self = this;
+            var url = response.data.url;
+            var expiresAt = new Date(response.data.expires_at * 1000);
+
+            // Update the textarea with the URL
+            $('#s3GeneratedUrl').val(url);
+
+            // Enable the copy button
+            $('#s3CopyLinkModal button[data-action="copy"]').prop('disabled', false);
+
+            // Show success message
+            this.setModalLoading('s3CopyLinkModal', false);
+
+            // Update the description to show expiration info
+            var expirationText = this.i18n.linkExpiresAt || 'Link expires at: {time}';
+            expirationText = expirationText.replace('{time}', expiresAt.toLocaleString());
+
+            $('#s3CopyLinkModal .description').last().html(
+                '<strong>' + (this.i18n.linkGenerated || 'Link generated successfully!') + '</strong><br>' +
+                expirationText
+            );
+
+            this.showNotification(
+                response.data.message || this.i18n.linkGeneratedSuccess || 'Link generated successfully',
+                'success'
+            );
+        },
+
+        /**
+         * Copy generated link to clipboard
+         */
+        copyLinkToClipboard: function () {
+            var url = $('#s3GeneratedUrl').val();
+            if (!url) return;
+
+            var self = this;
+
+            // Try modern clipboard API first
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(url).then(function () {
+                    self.showNotification(
+                        self.i18n.linkCopied || 'Link copied to clipboard!',
+                        'success'
+                    );
+                }).catch(function () {
+                    self.fallbackCopyToClipboard(url);
+                });
+            } else {
+                self.fallbackCopyToClipboard(url);
+            }
+        },
+
+        /**
+         * Fallback clipboard copy method
+         */
+        fallbackCopyToClipboard: function (text) {
+            var textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.top = '-999px';
+            textArea.style.left = '-999px';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+
+            try {
+                var successful = document.execCommand('copy');
+                if (successful) {
+                    this.showNotification(
+                        this.i18n.linkCopied || 'Link copied to clipboard!',
+                        'success'
+                    );
+                } else {
+                    this.showNotification(
+                        this.i18n.copyFailed || 'Failed to copy link. Please copy manually.',
+                        'error'
+                    );
+                }
+            } catch (err) {
+                this.showNotification(
+                    this.i18n.copyFailed || 'Failed to copy link. Please copy manually.',
+                    'error'
+                );
+            }
+
+            document.body.removeChild(textArea);
         },
 
         /**

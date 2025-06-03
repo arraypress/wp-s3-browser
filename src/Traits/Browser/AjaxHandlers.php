@@ -254,6 +254,89 @@ trait AjaxHandlers {
 	}
 
 	/**
+	 * Handle AJAX get presigned URL request
+	 *
+	 * Generates presigned URLs for file sharing with customizable expiration.
+	 * Used by the "Copy Link" functionality to create temporary access URLs.
+	 *
+	 * Expected POST parameters:
+	 * - bucket: S3 bucket name
+	 * - object_key: Object key for which to generate URL
+	 * - expires_minutes: Expiration time in minutes (optional, defaults to 60)
+	 * - nonce: Security nonce
+	 *
+	 * @since 1.0.0
+	 */
+	public function handle_ajax_get_presigned_url(): void {
+		if ( ! check_ajax_referer( 's3_browser_nonce_' . $this->provider_id, 'nonce', false ) ) {
+			wp_send_json_error( [ 'message' => __( 'Security check failed', 'arraypress' ) ] );
+
+			return;
+		}
+
+		if ( ! current_user_can( $this->capability ) ) {
+			wp_send_json_error( [ 'message' => __( 'You do not have permission to perform this action', 'arraypress' ) ] );
+
+			return;
+		}
+
+		$bucket          = isset( $_POST['bucket'] ) ? sanitize_text_field( $_POST['bucket'] ) : '';
+		$object_key      = isset( $_POST['object_key'] ) ? wp_unslash( sanitize_text_field( $_POST['object_key'] ) ) : '';
+		$expires_minutes = isset( $_POST['expires_minutes'] ) ? absint( $_POST['expires_minutes'] ) : 60;
+
+		if ( empty( $bucket ) || empty( $object_key ) ) {
+			wp_send_json_error( [ 'message' => __( 'Bucket and object key are required', 'arraypress' ) ] );
+
+			return;
+		}
+
+		// Validate expiration time (between 1 minute and 7 days)
+		if ( $expires_minutes < 1 ) {
+			$expires_minutes = 1;
+		} elseif ( $expires_minutes > 10080 ) { // 7 days in minutes
+			$expires_minutes = 10080;
+		}
+
+		// First check if the object exists
+		$exists_result = $this->client->object_exists( $bucket, $object_key );
+		if ( ! $exists_result->is_successful() ) {
+			wp_send_json_error( [ 'message' => __( 'Error checking if file exists', 'arraypress' ) ] );
+
+			return;
+		}
+
+		$data = $exists_result->get_data();
+		if ( ! $data['exists'] ) {
+			wp_send_json_error( [ 'message' => __( 'File does not exist', 'arraypress' ) ] );
+
+			return;
+		}
+
+		// Generate the presigned URL
+		$presigned_result = $this->client->get_presigned_url( $bucket, $object_key, $expires_minutes );
+
+		if ( ! $presigned_result->is_successful() ) {
+			wp_send_json_error( [ 'message' => $presigned_result->get_error_message() ] );
+
+			return;
+		}
+
+		$expires_at = time() + ( $expires_minutes * 60 );
+
+		wp_send_json_success( [
+			'url'        => $presigned_result->get_url(),
+			'expires_at' => $expires_at,
+			'expires_in' => $expires_minutes,
+			'object_key' => $object_key,
+			'bucket'     => $bucket,
+			'message'    => sprintf(
+				__( 'Link generated successfully (expires in %d minutes)', 'arraypress' ),
+				$expires_minutes
+			)
+		] );
+	}
+
+	/**
 	 * Handle AJAX load more request
 	 *
 	 * Processes pagination requests for object listings. Delegates to the

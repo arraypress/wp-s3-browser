@@ -295,6 +295,22 @@ trait Assets {
 			'filenameExists'         => __( 'A file with this name already exists', 'arraypress' ),
 			'filenameSame'           => __( 'The new filename is the same as the current filename', 'arraypress' ),
 
+			// Copy Link operation strings - NEW
+			'copyLink'               => __( 'Copy Link', 'arraypress' ),
+			'linkDuration'           => __( 'Link Duration (minutes)', 'arraypress' ),
+			'linkDurationHelp'       => __( 'Enter how long the link should remain valid (1 minute to 7 days).', 'arraypress' ),
+			'generatedLink'          => __( 'Generated Link', 'arraypress' ),
+			'generateLinkFirst'      => __( 'Click "Generate Link" to create a shareable URL', 'arraypress' ),
+			'generateLink'           => __( 'Generate Link', 'arraypress' ),
+			'copyToClipboard'        => __( 'Copy to Clipboard', 'arraypress' ),
+			'generatingLink'         => __( 'Generating link...', 'arraypress' ),
+			'linkGenerated'          => __( 'Link generated successfully!', 'arraypress' ),
+			'linkGeneratedSuccess'   => __( 'Link generated successfully', 'arraypress' ),
+			'linkExpiresAt'          => __( 'Link expires at: {time}', 'arraypress' ),
+			'linkCopied'             => __( 'Link copied to clipboard!', 'arraypress' ),
+			'copyFailed'             => __( 'Failed to copy link. Please copy manually.', 'arraypress' ),
+			'invalidDuration'        => __( 'Duration must be between 1 minute and 7 days (10080 minutes)', 'arraypress' ),
+
 			// Cache and refresh
 			'cacheRefreshed'         => __( 'Cache refreshed successfully', 'arraypress' ),
 			'refreshError'           => __( 'Failed to refresh data', 'arraypress' ),
@@ -316,10 +332,10 @@ trait Assets {
 			'moreAvailable'          => __( ' (more available)', 'arraypress' ),
 
 			// Favorites
-			'opening'            => __( 'Opening...', 'arraypress' ),
-			'folderOpenError'    => __( 'Failed to open folder', 'arraypress' ),
-			'setDefault'         => __( 'Set as default bucket', 'arraypress' ),
-			'removeDefault'      => __( 'Remove as default bucket', 'arraypress' ),
+			'opening'                => __( 'Opening...', 'arraypress' ),
+			'folderOpenError'        => __( 'Failed to open folder', 'arraypress' ),
+			'setDefault'             => __( 'Set as default bucket', 'arraypress' ),
+			'removeDefault'          => __( 'Remove as default bucket', 'arraypress' ),
 
 			// Folder creation translations
 			'newFolder'              => __( 'New Folder', 'arraypress' ),

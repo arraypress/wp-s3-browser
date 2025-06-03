@@ -396,6 +396,15 @@ class Objects extends WP_List_Table {
 				esc_html__( 'Rename', 'arraypress' )
 			);
 
+			// Copy Link action - NEW
+			$actions['copy_link'] = sprintf(
+				'<a href="#" class="s3-copy-link" data-filename="%s" data-bucket="%s" data-key="%s">%s</a>',
+				esc_attr( $item['name'] ),
+				esc_attr( $this->bucket ),
+				esc_attr( $item['key'] ),
+				esc_html__( 'Copy Link', 'arraypress' )
+			);
+
 			// Download link
 			if ( isset( $item['object'] ) ) {
 				$presigned_url = $item['object']->get_presigned_url( $this->client, $this->bucket, 60 );
@@ -486,7 +495,7 @@ class Objects extends WP_List_Table {
 				esc_html( $item['name'] )
 			);
 		} else {
-			$icon_class = $item['object']->get_dashicon_class();
+			$icon_class      = $item['object']->get_dashicon_class();
 			$primary_content = sprintf(
 				'<span class="dashicons %s"></span> <span class="s3-filename" data-original-name="%s"><strong>%s</strong></span>',
 				esc_attr( $icon_class ),
