@@ -1,9 +1,9 @@
 <?php
 /**
- * S3 Objects List Table - Enhanced with Row Actions and Folder Delete
+ * S3 Objects List Table - Enhanced with Checksum Display
  *
  * Displays S3 objects and folders in a WordPress-style table with pagination,
- * search functionality, file operations, and WordPress-style row actions.
+ * search functionality, file operations, checksum verification, and WordPress-style row actions.
  *
  * @package     ArrayPress\S3\Tables
  * @copyright   Copyright (c) 2025, ArrayPress Limited
@@ -25,7 +25,7 @@ use ArrayPress\S3\Client;
  * Class Objects
  *
  * Extends WP_List_Table to display S3 objects and prefixes with proper pagination
- * and file operations support including renaming and folder deletion.
+ * and file operations support including renaming, folder deletion, and checksum verification.
  */
 class Objects extends WP_List_Table {
 
@@ -109,6 +109,7 @@ class Objects extends WP_List_Table {
 			'name'     => __( 'Name', 'arraypress' ),
 			'type'     => __( 'Type', 'arraypress' ),
 			'size'     => __( 'Size', 'arraypress' ),
+			'checksum' => __( 'Checksum', 'arraypress' ),
 			'modified' => __( 'Last Modified', 'arraypress' ),
 			'actions'  => __( 'Actions', 'arraypress' ),
 		];
@@ -176,6 +177,7 @@ class Objects extends WP_List_Table {
 				'name'     => $folder->get_folder_name(),
 				'prefix'   => $folder->get_prefix(),
 				'size'     => '-',
+				'checksum' => '-',
 				'modified' => '-',
 				'mime'     => 'folder',
 			];
@@ -183,11 +185,14 @@ class Objects extends WP_List_Table {
 
 		// Add files
 		foreach ( $objects as $object ) {
+			$checksum_info = $object->get_checksum_display();
+
 			$items[] = [
 				'type'     => 'file',
 				'name'     => $object->get_filename(),
 				'key'      => $object->get_key(),
 				'size'     => $object->get_formatted_size(),
+				'checksum' => $checksum_info,
 				'modified' => $object->get_formatted_date(),
 				'mime'     => $object->get_mime_type(),
 				'object'   => $object,
@@ -206,6 +211,41 @@ class Objects extends WP_List_Table {
 		if ( isset( $result['truncated'] ) && $result['truncated'] && ! empty( $result['continuation_token'] ) ) {
 			$this->_pagination_args['continuation_token'] = $result['continuation_token'];
 		}
+	}
+
+	/**
+	 * Render the checksum column
+	 *
+	 * @param array $item Item data
+	 *
+	 * @return string Column HTML
+	 */
+	public function column_checksum( array $item ): string {
+		if ( $item['type'] === 'folder' ) {
+			return '<span class="s3-checksum-none">-</span>';
+		}
+
+		$checksum = $item['checksum'];
+
+		if ( ! $checksum['has_checksum'] ) {
+			return '<span class="s3-checksum-none" title="No checksum available">-</span>';
+		}
+
+		$class = $checksum['is_multipart'] ? 's3-checksum-multipart' : 's3-checksum-single';
+		$icon  = $checksum['is_multipart'] ? 'dashicons-networking' : 'dashicons-shield';
+
+		return sprintf(
+			'<span class="s3-checksum %s" title="%s">
+				<span class="dashicons %s"></span>
+				<code class="s3-checksum-type">%s</code>
+				<span class="s3-checksum-hash">%s</span>
+			</span>',
+			esc_attr( $class ),
+			esc_attr( $checksum['tooltip'] ),
+			esc_attr( $icon ),
+			esc_html( $checksum['type'] ),
+			esc_html( $checksum['short_hash'] )
+		);
 	}
 
 	/**
@@ -241,6 +281,13 @@ class Objects extends WP_List_Table {
 							esc_html__( 'Refresh', 'arraypress' )
 						);
 						?>
+                        <button type="button" class="button s3-icon-button s3-verify-checksums"
+                                data-bucket="<?php echo esc_attr( $this->bucket ); ?>"
+                                data-prefix="<?php echo esc_attr( $this->prefix ); ?>"
+                                title="<?php esc_attr_e( 'Verify file integrity using checksums', 'arraypress' ); ?>">
+                            <span class="dashicons dashicons-shield"></span>
+							<?php esc_html_e( 'Verify Integrity', 'arraypress' ); ?>
+                        </button>
                     </div>
                 </div>
 			<?php else: ?>
@@ -343,6 +390,7 @@ class Objects extends WP_List_Table {
 		$output .= '<td class="column-name has-row-actions">' . $this->column_name( $item ) . '</td>';
 		$output .= '<td class="column-type">' . $this->column_type( $item ) . '</td>';
 		$output .= '<td class="column-size">' . esc_html( $item['size'] ) . '</td>';
+		$output .= '<td class="column-checksum">' . $this->column_checksum( $item ) . '</td>';
 		$output .= '<td class="column-modified">' . esc_html( $item['modified'] ) . '</td>';
 		$output .= '<td class="column-actions">' . $this->column_actions( $item ) . '</td>';
 		$output .= '</tr>';
@@ -396,7 +444,7 @@ class Objects extends WP_List_Table {
 				esc_html__( 'Rename', 'arraypress' )
 			);
 
-			// Copy Link action - NEW
+			// Copy Link action
 			$actions['copy_link'] = sprintf(
 				'<a href="#" class="s3-copy-link" data-filename="%s" data-bucket="%s" data-key="%s">%s</a>',
 				esc_attr( $item['name'] ),
@@ -404,6 +452,18 @@ class Objects extends WP_List_Table {
 				esc_attr( $item['key'] ),
 				esc_html__( 'Copy Link', 'arraypress' )
 			);
+
+			// Verify Integrity action (only for files with checksums)
+			if ( isset( $item['checksum'] ) && $item['checksum']['has_checksum'] ) {
+				$actions['verify'] = sprintf(
+					'<a href="#" class="s3-verify-file" data-filename="%s" data-bucket="%s" data-key="%s" data-checksum-type="%s">%s</a>',
+					esc_attr( $item['name'] ),
+					esc_attr( $this->bucket ),
+					esc_attr( $item['key'] ),
+					esc_attr( $item['checksum']['type'] ),
+					esc_html__( 'Verify Integrity', 'arraypress' )
+				);
+			}
 
 			// Download link
 			if ( isset( $item['object'] ) ) {

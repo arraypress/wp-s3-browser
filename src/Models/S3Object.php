@@ -1,8 +1,8 @@
 <?php
 /**
- * S3 Object Model
+ * S3 Object Model - Enhanced with Checksum Support
  *
- * Represents an S3 object with enhanced functionality.
+ * Represents an S3 object with enhanced functionality including checksum verification.
  *
  * @package     ArrayPress\S3\Models
  * @copyright   Copyright (c) 2025, ArrayPress Limited
@@ -47,7 +47,7 @@ class S3Object {
 	private string $last_modified;
 
 	/**
-	 * ETag value
+	 * ETag value (cleaned, without quotes)
 	 *
 	 * @var string
 	 */
@@ -59,6 +59,13 @@ class S3Object {
 	 * @var string
 	 */
 	private string $storage_class;
+
+	/**
+	 * Custom metadata from x-amz-meta headers
+	 *
+	 * @var array
+	 */
+	private array $metadata;
 
 	/**
 	 * Presigned URL (cached)
@@ -78,6 +85,7 @@ class S3Object {
 		$this->last_modified = $data['LastModified'] ?? '';
 		$this->etag          = isset( $data['ETag'] ) ? trim( $data['ETag'], '"' ) : '';
 		$this->storage_class = $data['StorageClass'] ?? 'STANDARD';
+		$this->metadata      = $data['Metadata'] ?? [];
 	}
 
 	/**
@@ -139,12 +147,249 @@ class S3Object {
 	}
 
 	/**
-	 * Get ETag
+	 * Get ETag (already cleaned of quotes)
 	 *
 	 * @return string
 	 */
 	public function get_etag(): string {
 		return $this->etag;
+	}
+
+	/**
+	 * Get MD5 checksum from ETag
+	 *
+	 * For single-part uploads, the ETag IS the MD5 hash.
+	 * For multipart uploads, it's a composite hash with a suffix like "-2".
+	 *
+	 * @return string|null MD5 hash if available, null if multipart
+	 */
+	public function get_md5_checksum(): ?string {
+		// If ETag contains a dash, it's a multipart upload
+		if ( strpos( $this->etag, '-' ) !== false ) {
+			return null; // Multipart uploads don't have simple MD5
+		}
+
+		// For single-part uploads, ETag IS the MD5
+		return $this->etag;
+	}
+
+	/**
+	 * Check if this is a multipart upload
+	 *
+	 * @return bool
+	 */
+	public function is_multipart(): bool {
+		return strpos( $this->etag, '-' ) !== false;
+	}
+
+	/**
+	 * Get multipart information if applicable
+	 *
+	 * @return array|null Array with 'parts' count if multipart, null otherwise
+	 */
+	public function get_multipart_info(): ?array {
+		if ( ! $this->is_multipart() ) {
+			return null;
+		}
+
+		// Extract parts count from ETag like "hash-2"
+		$parts = explode( '-', $this->etag );
+		if ( count( $parts ) === 2 && is_numeric( $parts[1] ) ) {
+			return [
+				'parts'         => (int) $parts[1],
+				'composite_etag' => $parts[0]
+			];
+		}
+
+		return null;
+	}
+
+	/**
+	 * Get custom metadata value
+	 *
+	 * @param string $key     Metadata key (without x-amz-meta- prefix)
+	 * @param mixed  $default Default value if not found
+	 *
+	 * @return mixed Metadata value
+	 */
+	public function get_metadata( string $key, $default = null ) {
+		return $this->metadata[ $key ] ?? $default;
+	}
+
+	/**
+	 * Get all custom metadata
+	 *
+	 * @return array All metadata key-value pairs
+	 */
+	public function get_all_metadata(): array {
+		return $this->metadata;
+	}
+
+	/**
+	 * Check if object has custom metadata
+	 *
+	 * @param string $key Optional specific key to check
+	 *
+	 * @return bool
+	 */
+	public function has_metadata( string $key = '' ): bool {
+		if ( empty( $key ) ) {
+			return ! empty( $this->metadata );
+		}
+
+		return isset( $this->metadata[ $key ] );
+	}
+
+	/**
+	 * Get SHA256 checksum from metadata (if stored during upload)
+	 *
+	 * @return string|null SHA256 hash if stored, null otherwise
+	 */
+	public function get_sha256_checksum(): ?string {
+		return $this->get_metadata( 'sha256-checksum' ) ?: $this->get_metadata( 'sha256' );
+	}
+
+	/**
+	 * Get SHA1 checksum from metadata (if stored during upload)
+	 *
+	 * @return string|null SHA1 hash if stored, null otherwise
+	 */
+	public function get_sha1_checksum(): ?string {
+		return $this->get_metadata( 'sha1-checksum' ) ?: $this->get_metadata( 'sha1' );
+	}
+
+	/**
+	 * Get upload timestamp from metadata
+	 *
+	 * @return string|null Upload timestamp if stored, null otherwise
+	 */
+	public function get_upload_timestamp(): ?string {
+		return $this->get_metadata( 'upload-time' ) ?: $this->get_metadata( 'uploaded-at' );
+	}
+
+	/**
+	 * Get uploader information from metadata
+	 *
+	 * @return string|null Uploader info if stored, null otherwise
+	 */
+	public function get_uploader_info(): ?string {
+		return $this->get_metadata( 'uploaded-by' ) ?: $this->get_metadata( 'uploader' );
+	}
+
+	/**
+	 * Get best available checksum
+	 *
+	 * Returns the most reliable checksum available, preferring:
+	 * 1. SHA256 from metadata (most secure)
+	 * 2. SHA1 from metadata
+	 * 3. MD5 from ETag (for single-part uploads)
+	 *
+	 * @return array|null Array with 'type' and 'hash', or null if none available
+	 */
+	public function get_best_checksum(): ?array {
+		// Prefer SHA256 if available
+		$sha256 = $this->get_sha256_checksum();
+		if ( $sha256 ) {
+			return [
+				'type' => 'sha256',
+				'hash' => $sha256
+			];
+		}
+
+		// Fall back to SHA1
+		$sha1 = $this->get_sha1_checksum();
+		if ( $sha1 ) {
+			return [
+				'type' => 'sha1',
+				'hash' => $sha1
+			];
+		}
+
+		// Use MD5 from ETag if single-part
+		$md5 = $this->get_md5_checksum();
+		if ( $md5 ) {
+			return [
+				'type' => 'md5',
+				'hash' => $md5
+			];
+		}
+
+		return null;
+	}
+
+	/**
+	 * Verify object integrity against downloaded content
+	 *
+	 * @param string $content Downloaded file content
+	 *
+	 * @return array Verification result with 'verified', 'method', 'expected', 'calculated'
+	 */
+	public function verify_integrity( string $content ): array {
+		$checksum = $this->get_best_checksum();
+
+		if ( ! $checksum ) {
+			return [
+				'verified'   => null,
+				'method'     => 'none',
+				'message'    => 'No checksum available for verification',
+				'expected'   => null,
+				'calculated' => null
+			];
+		}
+
+		$calculated = hash( $checksum['type'], $content );
+		$expected   = $checksum['hash'];
+		$verified   = ( $calculated === $expected );
+
+		return [
+			'verified'   => $verified,
+			'method'     => $checksum['type'],
+			'expected'   => $expected,
+			'calculated' => $calculated,
+			'message'    => $verified
+				? sprintf( 'Integrity verified using %s', strtoupper( $checksum['type'] ) )
+				: sprintf( 'Integrity check failed using %s', strtoupper( $checksum['type'] ) )
+		];
+	}
+
+	/**
+	 * Get checksum display information for admin tables
+	 *
+	 * @return array Array with display info
+	 */
+	public function get_checksum_display(): array {
+		$checksum = $this->get_best_checksum();
+
+		if ( ! $checksum ) {
+			return [
+				'has_checksum' => false,
+				'type'         => 'none',
+				'short_hash'   => '-',
+				'full_hash'    => '',
+				'tooltip'      => 'No checksum available'
+			];
+		}
+
+		$type      = strtoupper( $checksum['type'] );
+		$hash      = $checksum['hash'];
+		$short     = substr( $hash, 0, 8 ) . '...';
+
+		if ( $this->is_multipart() ) {
+			$multipart_info = $this->get_multipart_info();
+			$parts_text = $multipart_info ? sprintf( ' (%d parts)', $multipart_info['parts'] ) : '';
+			$tooltip = sprintf( 'Multipart %s%s: %s', $type, $parts_text, $hash );
+		} else {
+			$tooltip = sprintf( '%s: %s', $type, $hash );
+		}
+
+		return [
+			'has_checksum' => true,
+			'type'         => $type,
+			'short_hash'   => $short,
+			'full_hash'    => $hash,
+			'tooltip'      => $tooltip,
+			'is_multipart' => $this->is_multipart()
+		];
 	}
 
 	/**
@@ -400,6 +645,8 @@ class S3Object {
 	 * @return array
 	 */
 	public function to_array(): array {
+		$checksum_info = $this->get_checksum_display();
+
 		return [
 			'Key'           => $this->key,
 			'Filename'      => $this->get_filename(),
@@ -411,7 +658,11 @@ class S3Object {
 			'StorageClass'  => $this->storage_class,
 			'Type'          => $this->get_file_type(),
 			'MimeType'      => $this->get_mime_type(),
-			'Category'      => $this->get_category()
+			'Category'      => $this->get_category(),
+			'Metadata'      => $this->metadata,
+			'IsMultipart'   => $this->is_multipart(),
+			'Checksum'      => $checksum_info,
+			'BestChecksum'  => $this->get_best_checksum()
 		];
 	}
 
