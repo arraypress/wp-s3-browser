@@ -1,9 +1,9 @@
 <?php
 /**
- * XML Parser Trait - Enhanced with List Parsing
+ * XML Parser Trait - Enhanced with CORS Support
  *
  * Provides S3-specific XML parsing functionality including specialized
- * parsers for common S3 operations like list objects and copy results.
+ * parsers for common S3 operations like list objects, copy results, and CORS.
  *
  * @package     ArrayPress\S3\Traits\Signer
  * @copyright   Copyright (c) 2025, ArrayPress Limited
@@ -256,6 +256,110 @@ trait XmlParser {
 	}
 
 	/**
+	 * Parse CORS configuration XML response
+	 *
+	 * Extracts CORS rules from S3 CORS configuration response.
+	 * Handles both single and multiple CORS rules in the response.
+	 *
+	 * @param array $xml Parsed XML array from parse_xml_response()
+	 *
+	 * @return array Array of CORS rules
+	 */
+	protected function parse_cors_configuration_xml( array $xml ): array {
+		$rules       = [];
+		$cors_config = $xml['CORSConfiguration'] ?? $xml;
+
+		if ( isset( $cors_config['CORSRule'] ) ) {
+			$cors_rules = $cors_config['CORSRule'];
+
+			// Handle single rule vs multiple rules
+			if ( isset( $cors_rules['AllowedMethod'] ) || isset( $cors_rules['AllowedOrigin'] ) ) {
+				$cors_rules = [ $cors_rules ];
+			}
+
+			foreach ( $cors_rules as $rule ) {
+				$parsed_rule = [
+					'ID'             => $this->extract_text_value( $rule['ID'] ?? '' ),
+					'AllowedMethods' => $this->extract_array_values( $rule['AllowedMethod'] ?? [] ),
+					'AllowedOrigins' => $this->extract_array_values( $rule['AllowedOrigin'] ?? [] ),
+					'AllowedHeaders' => $this->extract_array_values( $rule['AllowedHeader'] ?? [] ),
+					'ExposeHeaders'  => $this->extract_array_values( $rule['ExposeHeader'] ?? [] ),
+					'MaxAgeSeconds'  => (int) $this->extract_text_value( $rule['MaxAgeSeconds'] ?? '0' )
+				];
+
+				// Remove empty values but keep MaxAgeSeconds if it's 0
+				$rules[] = array_filter( $parsed_rule, function ( $value, $key ) {
+					return ! empty( $value ) || ( $key === 'MaxAgeSeconds' && $value === 0 );
+				}, ARRAY_FILTER_USE_BOTH );
+			}
+		}
+
+		return $rules;
+	}
+
+	/**
+	 * Build CORS configuration XML from rules array
+	 *
+	 * Creates S3-compatible CORS configuration XML from an array of CORS rules.
+	 *
+	 * @param array $cors_rules Array of CORS rules
+	 *
+	 * @return string XML string for CORS configuration
+	 */
+	protected function build_cors_configuration_xml( array $cors_rules ): string {
+		$xml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
+		$xml .= '<CORSConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/">' . "\n";
+
+		foreach ( $cors_rules as $rule ) {
+			$xml .= '  <CORSRule>' . "\n";
+
+			// ID (optional)
+			if ( ! empty( $rule['ID'] ) ) {
+				$xml .= '    <ID>' . htmlspecialchars( $rule['ID'], ENT_XML1 | ENT_COMPAT, 'UTF-8' ) . '</ID>' . "\n";
+			}
+
+			// AllowedMethods (required)
+			if ( ! empty( $rule['AllowedMethods'] ) ) {
+				foreach ( $rule['AllowedMethods'] as $method ) {
+					$xml .= '    <AllowedMethod>' . htmlspecialchars( $method, ENT_XML1 | ENT_COMPAT, 'UTF-8' ) . '</AllowedMethod>' . "\n";
+				}
+			}
+
+			// AllowedOrigins (required)
+			if ( ! empty( $rule['AllowedOrigins'] ) ) {
+				foreach ( $rule['AllowedOrigins'] as $origin ) {
+					$xml .= '    <AllowedOrigin>' . htmlspecialchars( $origin, ENT_XML1 | ENT_COMPAT, 'UTF-8' ) . '</AllowedOrigin>' . "\n";
+				}
+			}
+
+			// AllowedHeaders (optional)
+			if ( ! empty( $rule['AllowedHeaders'] ) ) {
+				foreach ( $rule['AllowedHeaders'] as $header ) {
+					$xml .= '    <AllowedHeader>' . htmlspecialchars( $header, ENT_XML1 | ENT_COMPAT, 'UTF-8' ) . '</AllowedHeader>' . "\n";
+				}
+			}
+
+			// ExposeHeaders (optional)
+			if ( ! empty( $rule['ExposeHeaders'] ) ) {
+				foreach ( $rule['ExposeHeaders'] as $header ) {
+					$xml .= '    <ExposeHeader>' . htmlspecialchars( $header, ENT_XML1 | ENT_COMPAT, 'UTF-8' ) . '</ExposeHeader>' . "\n";
+				}
+			}
+
+			// MaxAgeSeconds (optional)
+			if ( isset( $rule['MaxAgeSeconds'] ) && $rule['MaxAgeSeconds'] > 0 ) {
+				$xml .= '    <MaxAgeSeconds>' . (int) $rule['MaxAgeSeconds'] . '</MaxAgeSeconds>' . "\n";
+			}
+
+			$xml .= '  </CORSRule>' . "\n";
+		}
+
+		$xml .= '</CORSConfiguration>';
+
+		return $xml;
+	}
+
+	/**
 	 * Search recursively for buckets in the XML structure
 	 *
 	 * Fallback method for providers with non-standard XML structures.
@@ -440,6 +544,50 @@ trait XmlParser {
 			'deleted'       => $deleted,
 			'errors'        => $errors
 		];
+	}
+
+	/**
+	 * Extract array values from XML structure
+	 *
+	 * Handles the conversion of XML node data to arrays, supporting both
+	 * single values and multiple values in various XML structures.
+	 *
+	 * @param mixed $data XML data to extract values from
+	 *
+	 * @return array Array of extracted values
+	 */
+	protected function extract_array_values( $data ): array {
+		if ( empty( $data ) ) {
+			return [];
+		}
+
+		if ( is_array( $data ) ) {
+			// Check if it's a single value wrapped in array structure
+			if ( isset( $data['value'] ) ) {
+				return [ $data['value'] ];
+			}
+
+			// Check if it's array with @text key
+			if ( isset( $data['@text'] ) ) {
+				return [ $data['@text'] ];
+			}
+
+			// Multiple values - extract text from each
+			$values = [];
+			foreach ( $data as $item ) {
+				$extracted = $this->extract_text_value( $item );
+				if ( ! empty( $extracted ) ) {
+					$values[] = $extracted;
+				}
+			}
+
+			return $values;
+		}
+
+		// Single value
+		$extracted = $this->extract_text_value( $data );
+
+		return ! empty( $extracted ) ? [ $extracted ] : [];
 	}
 
 	/**

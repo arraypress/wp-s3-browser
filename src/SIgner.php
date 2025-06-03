@@ -25,6 +25,7 @@ use ArrayPress\S3\Traits\Signer\PresignedUrls;
 use ArrayPress\S3\Traits\Signer\ErrorHandling;
 use ArrayPress\S3\Traits\Signer\Batch;
 use ArrayPress\S3\Traits\Signer\Headers;
+use ArrayPress\S3\Traits\Signer\Cors;
 use ArrayPress\S3\Traits\Common\Debug;
 use ArrayPress\S3\Traits\Common\Context;
 use ArrayPress\S3\Traits\Common\Config;
@@ -46,6 +47,7 @@ class Signer implements SignerInterface {
 	use Context;
 	use Config;
 	use Timeouts;
+	use Cors;
 
 	/**
 	 * Provider instance

@@ -687,7 +687,7 @@
     font-family: Consolas, Monaco, monospace;
     background-color: #f9f9f9;
     color: #0073aa;
-    min-height: 80px;
+    min-height: 160px;
 }
 
 .s3-modal-field textarea:focus {
