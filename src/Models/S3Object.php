@@ -465,6 +465,40 @@ class S3Object {
 	}
 
 	/**
+	 * Get HTML data attributes for modal/JavaScript use
+	 *
+	 * @return string HTML data attributes string
+	 */
+	public function get_data_attributes(): string {
+		$data_attrs = [
+			'data-filename'           => esc_attr( $this->get_filename() ),
+			'data-key'                => esc_attr( $this->get_key() ),
+			'data-size-bytes'         => $this->get_size(),
+			'data-size-formatted'     => esc_attr( $this->get_formatted_size() ),
+			'data-modified'           => esc_attr( $this->get_last_modified() ),
+			'data-modified-formatted' => esc_attr( $this->get_formatted_date() ),
+			'data-etag'               => esc_attr( $this->get_etag() ),
+			'data-md5'                => esc_attr( $this->get_md5_checksum() ?: '' ),
+			'data-is-multipart'       => $this->is_multipart() ? 'true' : 'false',
+			'data-storage-class'      => esc_attr( $this->get_storage_class() ),
+			'data-mime-type'          => esc_attr( $this->get_mime_type() ),
+			'data-category'           => esc_attr( $this->get_category() ),
+		];
+
+		// Add multipart info if applicable
+		if ( $this->is_multipart() ) {
+			$multipart_info = $this->get_multipart_info();
+			if ( $multipart_info ) {
+				$data_attrs['data-part-count'] = $multipart_info['part_count'];
+			}
+		}
+
+		return implode( ' ', array_map( function ( $key, $value ) {
+			return sprintf( '%s="%s"', $key, $value );
+		}, array_keys( $data_attrs ), $data_attrs ) );
+	}
+
+	/**
 	 * Convert to array
 	 *
 	 * @return array

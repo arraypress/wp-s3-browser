@@ -368,48 +368,12 @@ class Objects extends WP_List_Table {
 				'<span class="dashicons %s"></span> <span class="s3-filename" data-original-name="%s" %s><strong>%s</strong></span>',
 				esc_attr( $icon_class ),
 				esc_attr( $item['name'] ),
-				$data_attrs,
+				$item['object']->get_data_attributes(),
 				esc_html( $item['name'] )
 			);
 		}
 
 		return $primary_content . $this->row_actions( $actions );
-	}
-
-	/**
-	 * Build data attributes for file details modal
-	 *
-	 * @param object $object S3Object instance
-	 *
-	 * @return string HTML data attributes
-	 */
-	private function build_file_data_attributes( $object ): string {
-		$data_attrs = [
-			'data-filename'        => esc_attr( $object->get_filename() ),
-			'data-key'             => esc_attr( $object->get_key() ),
-			'data-size-bytes'      => $object->get_size(),
-			'data-size-formatted'  => esc_attr( $object->get_formatted_size() ),
-			'data-modified'        => esc_attr( $object->get_last_modified() ),
-			'data-modified-formatted' => esc_attr( $object->get_formatted_date() ),
-			'data-etag'            => esc_attr( $object->get_etag() ),
-			'data-md5'             => esc_attr( $object->get_md5_checksum() ?: '' ),
-			'data-is-multipart'    => $object->is_multipart() ? 'true' : 'false',
-			'data-storage-class'   => esc_attr( $object->get_storage_class() ),
-			'data-mime-type'       => esc_attr( $object->get_mime_type() ),
-			'data-category'        => esc_attr( $object->get_category() ),
-		];
-
-		// Add multipart info if applicable
-		if ( $object->is_multipart() ) {
-			$multipart_info = $object->get_multipart_info();
-			if ( $multipart_info ) {
-				$data_attrs['data-part-count'] = $multipart_info['part_count'];
-			}
-		}
-
-		return implode( ' ', array_map( function( $key, $value ) {
-			return sprintf( '%s="%s"', $key, $value );
-		}, array_keys( $data_attrs ), $data_attrs ) );
 	}
 
 	/**
