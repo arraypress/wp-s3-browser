@@ -1,9 +1,9 @@
 <?php
 /**
- * S3 Objects List Table - Enhanced with Checksum Display
+ * S3 Objects List Table - Updated with Details Modal Support
  *
  * Displays S3 objects and folders in a WordPress-style table with pagination,
- * search functionality, file operations, checksum verification, and WordPress-style row actions.
+ * search functionality, file operations, and details modal support.
  *
  * @package     ArrayPress\S3\Tables
  * @copyright   Copyright (c) 2025, ArrayPress Limited
@@ -25,7 +25,7 @@ use ArrayPress\S3\Client;
  * Class Objects
  *
  * Extends WP_List_Table to display S3 objects and prefixes with proper pagination
- * and file operations support including renaming, folder deletion, and checksum verification.
+ * and file operations support including renaming, folder deletion, and details modal.
  */
 class Objects extends WP_List_Table {
 
@@ -109,7 +109,6 @@ class Objects extends WP_List_Table {
 			'name'     => __( 'Name', 'arraypress' ),
 			'type'     => __( 'Type', 'arraypress' ),
 			'size'     => __( 'Size', 'arraypress' ),
-			'checksum' => __( 'Checksum', 'arraypress' ),
 			'modified' => __( 'Last Modified', 'arraypress' ),
 			'actions'  => __( 'Actions', 'arraypress' ),
 		];
@@ -177,7 +176,6 @@ class Objects extends WP_List_Table {
 				'name'     => $folder->get_folder_name(),
 				'prefix'   => $folder->get_prefix(),
 				'size'     => '-',
-				'checksum' => '-',
 				'modified' => '-',
 				'mime'     => 'folder',
 			];
@@ -185,14 +183,11 @@ class Objects extends WP_List_Table {
 
 		// Add files
 		foreach ( $objects as $object ) {
-			$checksum_info = $object->get_checksum_display();
-
 			$items[] = [
 				'type'     => 'file',
 				'name'     => $object->get_filename(),
 				'key'      => $object->get_key(),
 				'size'     => $object->get_formatted_size(),
-				'checksum' => $checksum_info,
 				'modified' => $object->get_formatted_date(),
 				'mime'     => $object->get_mime_type(),
 				'object'   => $object,
@@ -214,38 +209,207 @@ class Objects extends WP_List_Table {
 	}
 
 	/**
-	 * Render the checksum column
+	 * Render the type column
 	 *
 	 * @param array $item Item data
 	 *
 	 * @return string Column HTML
 	 */
-	public function column_checksum( array $item ): string {
+	public function column_type( array $item ): string {
 		if ( $item['type'] === 'folder' ) {
-			return '<span class="s3-checksum-none">-</span>';
+			return '<span class="s3-type-folder">' . esc_html__( 'Folder', 'arraypress' ) . '</span>';
 		}
 
-		$checksum = $item['checksum'];
+		// For files, show the MIME type
+		return '<span class="s3-type-file" title="' . esc_attr( $item['mime'] ) . '">' . esc_html( $item['mime'] ) . '</span>';
+	}
 
-		if ( ! $checksum['has_checksum'] ) {
-			return '<span class="s3-checksum-none" title="No checksum available">-</span>';
+	/**
+	 * Generate row actions for WordPress-style hover actions
+	 *
+	 * @param array $item Item data
+	 *
+	 * @return array Array of action links
+	 */
+	protected function get_row_actions( array $item ): array {
+		$actions = [];
+
+		if ( $item['type'] === 'folder' ) {
+			// Folder actions
+			$actions['delete'] = sprintf(
+				'<a href="#" class="s3-delete-folder" data-folder-name="%s" data-bucket="%s" data-prefix="%s">%s</a>',
+				esc_attr( $item['name'] ),
+				esc_attr( $this->bucket ),
+				esc_attr( $item['prefix'] ),
+				esc_html__( 'Delete', 'arraypress' )
+			);
+
+		} else {
+			// File actions
+			$actions['details'] = sprintf(
+				'<a href="#" class="s3-show-details" data-key="%s">%s</a>',
+				esc_attr( $item['key'] ),
+				esc_html__( 'Details', 'arraypress' )
+			);
+
+			$actions['rename'] = sprintf(
+				'<a href="#" class="s3-rename-file" data-filename="%s" data-bucket="%s" data-key="%s">%s</a>',
+				esc_attr( $item['name'] ),
+				esc_attr( $this->bucket ),
+				esc_attr( $item['key'] ),
+				esc_html__( 'Rename', 'arraypress' )
+			);
+
+			// Copy Link action
+			$actions['copy_link'] = sprintf(
+				'<a href="#" class="s3-copy-link" data-filename="%s" data-bucket="%s" data-key="%s">%s</a>',
+				esc_attr( $item['name'] ),
+				esc_attr( $this->bucket ),
+				esc_attr( $item['key'] ),
+				esc_html__( 'Copy Link', 'arraypress' )
+			);
+
+			// Download link
+			if ( isset( $item['object'] ) ) {
+				$presigned_url = $item['object']->get_presigned_url( $this->client, $this->bucket, 60 );
+				if ( ! is_wp_error( $presigned_url ) ) {
+					$actions['download'] = sprintf(
+						'<a href="#" class="s3-download-file" data-url="%s">%s</a>',
+						esc_attr( $presigned_url ),
+						esc_html__( 'Download', 'arraypress' )
+					);
+				}
+			}
+
+			$actions['delete'] = sprintf(
+				'<a href="#" class="s3-delete-file button-delete" data-filename="%s" data-bucket="%s" data-key="%s">%s</a>',
+				esc_attr( $item['name'] ),
+				esc_attr( $this->bucket ),
+				esc_attr( $item['key'] ),
+				esc_html__( 'Delete', 'arraypress' )
+			);
 		}
 
-		$class = $checksum['is_multipart'] ? 's3-checksum-multipart' : 's3-checksum-single';
-		$icon  = $checksum['is_multipart'] ? 'dashicons-networking' : 'dashicons-shield';
+		return $actions;
+	}
 
-		return sprintf(
-			'<span class="s3-checksum %s" title="%s">
-				<span class="dashicons %s"></span>
-				<code class="s3-checksum-type">%s</code>
-				<span class="s3-checksum-hash">%s</span>
-			</span>',
-			esc_attr( $class ),
-			esc_attr( $checksum['tooltip'] ),
-			esc_attr( $icon ),
-			esc_html( $checksum['type'] ),
-			esc_html( $checksum['short_hash'] )
-		);
+	/**
+	 * Render the actions column with Insert File button for files and Open button for folders
+	 *
+	 * @param array $item Item data
+	 *
+	 * @return string Column HTML
+	 */
+	public function column_actions( array $item ): string {
+		if ( $item['type'] === 'file' ) {
+			return sprintf(
+				'<button type="button" class="button button-primary s3-icon-button s3-insert-file" data-filename="%s" data-bucket="%s" data-key="%s" title="%s">
+					<span class="dashicons dashicons-insert"></span> %s
+				</button>',
+				esc_attr( $item['name'] ),
+				esc_attr( $this->bucket ),
+				esc_attr( $item['key'] ),
+				esc_attr__( 'Insert this file', 'arraypress' ),
+				esc_html__( 'Insert File', 'arraypress' )
+			);
+		} elseif ( $item['type'] === 'folder' ) {
+			return sprintf(
+				'<button type="button" class="button button-secondary s3-icon-button s3-open-folder" data-prefix="%s" data-bucket="%s" data-folder-name="%s" title="%s">
+					<span class="dashicons dashicons-portfolio"></span> %s
+				</button>',
+				esc_attr( $item['prefix'] ),
+				esc_attr( $this->bucket ),
+				esc_attr( $item['name'] ),
+				esc_attr__( 'Open this folder', 'arraypress' ),
+				esc_html__( 'Open', 'arraypress' )
+			);
+		}
+
+		// Return empty for other types
+		return '';
+	}
+
+	/**
+	 * Default column renderer
+	 *
+	 * @param array  $item        Item data
+	 * @param string $column_name Column identifier
+	 *
+	 * @return string Column content
+	 */
+	public function column_default( $item, $column_name ): string {
+		return $item[ $column_name ] ?? '';
+	}
+
+	/**
+	 * Render the name column with icon, link, and row actions
+	 *
+	 * @param array $item Item data
+	 *
+	 * @return string Column HTML
+	 */
+	public function column_name( array $item ): string {
+		$actions = $this->get_row_actions( $item );
+
+		if ( $item['type'] === 'folder' ) {
+			$primary_content = sprintf(
+				'<span class="dashicons dashicons-category s3-folder-icon"></span> <a href="#" class="s3-folder-link" data-prefix="%s" data-bucket="%s"><strong>%s</strong></a>',
+				esc_attr( $item['prefix'] ),
+				esc_attr( $this->bucket ),
+				esc_html( $item['name'] )
+			);
+		} else {
+			$icon_class      = $item['object']->get_dashicon_class();
+
+			// Build data attributes for the details modal
+			$data_attrs = $this->build_file_data_attributes( $item['object'] );
+
+			$primary_content = sprintf(
+				'<span class="dashicons %s"></span> <span class="s3-filename" data-original-name="%s" %s><strong>%s</strong></span>',
+				esc_attr( $icon_class ),
+				esc_attr( $item['name'] ),
+				$data_attrs,
+				esc_html( $item['name'] )
+			);
+		}
+
+		return $primary_content . $this->row_actions( $actions );
+	}
+
+	/**
+	 * Build data attributes for file details modal
+	 *
+	 * @param object $object S3Object instance
+	 *
+	 * @return string HTML data attributes
+	 */
+	private function build_file_data_attributes( $object ): string {
+		$data_attrs = [
+			'data-filename'        => esc_attr( $object->get_filename() ),
+			'data-key'             => esc_attr( $object->get_key() ),
+			'data-size-bytes'      => $object->get_size(),
+			'data-size-formatted'  => esc_attr( $object->get_formatted_size() ),
+			'data-modified'        => esc_attr( $object->get_last_modified() ),
+			'data-modified-formatted' => esc_attr( $object->get_formatted_date() ),
+			'data-etag'            => esc_attr( $object->get_etag() ),
+			'data-md5'             => esc_attr( $object->get_md5_checksum() ?: '' ),
+			'data-is-multipart'    => $object->is_multipart() ? 'true' : 'false',
+			'data-storage-class'   => esc_attr( $object->get_storage_class() ),
+			'data-mime-type'       => esc_attr( $object->get_mime_type() ),
+			'data-category'        => esc_attr( $object->get_category() ),
+		];
+
+		// Add multipart info if applicable
+		if ( $object->is_multipart() ) {
+			$multipart_info = $object->get_multipart_info();
+			if ( $multipart_info ) {
+				$data_attrs['data-part-count'] = $multipart_info['part_count'];
+			}
+		}
+
+		return implode( ' ', array_map( function( $key, $value ) {
+			return sprintf( '%s="%s"', $key, $value );
+		}, array_keys( $data_attrs ), $data_attrs ) );
 	}
 
 	/**
@@ -281,13 +445,6 @@ class Objects extends WP_List_Table {
 							esc_html__( 'Refresh', 'arraypress' )
 						);
 						?>
-                        <button type="button" class="button s3-icon-button s3-verify-checksums"
-                                data-bucket="<?php echo esc_attr( $this->bucket ); ?>"
-                                data-prefix="<?php echo esc_attr( $this->prefix ); ?>"
-                                title="<?php esc_attr_e( 'Verify file integrity using checksums', 'arraypress' ); ?>">
-                            <span class="dashicons dashicons-shield"></span>
-							<?php esc_html_e( 'Verify Integrity', 'arraypress' ); ?>
-                        </button>
                     </div>
                 </div>
 			<?php else: ?>
@@ -390,181 +547,11 @@ class Objects extends WP_List_Table {
 		$output .= '<td class="column-name has-row-actions">' . $this->column_name( $item ) . '</td>';
 		$output .= '<td class="column-type">' . $this->column_type( $item ) . '</td>';
 		$output .= '<td class="column-size">' . esc_html( $item['size'] ) . '</td>';
-		$output .= '<td class="column-checksum">' . $this->column_checksum( $item ) . '</td>';
 		$output .= '<td class="column-modified">' . esc_html( $item['modified'] ) . '</td>';
 		$output .= '<td class="column-actions">' . $this->column_actions( $item ) . '</td>';
 		$output .= '</tr>';
 
 		return $output;
-	}
-
-	/**
-	 * Render the type column
-	 *
-	 * @param array $item Item data
-	 *
-	 * @return string Column HTML
-	 */
-	public function column_type( array $item ): string {
-		if ( $item['type'] === 'folder' ) {
-			return '<span class="s3-type-folder">' . esc_html__( 'Folder', 'arraypress' ) . '</span>';
-		}
-
-		// For files, show the MIME type
-		return '<span class="s3-type-file" title="' . esc_attr( $item['mime'] ) . '">' . esc_html( $item['mime'] ) . '</span>';
-	}
-
-	/**
-	 * Generate row actions for WordPress-style hover actions
-	 *
-	 * @param array $item Item data
-	 *
-	 * @return array Array of action links
-	 */
-	protected function get_row_actions( array $item ): array {
-		$actions = [];
-
-		if ( $item['type'] === 'folder' ) {
-			// Folder actions
-			$actions['delete'] = sprintf(
-				'<a href="#" class="s3-delete-folder" data-folder-name="%s" data-bucket="%s" data-prefix="%s">%s</a>',
-				esc_attr( $item['name'] ),
-				esc_attr( $this->bucket ),
-				esc_attr( $item['prefix'] ),
-				esc_html__( 'Delete', 'arraypress' )
-			);
-
-		} else {
-
-			$actions['rename'] = sprintf(
-				'<a href="#" class="s3-rename-file" data-filename="%s" data-bucket="%s" data-key="%s">%s</a>',
-				esc_attr( $item['name'] ),
-				esc_attr( $this->bucket ),
-				esc_attr( $item['key'] ),
-				esc_html__( 'Rename', 'arraypress' )
-			);
-
-			// Copy Link action
-			$actions['copy_link'] = sprintf(
-				'<a href="#" class="s3-copy-link" data-filename="%s" data-bucket="%s" data-key="%s">%s</a>',
-				esc_attr( $item['name'] ),
-				esc_attr( $this->bucket ),
-				esc_attr( $item['key'] ),
-				esc_html__( 'Copy Link', 'arraypress' )
-			);
-
-			// Verify Integrity action (only for files with checksums)
-			if ( isset( $item['checksum'] ) && $item['checksum']['has_checksum'] ) {
-				$actions['verify'] = sprintf(
-					'<a href="#" class="s3-verify-file" data-filename="%s" data-bucket="%s" data-key="%s" data-checksum-type="%s">%s</a>',
-					esc_attr( $item['name'] ),
-					esc_attr( $this->bucket ),
-					esc_attr( $item['key'] ),
-					esc_attr( $item['checksum']['type'] ),
-					esc_html__( 'Verify Integrity', 'arraypress' )
-				);
-			}
-
-			// Download link
-			if ( isset( $item['object'] ) ) {
-				$presigned_url = $item['object']->get_presigned_url( $this->client, $this->bucket, 60 );
-				if ( ! is_wp_error( $presigned_url ) ) {
-					$actions['download'] = sprintf(
-						'<a href="#" class="s3-download-file" data-url="%s">%s</a>',
-						esc_attr( $presigned_url ),
-						esc_html__( 'Download', 'arraypress' )
-					);
-				}
-			}
-
-			$actions['delete'] = sprintf(
-				'<a href="#" class="s3-delete-file button-delete" data-filename="%s" data-bucket="%s" data-key="%s">%s</a>',
-				esc_attr( $item['name'] ),
-				esc_attr( $this->bucket ),
-				esc_attr( $item['key'] ),
-				esc_html__( 'Delete', 'arraypress' )
-			);
-		}
-
-		return $actions;
-	}
-
-	/**
-	 * Render the actions column with Insert File button for files and Open button for folders
-	 *
-	 * @param array $item Item data
-	 *
-	 * @return string Column HTML
-	 */
-	public function column_actions( array $item ): string {
-		if ( $item['type'] === 'file' ) {
-			return sprintf(
-				'<button type="button" class="button button-primary s3-icon-button s3-insert-file" data-filename="%s" data-bucket="%s" data-key="%s" title="%s">
-					<span class="dashicons dashicons-insert"></span> %s
-				</button>',
-				esc_attr( $item['name'] ),
-				esc_attr( $this->bucket ),
-				esc_attr( $item['key'] ),
-				esc_attr__( 'Insert this file', 'arraypress' ),
-				esc_html__( 'Insert File', 'arraypress' )
-			);
-		} elseif ( $item['type'] === 'folder' ) {
-			return sprintf(
-				'<button type="button" class="button button-secondary s3-icon-button s3-open-folder" data-prefix="%s" data-bucket="%s" data-folder-name="%s" title="%s">
-					<span class="dashicons dashicons-portfolio"></span> %s
-				</button>',
-				esc_attr( $item['prefix'] ),
-				esc_attr( $this->bucket ),
-				esc_attr( $item['name'] ),
-				esc_attr__( 'Open this folder', 'arraypress' ),
-				esc_html__( 'Open', 'arraypress' )
-			);
-		}
-
-		// Return empty for other types
-		return '';
-	}
-
-	/**
-	 * Default column renderer
-	 *
-	 * @param array  $item        Item data
-	 * @param string $column_name Column identifier
-	 *
-	 * @return string Column content
-	 */
-	public function column_default( $item, $column_name ): string {
-		return $item[ $column_name ] ?? '';
-	}
-
-	/**
-	 * Render the name column with icon, link, and row actions
-	 *
-	 * @param array $item Item data
-	 *
-	 * @return string Column HTML
-	 */
-	public function column_name( array $item ): string {
-		$actions = $this->get_row_actions( $item );
-
-		if ( $item['type'] === 'folder' ) {
-			$primary_content = sprintf(
-				'<span class="dashicons dashicons-category s3-folder-icon"></span> <a href="#" class="s3-folder-link" data-prefix="%s" data-bucket="%s"><strong>%s</strong></a>',
-				esc_attr( $item['prefix'] ),
-				esc_attr( $this->bucket ),
-				esc_html( $item['name'] )
-			);
-		} else {
-			$icon_class      = $item['object']->get_dashicon_class();
-			$primary_content = sprintf(
-				'<span class="dashicons %s"></span> <span class="s3-filename" data-original-name="%s"><strong>%s</strong></span>',
-				esc_attr( $icon_class ),
-				esc_attr( $item['name'] ),
-				esc_html( $item['name'] )
-			);
-		}
-
-		return $primary_content . $this->row_actions( $actions );
 	}
 
 	/**

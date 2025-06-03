@@ -89,6 +89,8 @@
                     self.openRenameModal($link);
                 } else if ($link.hasClass('s3-copy-link')) {
                     self.openCopyLinkModal($link);
+                } else if ($link.hasClass('s3-show-details')) {
+                    self.openDetailsModal($link);
                 }
             });
 
@@ -131,6 +133,7 @@
             this.bindCopyLinkEvents();
             this.bindRefreshEvents();
             this.bindModalEvents();
+            this.bindDetailsEvents();
         },
 
         /**
@@ -155,6 +158,19 @@
                         prefix: $link.data('prefix')
                     });
                 }
+            });
+        },
+
+        /**
+         * Bind details modal event handlers
+         */
+        bindDetailsEvents: function () {
+            var self = this;
+
+            // Handle details link clicks
+            $(document).off('click.s3details').on('click.s3details', '.s3-show-details', function (e) {
+                e.preventDefault();
+                self.openDetailsModal($(this));
             });
         },
 
@@ -332,36 +348,41 @@
             config.fields.forEach(function (field) {
                 fieldsHtml += '<div class="s3-modal-field">';
 
-                if (field.label) {
-                    fieldsHtml += '<label for="' + field.id + '">' + field.label + '</label>';
-                }
-
-                if (field.type === 'text') {
-                    fieldsHtml += '<input type="text" id="' + field.id + '" ' +
-                        'placeholder="' + (field.placeholder || '') + '" ' +
-                        'maxlength="' + (field.maxlength || '') + '" autocomplete="off">';
-                } else if (field.type === 'number') {
-                    fieldsHtml += '<input type="number" id="' + field.id + '" ' +
-                        'placeholder="' + (field.placeholder || '') + '" ' +
-                        'min="' + (field.min || '') + '" ' +
-                        'max="' + (field.max || '') + '" ' +
-                        'value="' + (field.value || '') + '">';
-                } else if (field.type === 'select') {
-                    fieldsHtml += '<select id="' + field.id + '">';
-                    if (field.options) {
-                        field.options.forEach(function (option) {
-                            var selected = option.value === field.value ? 'selected' : '';
-                            fieldsHtml += '<option value="' + option.value + '" ' + selected + '>' + option.label + '</option>';
-                        });
+                if (field.type === 'custom') {
+                    // Custom HTML field
+                    fieldsHtml += field.html || '';
+                } else {
+                    if (field.label) {
+                        fieldsHtml += '<label for="' + field.id + '">' + field.label + '</label>';
                     }
-                    fieldsHtml += '</select>';
-                } else if (field.type === 'textarea') {
-                    fieldsHtml += '<textarea id="' + field.id + '" rows="' + (field.rows || 3) + '" ' +
-                        'placeholder="' + (field.placeholder || '') + '" readonly>' + (field.value || '') + '</textarea>';
-                }
 
-                if (field.description) {
-                    fieldsHtml += '<p class="description">' + field.description + '</p>';
+                    if (field.type === 'text') {
+                        fieldsHtml += '<input type="text" id="' + field.id + '" ' +
+                            'placeholder="' + (field.placeholder || '') + '" ' +
+                            'maxlength="' + (field.maxlength || '') + '" autocomplete="off">';
+                    } else if (field.type === 'number') {
+                        fieldsHtml += '<input type="number" id="' + field.id + '" ' +
+                            'placeholder="' + (field.placeholder || '') + '" ' +
+                            'min="' + (field.min || '') + '" ' +
+                            'max="' + (field.max || '') + '" ' +
+                            'value="' + (field.value || '') + '">';
+                    } else if (field.type === 'select') {
+                        fieldsHtml += '<select id="' + field.id + '">';
+                        if (field.options) {
+                            field.options.forEach(function (option) {
+                                var selected = option.value === field.value ? 'selected' : '';
+                                fieldsHtml += '<option value="' + option.value + '" ' + selected + '>' + option.label + '</option>';
+                            });
+                        }
+                        fieldsHtml += '</select>';
+                    } else if (field.type === 'textarea') {
+                        fieldsHtml += '<textarea id="' + field.id + '" rows="' + (field.rows || 3) + '" ' +
+                            'placeholder="' + (field.placeholder || '') + '" readonly>' + (field.value || '') + '</textarea>';
+                    }
+
+                    if (field.description) {
+                        fieldsHtml += '<p class="description">' + field.description + '</p>';
+                    }
                 }
 
                 fieldsHtml += '</div>';
@@ -775,6 +796,171 @@
          */
         bindRenameEvents: function () {
             // No additional binding needed - handled by row actions
+        },
+
+        /**
+         * Open file details modal
+         */
+        openDetailsModal: function ($trigger) {
+            var self = this;
+            var key = $trigger.data('key');
+
+            // Find the row with the file data
+            var $row = $trigger.closest('tr');
+            if (!$row.length) {
+                // Try to find by key if not in same row
+                $row = $('.wp-list-table tr').find('[data-key="' + key + '"]').closest('tr');
+            }
+
+            if (!$row.length) {
+                this.showNotification('Could not find file data', 'error');
+                return;
+            }
+
+            // Extract file data from row data attributes
+            var $fileElement = $row.find('[data-key]');
+            var fileData = {
+                filename: $fileElement.data('filename'),
+                key: $fileElement.data('key'),
+                sizeBytes: $fileElement.data('size-bytes'),
+                sizeFormatted: $fileElement.data('size-formatted'),
+                modified: $fileElement.data('modified'),
+                modifiedFormatted: $fileElement.data('modified-formatted'),
+                etag: $fileElement.data('etag'),
+                md5: $fileElement.data('md5'),
+                isMultipart: $fileElement.data('is-multipart') === 'true',
+                storageClass: $fileElement.data('storage-class'),
+                mimeType: $fileElement.data('mime-type'),
+                category: $fileElement.data('category'),
+                partCount: $fileElement.data('part-count') || null
+            };
+
+            this.showDetailsModal(fileData);
+        },
+
+        /**
+         * Show file details modal
+         */
+        showDetailsModal: function (fileData) {
+            var self = this;
+
+            // Format checksum information
+            var checksumInfo = this.formatChecksumInfo(fileData);
+
+            // Build details HTML
+            var detailsHtml = this.buildDetailsHtml(fileData, checksumInfo);
+
+            var modal = this.createModal({
+                id: 's3DetailsModal',
+                title: 'File Details: ' + fileData.filename,
+                width: '600px',
+                fields: [{
+                    id: 's3DetailsContent',
+                    type: 'custom',
+                    html: detailsHtml
+                }],
+                buttons: [{
+                    text: this.i18n.cancel || 'Close',
+                    action: 'close',
+                    classes: 'button-secondary',
+                    callback: function () {
+                        self.hideModal('s3DetailsModal');
+                    }
+                }, {
+                    text: this.i18n.copyLink || 'Copy Link',
+                    action: 'copy_link',
+                    classes: 'button-primary',
+                    callback: function () {
+                        self.hideModal('s3DetailsModal');
+                        // Trigger copy link modal with same data
+                        setTimeout(function () {
+                            var $mockButton = $('<div>').data({
+                                filename: fileData.filename,
+                                bucket: self.currentBucket || S3BrowserGlobalConfig.defaultBucket,
+                                key: fileData.key
+                            });
+                            self.openCopyLinkModal($mockButton);
+                        }, 100);
+                    }
+                }],
+                onClose: function () {
+                    // Cleanup if needed
+                }
+            });
+
+            this.showModal('s3DetailsModal');
+        },
+
+        /**
+         * Format checksum information for display
+         */
+        formatChecksumInfo: function (fileData) {
+            if (!fileData.md5) {
+                return {
+                    display: 'No checksum available',
+                    type: 'None',
+                    class: 's3-checksum-none'
+                };
+            }
+
+            if (fileData.isMultipart) {
+                var partText = fileData.partCount ?
+                    fileData.partCount + ' parts' :
+                    'multiple parts';
+                return {
+                    display: fileData.md5,
+                    type: 'MD5 (Composite)',
+                    note: 'Hash of hashes from ' + partText + ' - not directly verifiable against file content',
+                    class: 's3-checksum-multipart'
+                };
+            } else {
+                return {
+                    display: fileData.md5,
+                    type: 'MD5',
+                    note: 'Direct MD5 of file content - can be verified after download',
+                    class: 's3-checksum-single'
+                };
+            }
+        },
+
+        /**
+         * Build details HTML content
+         */
+        buildDetailsHtml: function (fileData, checksumInfo) {
+            return [
+                '<div class="s3-details-content">',
+                '  <div class="s3-details-section">',
+                '    <h4>Basic Information</h4>',
+                '    <table class="s3-details-table">',
+                '      <tr><td><strong>Filename:</strong></td><td>' + this.escapeHtml(fileData.filename) + '</td></tr>',
+                '      <tr><td><strong>Object Key:</strong></td><td><code>' + this.escapeHtml(fileData.key) + '</code></td></tr>',
+                '      <tr><td><strong>Size:</strong></td><td>' + fileData.sizeFormatted + ' (' + this.numberFormat(fileData.sizeBytes) + ' bytes)</td></tr>',
+                '      <tr><td><strong>Last Modified:</strong></td><td>' + fileData.modifiedFormatted + '</td></tr>',
+                '      <tr><td><strong>MIME Type:</strong></td><td>' + this.escapeHtml(fileData.mimeType) + '</td></tr>',
+                '      <tr><td><strong>Category:</strong></td><td>' + this.escapeHtml(fileData.category) + '</td></tr>',
+                '    </table>',
+                '  </div>',
+                '  <div class="s3-details-section">',
+                '    <h4>Storage Information</h4>',
+                '    <table class="s3-details-table">',
+                '      <tr><td><strong>Storage Class:</strong></td><td>' + this.escapeHtml(fileData.storageClass) + '</td></tr>',
+                '      <tr><td><strong>ETag:</strong></td><td><code>' + this.escapeHtml(fileData.etag) + '</code></td></tr>',
+                fileData.isMultipart ?
+                    '      <tr><td><strong>Upload Type:</strong></td><td>Multipart' + (fileData.partCount ? ' (' + fileData.partCount + ' parts)' : '') + '</td></tr>' :
+                    '      <tr><td><strong>Upload Type:</strong></td><td>Single-part</td></tr>',
+                '    </table>',
+                '  </div>',
+                '  <div class="s3-details-section">',
+                '    <h4>Checksum Information</h4>',
+                '    <table class="s3-details-table">',
+                '      <tr><td><strong>Type:</strong></td><td><span class="' + checksumInfo.class + '">' + checksumInfo.type + '</span></td></tr>',
+                '      <tr><td><strong>Value:</strong></td><td><code class="' + checksumInfo.class + '">' + checksumInfo.display + '</code></td></tr>',
+                checksumInfo.note ?
+                    '      <tr><td colspan="2"><small class="description">' + checksumInfo.note + '</small></td></tr>' : '',
+                '    </table>',
+                '  </div>',
+                '</div>'
+            ].join('');
         },
 
         /**
@@ -1644,6 +1830,21 @@
 
             var queryString = $.param(params);
             window.location.href = window.location.href.split('?')[0] + '?' + queryString;
+        },
+
+        /**
+         * Escape HTML for safe display
+         */
+        escapeHtml: function (text) {
+            if (!text) return '';
+            return $('<div>').text(text).html();
+        },
+
+        /**
+         * Format numbers with thousands separators
+         */
+        numberFormat: function (num) {
+            return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
         },
 
         /**
