@@ -104,14 +104,14 @@
 
             var $modal = this.showModal('s3FolderModal', s3BrowserConfig.i18n.folders.newFolder, content, [
                 {
-                    text: s3BrowserConfig.i18n.cancel,
+                    text: s3BrowserConfig.i18n.ui.cancel,
                     action: 'cancel',
                     callback: function () {
                         self.hideModal('s3FolderModal');
                     }
                 },
                 {
-                    text: s3BrowserConfig.i18n.createFolder,
+                    text: s3BrowserConfig.i18n.folders.createFolder,
                     action: 'submit',
                     classes: 'button-primary',
                     callback: function () {
