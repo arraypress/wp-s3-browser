@@ -438,10 +438,10 @@
             if (!$countSpan.length) return;
 
             var itemText = this.totalLoadedItems === 1
-                ? s3BrowserConfig.i18n.singleItem
-                : s3BrowserConfig.i18n.multipleItems;
+                ? s3BrowserConfig.i18n.display.singleItem
+                : s3BrowserConfig.i18n.display.multipleItems;
             var text = this.totalLoadedItems + ' ' + itemText;
-            if (hasMore) text += s3BrowserConfig.i18n.moreAvailable;
+            if (hasMore) text += s3BrowserConfig.i18n.display.moreAvailable;
 
             $countSpan.text(text);
         },
