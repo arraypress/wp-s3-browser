@@ -107,7 +107,7 @@
                         self.hideModal('s3DetailsModal');
                         setTimeout(function () {
                             self.openCopyLinkModal({
-                                data: function(key) {
+                                data: function (key) {
                                     var values = {
                                         filename: fileData.filename,
                                         bucket: S3BrowserGlobalConfig.defaultBucket,
@@ -202,7 +202,7 @@
             var key = $button.data('key');
 
             // Store context for later use
-            var context = { filename: filename, bucket: bucket, key: key };
+            var context = {filename: filename, bucket: bucket, key: key};
 
             var content = [
                 '<div class="s3-modal-field">',
@@ -349,7 +349,7 @@
             var key = $button.data('key');
 
             // Store context
-            var context = { filename: filename, bucket: bucket, key: key };
+            var context = {filename: filename, bucket: bucket, key: key};
 
             // Get filename without extension for editing
             var lastDot = filename.lastIndexOf('.');
@@ -381,18 +381,86 @@
                 }
             ]);
 
+            // Initially disable submit button
+            $modal.find('button[data-action="submit"]').prop('disabled', true);
+
+            // Bind real-time validation
+            $modal.on('keyup', '#s3RenameInput', function (e) {
+                var newName = e.target.value.trim();
+                var $submit = $modal.find('button[data-action="submit"]');
+                var $error = $modal.find('.s3-modal-error');
+
+                $error.hide();
+
+                if (!newName) {
+                    $submit.prop('disabled', true);
+                    return;
+                }
+
+                // Get original extension and rebuild filename
+                var lastDot = context.filename.lastIndexOf('.');
+                var originalExt = lastDot > 0 ? context.filename.substring(lastDot + 1) : '';
+                var fullNewName = newName + (originalExt ? '.' + originalExt : '');
+
+                var validation = self.validateFilename(newName, fullNewName, context.filename);
+
+                if (!validation.valid) {
+                    $error.text(validation.message).show();
+                    $submit.prop('disabled', true);
+                } else {
+                    $submit.prop('disabled', false);
+                }
+            }).on('keydown', '#s3RenameInput', function (e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    var $submit = $modal.find('button[data-action="submit"]');
+                    if (!$submit.prop('disabled')) {
+                        self.submitRenameForm(context);
+                    }
+                }
+            });
+
             // Focus and select the input
             setTimeout(function () {
                 $('#s3RenameInput').focus().select();
             }, 250);
+        },
 
-            // Handle Enter key
-            $modal.on('keydown', '#s3RenameInput', function (e) {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    self.submitRenameForm(context);
-                }
-            });
+        /**
+         * Validate filename for renaming
+         */
+        validateFilename: function (nameWithoutExt, fullName, originalFilename) {
+            var i18n = s3BrowserConfig.i18n;
+
+            if (nameWithoutExt.length === 0) {
+                return {valid: false, message: i18n.filenameRequired};
+            }
+
+            if (fullName.length > 255) {
+                return {valid: false, message: i18n.filenameTooLong};
+            }
+
+            // Check for invalid characters
+            if (/[<>:"|?*\/\\]/.test(nameWithoutExt)) {
+                return {valid: false, message: i18n.filenameInvalid};
+            }
+
+            // Check if starts with problematic characters
+            if (/^[.\-_]/.test(nameWithoutExt)) {
+                return {valid: false, message: i18n.filenameInvalid};
+            }
+
+            // Check for relative path indicators
+            if (nameWithoutExt.includes('..')) {
+                return {valid: false, message: i18n.filenameInvalid};
+            }
+
+            // Check if the new name is the same as current
+            if (fullName === originalFilename) {
+                return {valid: false, message: i18n.filenameSame};
+            }
+
+            return {valid: true, message: ''};
         },
 
         /**
@@ -401,24 +469,14 @@
         submitRenameForm: function (context) {
             var newNameWithoutExt = $('#s3RenameInput').val().trim();
 
-            if (!newNameWithoutExt) {
-                this.showModalError('s3RenameModal', s3BrowserConfig.i18n.filenameRequired);
-                return;
-            }
-
             // Get original extension and rebuild filename
             var lastDot = context.filename.lastIndexOf('.');
             var originalExt = lastDot > 0 ? context.filename.substring(lastDot + 1) : '';
             var fullNewName = newNameWithoutExt + (originalExt ? '.' + originalExt : '');
 
-            // Basic validation
-            if (fullNewName === context.filename) {
-                this.showModalError('s3RenameModal', s3BrowserConfig.i18n.filenameSame);
-                return;
-            }
-
-            if (fullNewName.length > 255 || /[<>:"|?*\/\\]/.test(newNameWithoutExt)) {
-                this.showModalError('s3RenameModal', s3BrowserConfig.i18n.filenameInvalid);
+            var validation = this.validateFilename(newNameWithoutExt, fullNewName, context.filename);
+            if (!validation.valid) {
+                this.showModalError('s3RenameModal', validation.message);
                 return;
             }
 
