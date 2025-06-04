@@ -108,7 +108,7 @@
                         self.hideModal('s3DetailsModal');
                         setTimeout(function () {
                             self.openCopyLinkModal({
-                                data: function(key) {
+                                data: function (key) {
                                     var values = {
                                         filename: fileData.filename,
                                         bucket: S3BrowserGlobalConfig.defaultBucket,
@@ -210,7 +210,7 @@
             var key = $button.data('key');
 
             // Store context for later use
-            var context = { filename: filename, bucket: bucket, key: key };
+            var context = {filename: filename, bucket: bucket, key: key};
 
             var content = [
                 '<div class="s3-modal-field">',
@@ -357,7 +357,7 @@
             var key = $button.data('key');
 
             // Store context
-            var context = { filename: filename, bucket: bucket, key: key };
+            var context = {filename: filename, bucket: bucket, key: key};
 
             // Get filename without extension for editing
             var lastDot = filename.lastIndexOf('.');

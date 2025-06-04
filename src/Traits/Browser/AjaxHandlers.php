@@ -121,7 +121,7 @@ trait AjaxHandlers {
 		$normalized_folder_path = Directory::normalize( $folder_path );
 
 		// Use batch deletion with fallback to regular deletion
-		$result = $this->client->delete_folder_batch( $bucket, $normalized_folder_path, true, true );
+		$result = $this->client->delete_folder_batch( $bucket, $normalized_folder_path );
 
 		// If batch deletion failed due to network/timeout issues, try regular deletion
 		if ( ! $result->is_successful() ) {

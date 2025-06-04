@@ -117,7 +117,9 @@
             // Button clicks
             $modal.off('click.modalbutton').on('click.modalbutton', 'button[data-action]', function () {
                 var action = $(this).data('action');
-                var button = buttons.find(function (btn) { return btn.action === action; });
+                var button = buttons.find(function (btn) {
+                    return btn.action === action;
+                });
                 if (button && button.callback) {
                     button.callback();
                 }

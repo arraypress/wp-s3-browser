@@ -22,11 +22,11 @@
          */
         init: function () {
             this.bindAllEvents();
+            this.bindUploadEvents();
             this.setupJSSearch();
             this.setupAjaxLoading();
             this.countInitialItems();
             this.initUploadToggle();
-            this.initUpload();
         },
 
         /**

@@ -13,13 +13,6 @@
         activeUploadCount: 0,
 
         /**
-         * Initialize upload functionality
-         */
-        initUpload: function () {
-            this.bindUploadEvents();
-        },
-
-        /**
          * Bind upload event handlers
          */
         bindUploadEvents: function () {
@@ -332,12 +325,5 @@
         }
 
     });
-
-    // Initialize upload functionality when document is ready
-    // $(document).ready(function () {
-    //     if (window.S3Browser) {
-    //         S3Browser.initUpload();
-    //     }
-    // });
 
 })(jQuery);
