@@ -13,7 +13,7 @@
 
 declare( strict_types=1 );
 
-namespace ArrayPress\S3\Traits\Common;
+namespace ArrayPress\S3\Traits\Shared;
 
 /**
  * Trait Debug
@@ -140,11 +140,9 @@ trait Debug {
 
 		// Try to convert iterable objects to array
 		if ( is_iterable( $headers ) ) {
-			$result = [];
-			foreach ( $headers as $key => $value ) {
-				$result[ $key ] = $value;
-			}
-			return $result;
+			return array_map( function ( $value ) {
+				return $value;
+			}, $headers );
 		}
 
 		// Fallback for unexpected types

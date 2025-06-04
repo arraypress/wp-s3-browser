@@ -26,10 +26,10 @@ use ArrayPress\S3\Traits\Signer\ErrorHandling;
 use ArrayPress\S3\Traits\Signer\Batch;
 use ArrayPress\S3\Traits\Signer\Headers;
 use ArrayPress\S3\Traits\Signer\Cors;
-use ArrayPress\S3\Traits\Common\Debug;
-use ArrayPress\S3\Traits\Common\Context;
-use ArrayPress\S3\Traits\Common\Config;
-use ArrayPress\S3\Traits\Common\Timeouts;
+use ArrayPress\S3\Traits\Shared\Debug;
+use ArrayPress\S3\Traits\Shared\Context;
+use ArrayPress\S3\Traits\Shared\Config;
+use ArrayPress\S3\Traits\Shared\Timeouts;
 
 /**
  * Class Signer

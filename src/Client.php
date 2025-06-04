@@ -24,8 +24,8 @@ use ArrayPress\S3\Traits\Client\Permissions;
 use ArrayPress\S3\Traits\Client\PresignedUrls;
 use ArrayPress\S3\Traits\Client\Batch;
 use ArrayPress\S3\Traits\Client\Cors;
-use ArrayPress\S3\Traits\Common\Debug;
-use ArrayPress\S3\Traits\Common\Context;
+use ArrayPress\S3\Traits\Shared\Debug;
+use ArrayPress\S3\Traits\Shared\Context;
 
 /**
  * Class Client

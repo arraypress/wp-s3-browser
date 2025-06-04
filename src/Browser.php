@@ -20,7 +20,8 @@ use ArrayPress\S3\Traits\Browser\ContentRendering;
 use ArrayPress\S3\Traits\Browser\Integrations;
 use ArrayPress\S3\Traits\Browser\MediaLibrary;
 use ArrayPress\S3\Traits\Browser\Hooks;
-use ArrayPress\S3\Traits\Common\Context;
+use ArrayPress\S3\Traits\Shared\Context;
+use ArrayPress\S3\Traits\Shared\Debug;
 
 // Load WP_List_Table if not loaded
 if ( ! class_exists( 'WP_List_Table' ) ) {
@@ -41,6 +42,7 @@ class Browser {
 	use MediaLibrary;
 	use Hooks;
 	use Context;
+	use Debug;
 
 	/**
 	 * Handle for the global S3 browser configuration script
@@ -119,6 +121,7 @@ class Browser {
 	 * @param string      $default_prefix     Optional. Default prefix for the default bucket. Default empty.
 	 * @param string      $capability         Optional. Capability required to use this browser. Default 'upload_files'.
 	 * @param string|null $context            Optional. Context identifier for filtering and customization. Default null.
+	 * @param bool        $debug              Optional. Whether to enable debug mode. Default false.
 	 */
 	public function __construct(
 		Provider $provider,
@@ -128,7 +131,8 @@ class Browser {
 		string $default_bucket = '',
 		string $default_prefix = '',
 		string $capability = 'upload_files',
-		?string $context = null
+		?string $context = null,
+		bool $debug = false
 	) {
 		$this->provider           = $provider;
 		$this->provider_id        = $provider->get_id();
@@ -143,16 +147,19 @@ class Browser {
 			$this->set_context( $context );
 		}
 
-		// Initialize S3 client
+		// Initialize S3 client with debug setting
 		$this->client = new Client(
 			$provider,
 			$access_key,
 			$secret_key,
 			true, // Use cache
 			HOUR_IN_SECONDS,
-			false, // debug
+			$debug, // Use the parameter instead of hardcoded false
 			$this->get_context()
 		);
+
+		// Set debug on Browser instance too
+		$this->set_debug( $debug );
 
 		// Initialize WordPress hooks
 		$this->init_hooks();

@@ -13,7 +13,7 @@
 
 declare( strict_types=1 );
 
-namespace ArrayPress\S3\Traits\Common;
+namespace ArrayPress\S3\Traits\Shared;
 
 /**
  * Trait Context
