@@ -27,6 +27,7 @@
             this.countInitialItems();
             this.initUploadToggle();
             this.initRowActions();
+            this.initUpload();
         },
 
         /**
@@ -219,7 +220,7 @@
                         $('.s3-upload-list').empty();
                     }, 300);
                 } else {
-                    self.showNotification(s3BrowserConfig.i18n.waitForUploads, 'info');
+                    self.showNotification(s3BrowserConfig.i18n.ui.waitForUploads, 'info');
                 }
             });
 
@@ -273,12 +274,12 @@
             });
 
             if (visibleRows === 0) {
-                $stats.text(s3BrowserConfig.i18n.noMatchesFound);
+                $stats.text(s3BrowserConfig.i18n.search.noMatchesFound);
                 var colCount = $('.wp-list-table thead th').length;
-                var noResultsText = s3BrowserConfig.i18n.noFilesFound.replace('{term}', $('<div>').text(searchTerm).html());
+                var noResultsText = s3BrowserConfig.i18n.search.noFilesFound.replace('{term}', $('<div>').text(searchTerm).html());
                 $tbody.append('<tr class="s3-no-results"><td colspan="' + colCount + '">' + noResultsText + '</td></tr>');
             } else {
-                var matchText = s3BrowserConfig.i18n.itemsMatch
+                var matchText = s3BrowserConfig.i18n.search.itemsMatch
                     .replace('{visible}', visibleRows)
                     .replace('{total}', totalRows);
                 $stats.text(matchText);
@@ -316,7 +317,7 @@
             self.isLoading = true;
 
             $button.prop('disabled', true)
-                .find('.s3-button-text').text(s3BrowserConfig.i18n.loadingText)
+                .find('.s3-button-text').text(s3BrowserConfig.i18n.loading.loadingText)
                 .end().find('.spinner').show();
 
             this.makeAjaxRequest('s3_load_more_', {
@@ -333,7 +334,7 @@
                     if (response.data.has_more && response.data.continuation_token) {
                         $button.data('token', response.data.continuation_token)
                             .prop('disabled', false)
-                            .find('.s3-button-text').text(s3BrowserConfig.i18n.loadMoreItems)
+                            .find('.s3-button-text').text(s3BrowserConfig.i18n.loading.loadMoreItems)
                             .end().find('.spinner').hide();
                         self.updateTotalCount(true);
                     } else {
@@ -349,7 +350,7 @@
                 error: function (message) {
                     self.showError(message);
                     $button.prop('disabled', false)
-                        .find('.s3-button-text').text(s3BrowserConfig.i18n.loadMoreItems)
+                        .find('.s3-button-text').text(s3BrowserConfig.i18n.loading.loadMoreItems)
                         .end().find('.spinner').hide();
                 },
                 complete: function () {
@@ -374,7 +375,7 @@
                 prefix: $button.data('prefix') || ''
             }, {
                 success: function (response) {
-                    self.showNotification(response.data.message || s3BrowserConfig.i18n.cacheRefreshed, 'success');
+                    self.showNotification(response.data.message || s3BrowserConfig.i18n.cache.cacheRefreshed, 'success');
                     setTimeout(function () {
                         window.location.reload();
                     }, 1500);

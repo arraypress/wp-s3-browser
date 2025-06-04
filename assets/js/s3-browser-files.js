@@ -14,7 +14,7 @@
         deleteFile: function ($button) {
             var self = this;
             var filename = $button.data('filename');
-            var confirmMessage = s3BrowserConfig.i18n.confirmDelete
+            var confirmMessage = s3BrowserConfig.i18n.files.confirmDelete
                 .replace('{filename}', filename)
                 .replace(/\\n/g, '\n');
 
@@ -29,7 +29,7 @@
                 key: $button.data('key')
             }, {
                 success: function (response) {
-                    self.showNotification(response.data.message || s3BrowserConfig.i18n.deleteSuccess, 'success');
+                    self.showNotification(response.data.message || s3BrowserConfig.i18n.files.deleteSuccess, 'success');
 
                     // Fade out the deleted row, then reload the page
                     $button.closest('tr').fadeOut(300, function () {
@@ -91,9 +91,9 @@
             var checksumInfo = this.formatChecksumInfo(fileData);
             var detailsHtml = this.buildDetailsHtml(fileData, checksumInfo);
 
-            this.showModal('s3DetailsModal', s3BrowserConfig.i18n.fileDetails, detailsHtml, [
+            this.showModal('s3DetailsModal', s3BrowserConfig.i18n.fileDetails.title, detailsHtml, [
                 {
-                    text: s3BrowserConfig.i18n.cancel,
+                    text: s3BrowserConfig.i18n.ui.cancel,
                     action: 'close',
                     classes: 'button-secondary',
                     callback: function () {
@@ -101,14 +101,14 @@
                     }
                 },
                 {
-                    text: s3BrowserConfig.i18n.copyLink,
+                    text: s3BrowserConfig.i18n.copyLink.copyLink,
                     action: 'copy_link',
                     classes: 'button-primary',
                     callback: function () {
                         self.hideModal('s3DetailsModal');
                         setTimeout(function () {
                             self.openCopyLinkModal({
-                                data: function (key) {
+                                data: function(key) {
                                     var values = {
                                         filename: fileData.filename,
                                         bucket: S3BrowserGlobalConfig.defaultBucket,
@@ -127,32 +127,32 @@
          * Format checksum information for display
          */
         formatChecksumInfo: function (fileData) {
-            var i18n = s3BrowserConfig.i18n;
+            var checksum = s3BrowserConfig.i18n.checksum;
 
             if (!fileData.md5) {
                 return {
-                    display: i18n.noChecksumAvailable,
-                    type: i18n.checksumNone,
+                    display: checksum.noChecksumAvailable,
+                    type: checksum.none,
                     class: 's3-checksum-none'
                 };
             }
 
             if (fileData.isMultipart) {
                 var partText = fileData.partCount ?
-                    fileData.partCount + ' parts' :
-                    i18n.multipleParts;
+                    fileData.partCount + ' ' + s3BrowserConfig.i18n.fileDetails.parts :
+                    checksum.multipleParts;
 
                 return {
                     display: fileData.md5,
-                    type: i18n.checksumMD5Composite,
-                    note: i18n.checksumCompositeNote.replace('{parts}', partText),
+                    type: checksum.md5Composite,
+                    note: checksum.compositeNote.replace('{parts}', partText),
                     class: 's3-checksum-multipart'
                 };
             } else {
                 return {
                     display: fileData.md5,
-                    type: i18n.checksumMD5,
-                    note: i18n.checksumDirectNote,
+                    type: checksum.md5,
+                    note: checksum.directNote,
                     class: 's3-checksum-single'
                 };
             }
@@ -162,34 +162,36 @@
          * Build details HTML content
          */
         buildDetailsHtml: function (fileData, checksumInfo) {
+            var details = s3BrowserConfig.i18n.fileDetails;
+
             return [
                 '<div class="s3-details-content">',
                 '  <div class="s3-details-section">',
-                '    <h4>Basic Information</h4>',
+                '    <h4>' + details.basicInfo + '</h4>',
                 '    <table class="s3-details-table">',
-                '      <tr><td><strong>Filename:</strong></td><td>' + $('<div>').text(fileData.filename).html() + '</td></tr>',
-                '      <tr><td><strong>Object Key:</strong></td><td><code>' + $('<div>').text(fileData.key).html() + '</code></td></tr>',
-                '      <tr><td><strong>Size:</strong></td><td>' + fileData.sizeFormatted + ' (' + fileData.sizeBytes.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') + ' bytes)</td></tr>',
-                '      <tr><td><strong>Last Modified:</strong></td><td>' + fileData.modifiedFormatted + '</td></tr>',
-                '      <tr><td><strong>MIME Type:</strong></td><td>' + $('<div>').text(fileData.mimeType).html() + '</td></tr>',
-                '      <tr><td><strong>Category:</strong></td><td>' + $('<div>').text(fileData.category).html() + '</td></tr>',
+                '      <tr><td><strong>' + details.filename + '</strong></td><td>' + $('<div>').text(fileData.filename).html() + '</td></tr>',
+                '      <tr><td><strong>' + details.objectKey + '</strong></td><td><code>' + $('<div>').text(fileData.key).html() + '</code></td></tr>',
+                '      <tr><td><strong>' + details.size + '</strong></td><td>' + fileData.sizeFormatted + ' (' + fileData.sizeBytes.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') + ' ' + details.bytes + ')</td></tr>',
+                '      <tr><td><strong>' + details.lastModified + '</strong></td><td>' + fileData.modifiedFormatted + '</td></tr>',
+                '      <tr><td><strong>' + details.mimeType + '</strong></td><td>' + $('<div>').text(fileData.mimeType).html() + '</td></tr>',
+                '      <tr><td><strong>' + details.category + '</strong></td><td>' + $('<div>').text(fileData.category).html() + '</td></tr>',
                 '    </table>',
                 '  </div>',
                 '  <div class="s3-details-section">',
-                '    <h4>Storage Information</h4>',
+                '    <h4>' + details.storageInfo + '</h4>',
                 '    <table class="s3-details-table">',
-                '      <tr><td><strong>Storage Class:</strong></td><td>' + $('<div>').text(fileData.storageClass).html() + '</td></tr>',
-                '      <tr><td><strong>ETag:</strong></td><td><code>' + $('<div>').text(fileData.etag).html() + '</code></td></tr>',
+                '      <tr><td><strong>' + details.storageClass + '</strong></td><td>' + $('<div>').text(fileData.storageClass).html() + '</td></tr>',
+                '      <tr><td><strong>' + details.etag + '</strong></td><td><code>' + $('<div>').text(fileData.etag).html() + '</code></td></tr>',
                 fileData.isMultipart ?
-                    '      <tr><td><strong>Upload Type:</strong></td><td>Multipart' + (fileData.partCount ? ' (' + fileData.partCount + ' parts)' : '') + '</td></tr>' :
-                    '      <tr><td><strong>Upload Type:</strong></td><td>Single-part</td></tr>',
+                    '      <tr><td><strong>' + details.uploadType + '</strong></td><td>' + details.multipart + (fileData.partCount ? ' (' + fileData.partCount + ' ' + details.parts + ')' : '') + '</td></tr>' :
+                    '      <tr><td><strong>' + details.uploadType + '</strong></td><td>' + details.singlePart + '</td></tr>',
                 '    </table>',
                 '  </div>',
                 '  <div class="s3-details-section">',
-                '    <h4>Checksum Information</h4>',
+                '    <h4>' + details.checksumInfo + '</h4>',
                 '    <table class="s3-details-table">',
-                '      <tr><td><strong>Type:</strong></td><td><span class="' + checksumInfo.class + '">' + checksumInfo.type + '</span></td></tr>',
-                '      <tr><td><strong>Value:</strong></td><td><code class="' + checksumInfo.class + '">' + checksumInfo.display + '</code></td></tr>',
+                '      <tr><td><strong>' + details.checksumType + '</strong></td><td><span class="' + checksumInfo.class + '">' + checksumInfo.type + '</span></td></tr>',
+                '      <tr><td><strong>' + details.checksumValue + '</strong></td><td><code class="' + checksumInfo.class + '">' + checksumInfo.display + '</code></td></tr>',
                 checksumInfo.note ?
                     '      <tr><td colspan="2"><small class="description">' + checksumInfo.note + '</small></td></tr>' : '',
                 '    </table>',
@@ -208,30 +210,30 @@
             var key = $button.data('key');
 
             // Store context for later use
-            var context = {filename: filename, bucket: bucket, key: key};
+            var context = { filename: filename, bucket: bucket, key: key };
 
             var content = [
                 '<div class="s3-modal-field">',
-                '<label for="s3ExpiresInput">' + s3BrowserConfig.i18n.linkDuration + '</label>',
+                '<label for="s3ExpiresInput">' + s3BrowserConfig.i18n.copyLink.linkDuration + '</label>',
                 '<input type="number" id="s3ExpiresInput" min="1" max="10080" value="60">',
-                '<p class="description">' + s3BrowserConfig.i18n.linkDurationHelp + '</p>',
+                '<p class="description">' + s3BrowserConfig.i18n.copyLink.linkDurationHelp + '</p>',
                 '</div>',
                 '<div class="s3-modal-field">',
-                '<label for="s3GeneratedUrl">' + s3BrowserConfig.i18n.generatedLink + '</label>',
-                '<textarea id="s3GeneratedUrl" rows="4" readonly placeholder="' + s3BrowserConfig.i18n.generateLinkFirst + '"></textarea>',
+                '<label for="s3GeneratedUrl">' + s3BrowserConfig.i18n.copyLink.generatedLink + '</label>',
+                '<textarea id="s3GeneratedUrl" rows="4" readonly placeholder="' + s3BrowserConfig.i18n.copyLink.generateLinkFirst + '"></textarea>',
                 '</div>'
             ].join('');
 
-            var $modal = this.showModal('s3CopyLinkModal', s3BrowserConfig.i18n.copyLink, content, [
+            var $modal = this.showModal('s3CopyLinkModal', s3BrowserConfig.i18n.copyLink.copyLink, content, [
                 {
-                    text: s3BrowserConfig.i18n.cancel,
+                    text: s3BrowserConfig.i18n.ui.cancel,
                     action: 'cancel',
                     callback: function () {
                         self.hideModal('s3CopyLinkModal');
                     }
                 },
                 {
-                    text: s3BrowserConfig.i18n.generateLink,
+                    text: s3BrowserConfig.i18n.copyLink.generateLink,
                     action: 'generate',
                     classes: 'button-primary',
                     callback: function () {
@@ -239,7 +241,7 @@
                     }
                 },
                 {
-                    text: s3BrowserConfig.i18n.copyToClipboard,
+                    text: s3BrowserConfig.i18n.copyLink.copyToClipboard,
                     action: 'copy',
                     classes: 'button-secondary',
                     callback: function () {
@@ -265,11 +267,11 @@
             var expiresMinutes = parseInt($('#s3ExpiresInput').val(), 10) || 60;
 
             if (expiresMinutes < 1 || expiresMinutes > 10080) {
-                this.showModalError('s3CopyLinkModal', s3BrowserConfig.i18n.invalidDuration);
+                this.showModalError('s3CopyLinkModal', s3BrowserConfig.i18n.copyLink.invalidDuration);
                 return;
             }
 
-            this.setModalLoading('s3CopyLinkModal', true, s3BrowserConfig.i18n.generatingLink);
+            this.setModalLoading('s3CopyLinkModal', true, s3BrowserConfig.i18n.copyLink.generatingLink);
 
             this.makeAjaxRequest('s3_get_presigned_url_', {
                 bucket: context.bucket,
@@ -310,7 +312,7 @@
             // Try modern clipboard API first
             if (navigator.clipboard && navigator.clipboard.writeText) {
                 navigator.clipboard.writeText(url).then(function () {
-                    self.showNotification(s3BrowserConfig.i18n.linkCopied, 'success');
+                    self.showNotification(s3BrowserConfig.i18n.copyLink.linkCopied, 'success');
                 }).catch(function () {
                     self.fallbackCopyToClipboard(url);
                 });
@@ -335,11 +337,11 @@
             try {
                 var successful = document.execCommand('copy');
                 this.showNotification(
-                    successful ? s3BrowserConfig.i18n.linkCopied : s3BrowserConfig.i18n.copyFailed,
+                    successful ? s3BrowserConfig.i18n.copyLink.linkCopied : s3BrowserConfig.i18n.copyLink.copyFailed,
                     successful ? 'success' : 'error'
                 );
             } catch (err) {
-                this.showNotification(s3BrowserConfig.i18n.copyFailed, 'error');
+                this.showNotification(s3BrowserConfig.i18n.copyLink.copyFailed, 'error');
             }
 
             document.body.removeChild(textArea);
@@ -355,7 +357,7 @@
             var key = $button.data('key');
 
             // Store context
-            var context = {filename: filename, bucket: bucket, key: key};
+            var context = { filename: filename, bucket: bucket, key: key };
 
             // Get filename without extension for editing
             var lastDot = filename.lastIndexOf('.');
@@ -363,22 +365,22 @@
 
             var content = [
                 '<div class="s3-modal-field">',
-                '<label for="s3RenameInput">' + s3BrowserConfig.i18n.filenameLabel + '</label>',
+                '<label for="s3RenameInput">' + s3BrowserConfig.i18n.files.filenameLabel + '</label>',
                 '<input type="text" id="s3RenameInput" maxlength="255" value="' + $('<div>').text(nameWithoutExt).html() + '">',
-                '<p class="description">' + s3BrowserConfig.i18n.filenameHelp + '</p>',
+                '<p class="description">' + s3BrowserConfig.i18n.files.filenameHelp + '</p>',
                 '</div>'
             ].join('');
 
-            var $modal = this.showModal('s3RenameModal', s3BrowserConfig.i18n.renameFile, content, [
+            var $modal = this.showModal('s3RenameModal', s3BrowserConfig.i18n.files.renameFile, content, [
                 {
-                    text: s3BrowserConfig.i18n.cancel,
+                    text: s3BrowserConfig.i18n.ui.cancel,
                     action: 'cancel',
                     callback: function () {
                         self.hideModal('s3RenameModal');
                     }
                 },
                 {
-                    text: s3BrowserConfig.i18n.renameFile,
+                    text: s3BrowserConfig.i18n.files.renameFile,
                     action: 'submit',
                     classes: 'button-primary',
                     callback: function () {
@@ -436,34 +438,34 @@
          * Validate filename for renaming
          */
         validateFilename: function (nameWithoutExt, fullName, originalFilename) {
-            var i18n = s3BrowserConfig.i18n;
+            var files = s3BrowserConfig.i18n.files;
 
             if (nameWithoutExt.length === 0) {
-                return {valid: false, message: i18n.filenameRequired};
+                return {valid: false, message: files.filenameRequired};
             }
 
             if (fullName.length > 255) {
-                return {valid: false, message: i18n.filenameTooLong};
+                return {valid: false, message: files.filenameTooLong};
             }
 
             // Check for invalid characters
             if (/[<>:"|?*\/\\]/.test(nameWithoutExt)) {
-                return {valid: false, message: i18n.filenameInvalid};
+                return {valid: false, message: files.filenameInvalid};
             }
 
             // Check if starts with problematic characters
             if (/^[.\-_]/.test(nameWithoutExt)) {
-                return {valid: false, message: i18n.filenameInvalid};
+                return {valid: false, message: files.filenameInvalid};
             }
 
             // Check for relative path indicators
             if (nameWithoutExt.includes('..')) {
-                return {valid: false, message: i18n.filenameInvalid};
+                return {valid: false, message: files.filenameInvalid};
             }
 
             // Check if the new name is the same as current
             if (fullName === originalFilename) {
-                return {valid: false, message: i18n.filenameSame};
+                return {valid: false, message: files.filenameSame};
             }
 
             return {valid: true, message: ''};
@@ -495,7 +497,7 @@
         renameFile: function (context, newFilename) {
             var self = this;
 
-            this.setModalLoading('s3RenameModal', true, s3BrowserConfig.i18n.renamingFile);
+            this.setModalLoading('s3RenameModal', true, s3BrowserConfig.i18n.files.renamingFile);
 
             this.makeAjaxRequest('s3_rename_object_', {
                 bucket: context.bucket,
@@ -503,7 +505,7 @@
                 new_filename: newFilename
             }, {
                 success: function (response) {
-                    self.showNotification(response.data.message || s3BrowserConfig.i18n.renameSuccess, 'success');
+                    self.showNotification(response.data.message || s3BrowserConfig.i18n.files.renameSuccess, 'success');
                     self.hideModal('s3RenameModal');
 
                     setTimeout(function () {

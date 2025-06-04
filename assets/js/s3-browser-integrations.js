@@ -113,7 +113,7 @@
                 $otherButton.removeClass('dashicons-star-filled s3-favorite-active')
                     .addClass('dashicons-star-empty')
                     .data('action', 'add')
-                    .attr('title', s3BrowserConfig.i18n.setDefault);
+                    .attr('title', s3BrowserConfig.i18n.navigation.setDefault);
             });
 
             // Update clicked button if it was added as favorite
@@ -121,7 +121,7 @@
                 $button.removeClass('dashicons-star-empty')
                     .addClass('dashicons-star-filled s3-favorite-active')
                     .data('action', 'remove')
-                    .attr('title', s3BrowserConfig.i18n.removeDefault);
+                    .attr('title', s3BrowserConfig.i18n.navigation.removeDefault);
             }
         }
 

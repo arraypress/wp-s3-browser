@@ -1,9 +1,9 @@
 <?php
 /**
- * Browser Assets Management Trait - Updated with New File Structure
+ * Browser Assets Management Trait - Final with Grouped Translations
  *
  * Handles asset loading and configuration for the S3 Browser using
- * the new simplified JavaScript file structure.
+ * the new simplified JavaScript file structure and grouped translations.
  *
  * @package     ArrayPress\S3\Traits\Browser
  * @copyright   Copyright (c) 2025, ArrayPress Limited
@@ -118,11 +118,8 @@ trait Assets {
 		// First enqueue the global config
 		$config_handle = $this->enqueue_global_config();
 
-		// Enqueue main styles and scripts
+		// Enqueue main styles and scripts (includes upload)
 		$this->enqueue_core_browser_assets( $config_handle );
-
-		// Enqueue upload functionality
-		$this->enqueue_upload_assets( $config_handle );
 
 		// Localize the main browser script
 		$this->localize_browser_script();
@@ -174,6 +171,13 @@ trait Assets {
 			'css/s3-browser.css'
 		);
 
+		// Enqueue upload styles
+		wp_enqueue_style_from_composer_file(
+			's3-upload-style',
+			__FILE__,
+			'css/s3-upload.css'
+		);
+
 		// Define script loading order and dependencies
 		$scripts = [
 			's3-browser-core'         => [
@@ -195,6 +199,10 @@ trait Assets {
 			's3-browser-integrations' => [
 				'file' => 'js/s3-browser-integrations.js',
 				'deps' => [ 'jquery', 's3-browser-core' ]
+			],
+			's3-upload-script'        => [
+				'file' => 'js/s3-upload.js',
+				'deps' => [ 'jquery', 's3-browser-core', 's3-browser-modals', 's3-browser-files', 's3-browser-folders' ]
 			]
 		];
 
@@ -217,38 +225,6 @@ trait Assets {
 		}
 
 		return $all_enqueued;
-	}
-
-	/**
-	 * Enqueue upload-related assets
-	 *
-	 * @param string $config_handle Global config script handle
-	 *
-	 * @return void
-	 */
-	private function enqueue_upload_assets( string $config_handle ): void {
-		// Check if core scripts were enqueued
-		if ( empty( $this->browser_script_handles ) ) {
-			return;
-		}
-
-		// Get dependencies (core scripts + config)
-		$dependencies = array_merge( [ 'jquery', $config_handle ], $this->browser_script_handles );
-
-		// Enqueue upload script
-		wp_enqueue_script_from_composer_file(
-			's3-upload-script',
-			__FILE__,
-			'js/s3-upload.js',
-			$dependencies
-		);
-
-		// Enqueue upload styles
-		wp_enqueue_style_from_composer_file(
-			's3-upload-style',
-			__FILE__,
-			'css/s3-upload.css'
-		);
 	}
 
 	/**
@@ -279,116 +255,152 @@ trait Assets {
 	}
 
 	/**
-	 * Get all browser translation strings
+	 * Get all browser translation strings organized in logical groups
 	 *
-	 * @return array Comprehensive translation array
+	 * @return array Grouped translation array
 	 */
 	private function get_browser_translations(): array {
 		$default_translations = [
 			// Browser UI strings
-			'uploadFiles'            => __( 'Upload Files', 'arraypress' ),
-			'dropFilesHere'          => __( 'Drop files here to upload', 'arraypress' ),
-			'or'                     => __( 'or', 'arraypress' ),
-			'chooseFiles'            => __( 'Choose Files', 'arraypress' ),
-			'waitForUploads'         => __( 'Please wait for uploads to complete before closing', 'arraypress' ),
+			'ui'          => [
+				'uploadFiles'    => __( 'Upload Files', 'arraypress' ),
+				'dropFilesHere'  => __( 'Drop files here to upload', 'arraypress' ),
+				'or'             => __( 'or', 'arraypress' ),
+				'chooseFiles'    => __( 'Choose Files', 'arraypress' ),
+				'waitForUploads' => __( 'Please wait for uploads to complete before closing', 'arraypress' ),
+				'cancel'         => __( 'Cancel', 'arraypress' ),
+			],
 
-			// File operation strings
-			'confirmDelete'          => __( 'Are you sure you want to delete "{filename}"?\n\nThis action cannot be undone.', 'arraypress' ),
-			'deleteSuccess'          => __( 'File successfully deleted', 'arraypress' ),
-			'deleteError'            => __( 'Failed to delete file', 'arraypress' ),
+			// File operations
+			'files'       => [
+				'confirmDelete'    => __( 'Are you sure you want to delete "{filename}"?\n\nThis action cannot be undone.', 'arraypress' ),
+				'deleteSuccess'    => __( 'File successfully deleted', 'arraypress' ),
+				'deleteError'      => __( 'Failed to delete file', 'arraypress' ),
+				'renameFile'       => __( 'Rename File', 'arraypress' ),
+				'newFilename'      => __( 'New Filename', 'arraypress' ),
+				'filenameLabel'    => __( 'Enter the new filename:', 'arraypress' ),
+				'filenameHelp'     => __( 'Enter a new filename. The file extension will be preserved.', 'arraypress' ),
+				'renameSuccess'    => __( 'File renamed successfully', 'arraypress' ),
+				'renameError'      => __( 'Failed to rename file', 'arraypress' ),
+				'renamingFile'     => __( 'Renaming file...', 'arraypress' ),
+				'filenameRequired' => __( 'Filename is required', 'arraypress' ),
+				'filenameInvalid'  => __( 'Filename contains invalid characters', 'arraypress' ),
+				'filenameTooLong'  => __( 'Filename is too long', 'arraypress' ),
+				'filenameExists'   => __( 'A file with this name already exists', 'arraypress' ),
+				'filenameSame'     => __( 'The new filename is the same as the current filename', 'arraypress' ),
+			],
 
-			// Folder operation strings
-			'confirmDeleteFolder'    => __( 'Are you sure you want to delete the folder "{foldername}" and all its contents?\n\nThis action cannot be undone.', 'arraypress' ),
-			'deleteFolderSuccess'    => __( 'Folder successfully deleted', 'arraypress' ),
-			'deleteFolderError'      => __( 'Failed to delete folder', 'arraypress' ),
-			'deletingFolder'         => __( 'Deleting folder...', 'arraypress' ),
+			// Copy link operations
+			'copyLink'    => [
+				'copyLink'             => __( 'Copy Link', 'arraypress' ),
+				'linkDuration'         => __( 'Link Duration (minutes)', 'arraypress' ),
+				'linkDurationHelp'     => __( 'Enter how long the link should remain valid (1 minute to 7 days).', 'arraypress' ),
+				'generatedLink'        => __( 'Generated Link', 'arraypress' ),
+				'generateLinkFirst'    => __( 'Click Generate Link to create a shareable URL', 'arraypress' ),
+				'generateLink'         => __( 'Generate Link', 'arraypress' ),
+				'copyToClipboard'      => __( 'Copy to Clipboard', 'arraypress' ),
+				'generatingLink'       => __( 'Generating link...', 'arraypress' ),
+				'linkGenerated'        => __( 'Link generated successfully!', 'arraypress' ),
+				'linkGeneratedSuccess' => __( 'Link generated successfully', 'arraypress' ),
+				'linkExpiresAt'        => __( 'Link expires at: {time}', 'arraypress' ),
+				'linkCopied'           => __( 'Link copied to clipboard!', 'arraypress' ),
+				'copyFailed'           => __( 'Failed to copy link. Please copy manually.', 'arraypress' ),
+				'invalidDuration'      => __( 'Duration must be between 1 minute and 7 days (10080 minutes)', 'arraypress' ),
+			],
 
-			// Rename operation strings
-			'renameFile'             => __( 'Rename File', 'arraypress' ),
-			'newFilename'            => __( 'New Filename', 'arraypress' ),
-			'filenameLabel'          => __( 'Enter the new filename:', 'arraypress' ),
-			'filenameHelp'           => __( 'Enter a new filename. The file extension will be preserved.', 'arraypress' ),
-			'renameSuccess'          => __( 'File renamed successfully', 'arraypress' ),
-			'renameError'            => __( 'Failed to rename file', 'arraypress' ),
-			'renamingFile'           => __( 'Renaming file...', 'arraypress' ),
-			'filenameRequired'       => __( 'Filename is required', 'arraypress' ),
-			'filenameInvalid'        => __( 'Filename contains invalid characters', 'arraypress' ),
-			'filenameTooLong'        => __( 'Filename is too long', 'arraypress' ),
-			'filenameExists'         => __( 'A file with this name already exists', 'arraypress' ),
-			'filenameSame'           => __( 'The new filename is the same as the current filename', 'arraypress' ),
+			// File details modal
+			'fileDetails' => [
+				'title'         => __( 'File Details', 'arraypress' ),
+				'basicInfo'     => __( 'Basic Information', 'arraypress' ),
+				'filename'      => __( 'Filename:', 'arraypress' ),
+				'objectKey'     => __( 'Object Key:', 'arraypress' ),
+				'size'          => __( 'Size:', 'arraypress' ),
+				'bytes'         => __( 'bytes', 'arraypress' ),
+				'lastModified'  => __( 'Last Modified:', 'arraypress' ),
+				'mimeType'      => __( 'MIME Type:', 'arraypress' ),
+				'category'      => __( 'Category:', 'arraypress' ),
+				'storageInfo'   => __( 'Storage Information', 'arraypress' ),
+				'storageClass'  => __( 'Storage Class:', 'arraypress' ),
+				'etag'          => __( 'ETag:', 'arraypress' ),
+				'uploadType'    => __( 'Upload Type:', 'arraypress' ),
+				'multipart'     => __( 'Multipart', 'arraypress' ),
+				'singlePart'    => __( 'Single-part', 'arraypress' ),
+				'parts'         => __( 'parts', 'arraypress' ),
+				'checksumInfo'  => __( 'Checksum Information', 'arraypress' ),
+				'checksumType'  => __( 'Type:', 'arraypress' ),
+				'checksumValue' => __( 'Value:', 'arraypress' ),
+			],
 
-			// Copy Link operation strings
-			'copyLink'               => __( 'Copy Link', 'arraypress' ),
-			'linkDuration'           => __( 'Link Duration (minutes)', 'arraypress' ),
-			'linkDurationHelp'       => __( 'Enter how long the link should remain valid (1 minute to 7 days).', 'arraypress' ),
-			'generatedLink'          => __( 'Generated Link', 'arraypress' ),
-			'generateLinkFirst'      => __( 'Click Generate Link to create a shareable URL', 'arraypress' ),
-			'generateLink'           => __( 'Generate Link', 'arraypress' ),
-			'copyToClipboard'        => __( 'Copy to Clipboard', 'arraypress' ),
-			'generatingLink'         => __( 'Generating link...', 'arraypress' ),
-			'linkGenerated'          => __( 'Link generated successfully!', 'arraypress' ),
-			'linkGeneratedSuccess'   => __( 'Link generated successfully', 'arraypress' ),
-			'linkExpiresAt'          => __( 'Link expires at: {time}', 'arraypress' ),
-			'linkCopied'             => __( 'Link copied to clipboard!', 'arraypress' ),
-			'copyFailed'             => __( 'Failed to copy link. Please copy manually.', 'arraypress' ),
-			'invalidDuration'        => __( 'Duration must be between 1 minute and 7 days (10080 minutes)', 'arraypress' ),
+			// Checksum information
+			'checksum'    => [
+				'noChecksumAvailable' => __( 'No checksum available', 'arraypress' ),
+				'none'                => __( 'None', 'arraypress' ),
+				'md5Composite'        => __( 'MD5 (Composite)', 'arraypress' ),
+				'md5'                 => __( 'MD5', 'arraypress' ),
+				'compositeNote'       => __( 'Hash of hashes from {parts} - not directly verifiable against file content', 'arraypress' ),
+				'directNote'          => __( 'Direct MD5 of file content - can be verified after download', 'arraypress' ),
+				'multipleParts'       => __( 'multiple parts', 'arraypress' ),
+			],
 
-			// Cache and refresh
-			'cacheRefreshed'         => __( 'Cache refreshed successfully', 'arraypress' ),
-			'refreshError'           => __( 'Failed to refresh data', 'arraypress' ),
+			// Folder operations
+			'folders'     => [
+				'newFolder'                 => __( 'New Folder', 'arraypress' ),
+				'createFolder'              => __( 'Create Folder', 'arraypress' ),
+				'folderName'                => __( 'Folder Name', 'arraypress' ),
+				'folderNamePlaceholder'     => __( 'Enter folder name', 'arraypress' ),
+				'folderNameHelp'            => __( 'Enter a name for the new folder. Use only letters, numbers, spaces, dots, hyphens, and underscores.', 'arraypress' ),
+				'createFolderSuccess'       => __( 'Folder "{name}" created successfully', 'arraypress' ),
+				'createFolderError'         => __( 'Failed to create folder', 'arraypress' ),
+				'creatingFolder'            => __( 'Creating folder...', 'arraypress' ),
+				'folderNameRequired'        => __( 'Folder name is required', 'arraypress' ),
+				'folderNameTooLong'         => __( 'Folder name cannot exceed 63 characters', 'arraypress' ),
+				'folderNameInvalidChars'    => __( 'Folder name can only contain letters, numbers, spaces, dots, hyphens, and underscores', 'arraypress' ),
+				'folderNameStartEnd'        => __( 'Folder name cannot start or end with dots or hyphens', 'arraypress' ),
+				'folderNameConsecutiveDots' => __( 'Folder name cannot contain consecutive dots', 'arraypress' ),
+				'confirmDeleteFolder'       => __( 'Are you sure you want to delete the folder "{foldername}" and all its contents?\n\nThis action cannot be undone.', 'arraypress' ),
+				'deleteFolderSuccess'       => __( 'Folder successfully deleted', 'arraypress' ),
+				'deletingFolderProgress'    => __( 'Deleting folder "{name}"...', 'arraypress' ),
+				'folderDeletedSuccess'      => __( 'Folder deleted successfully!', 'arraypress' ),
+				'opening'                   => __( 'Opening...', 'arraypress' ),
+				'folderOpenError'           => __( 'Failed to open folder', 'arraypress' ),
+			],
+
+			// Cache and system operations
+			'cache'       => [
+				'cacheRefreshed' => __( 'Cache refreshed successfully', 'arraypress' ),
+				'refreshError'   => __( 'Failed to refresh data', 'arraypress' ),
+			],
 
 			// Loading and errors
-			'loadingText'            => __( 'Loading...', 'arraypress' ),
-			'loadMoreItems'          => __( 'Load More Items', 'arraypress' ),
-			'loadMoreError'          => __( 'Failed to load more items. Please try again.', 'arraypress' ),
-			'networkError'           => __( 'Network error. Please try again.', 'arraypress' ),
+			'loading'     => [
+				'loadingText'   => __( 'Loading...', 'arraypress' ),
+				'loadMoreItems' => __( 'Load More Items', 'arraypress' ),
+				'loadMoreError' => __( 'Failed to load more items. Please try again.', 'arraypress' ),
+				'networkError'  => __( 'Network error. Please try again.', 'arraypress' ),
+			],
 
-			// Search results
-			'noMatchesFound'         => __( 'No matches found', 'arraypress' ),
-			'noFilesFound'           => __( 'No files or folders found matching "{term}"', 'arraypress' ),
-			'itemsMatch'             => __( '{visible} of {total} items match', 'arraypress' ),
+			// Search functionality
+			'search'      => [
+				'noMatchesFound' => __( 'No matches found', 'arraypress' ),
+				'noFilesFound'   => __( 'No files or folders found matching "{term}"', 'arraypress' ),
+				'itemsMatch'     => __( '{visible} of {total} items match', 'arraypress' ),
+			],
 
-			// Item counts
-			'singleItem'             => __( 'item', 'arraypress' ),
-			'multipleItems'          => __( 'items', 'arraypress' ),
-			'moreAvailable'          => __( ' (more available)', 'arraypress' ),
+			// Item counts and display
+			'display'     => [
+				'singleItem'    => __( 'item', 'arraypress' ),
+				'multipleItems' => __( 'items', 'arraypress' ),
+				'moreAvailable' => __( ' (more available)', 'arraypress' ),
+			],
 
-			// Favorites
-			'opening'                => __( 'Opening...', 'arraypress' ),
-			'folderOpenError'        => __( 'Failed to open folder', 'arraypress' ),
-			'setDefault'             => __( 'Set as default bucket', 'arraypress' ),
-			'removeDefault'          => __( 'Remove as default bucket', 'arraypress' ),
-
-			// File details
-			'noChecksumAvailable'    => __( 'No checksum available', 'arraypress' ),
-			'checksumNone'           => __( 'None', 'arraypress' ),
-			'checksumMD5Composite'   => __( 'MD5 (Composite)', 'arraypress' ),
-			'checksumMD5'            => __( 'MD5', 'arraypress' ),
-			'checksumCompositeNote'  => __( 'Hash of hashes from {parts} - not directly verifiable against file content', 'arraypress' ),
-			'checksumDirectNote'     => __( 'Direct MD5 of file content - can be verified after download', 'arraypress' ),
-			'multipleParts'          => __( 'multiple parts', 'arraypress' ),
-
-			'folderNameStartEnd'           => __( 'Folder name cannot start or end with dots or hyphens', 'arraypress' ),
-			'folderNameConsecutiveDots'    => __( 'Folder name cannot contain consecutive dots', 'arraypress' ),
-			'deletingFolderProgress'       => __( 'Deleting folder "{name}"...', 'arraypress' ),
-			'folderDeletedSuccess'         => __( 'Folder deleted successfully!', 'arraypress' ),
-
-			// Folder creation translations
-			'newFolder'              => __( 'New Folder', 'arraypress' ),
-			'createFolder'           => __( 'Create Folder', 'arraypress' ),
-			'folderName'             => __( 'Folder Name', 'arraypress' ),
-			'folderNamePlaceholder'  => __( 'Enter folder name', 'arraypress' ),
-			'folderNameHelp'         => __( 'Enter a name for the new folder. Use only letters, numbers, dots, hyphens, and underscores.', 'arraypress' ),
-			'createFolderSuccess'    => __( 'Folder "{name}" created successfully', 'arraypress' ),
-			'createFolderError'      => __( 'Failed to create folder', 'arraypress' ),
-			'creatingFolder'         => __( 'Creating folder...', 'arraypress' ),
-			'folderNameRequired'     => __( 'Folder name is required', 'arraypress' ),
-			'folderNameTooLong'      => __( 'Folder name cannot exceed 63 characters', 'arraypress' ),
-			'folderNameInvalidChars' => __( 'Folder name can only contain letters, numbers, dots, hyphens, and underscores', 'arraypress' ),
-			'cancel'                 => __( 'Cancel', 'arraypress' ),
+			// Favorites and navigation
+			'navigation'  => [
+				'setDefault'    => __( 'Set as default bucket', 'arraypress' ),
+				'removeDefault' => __( 'Remove as default bucket', 'arraypress' ),
+			],
 
 			// Upload specific translations
-			'upload'                 => [
+			'upload'      => [
 				'cancelUploadConfirm' => __( 'Are you sure you want to cancel "{filename}"?', 'arraypress' ),
 				'uploadFailed'        => __( 'Upload failed:', 'arraypress' ),
 				'uploadComplete'      => __( 'Uploads completed. Refreshing file listing...', 'arraypress' ),
@@ -400,7 +412,7 @@ trait Assets {
 			]
 		];
 
-		// Apply contextual filters if available
+		// Apply contextual filters
 		return $this->apply_contextual_filters( 's3_browser_translations', $default_translations, $this->provider_id );
 	}
 

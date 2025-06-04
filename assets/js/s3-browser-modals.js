@@ -73,7 +73,7 @@
             var $error = $modal.find('.s3-modal-error');
 
             if (isLoading) {
-                $loading.find('.loading-text').text(loadingText || s3BrowserConfig.i18n.loadingText);
+                $loading.find('.loading-text').text(loadingText || s3BrowserConfig.i18n.loading.loadingText);
                 $loading.show();
                 $buttons.prop('disabled', true);
                 $error.hide();
