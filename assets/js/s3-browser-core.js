@@ -26,6 +26,7 @@
             this.setupAjaxLoading();
             this.countInitialItems();
             this.initUploadToggle();
+            this.initUpload();
         },
 
         /**
