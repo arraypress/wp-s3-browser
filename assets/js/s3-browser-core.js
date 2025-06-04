@@ -26,7 +26,6 @@
             this.setupAjaxLoading();
             this.countInitialItems();
             this.initUploadToggle();
-            this.initRowActions();
         },
 
         /**
@@ -133,22 +132,6 @@
                     self.toggleFavoriteBucket($starTarget);
                 }
             });
-
-            // Row hover effects
-            $(document).off('mouseenter.s3rowactions mouseleave.s3rowactions')
-                .on('mouseenter.s3rowactions', '.wp-list-table tbody tr', function () {
-                    $(this).find('.row-actions').css('visibility', 'visible');
-                })
-                .on('mouseleave.s3rowactions', '.wp-list-table tbody tr', function () {
-                    $(this).find('.row-actions').css('visibility', 'hidden');
-                });
-        },
-
-        /**
-         * Initialize WordPress-style row actions
-         */
-        initRowActions: function () {
-            // Already handled in bindAllEvents
         },
 
         /**
