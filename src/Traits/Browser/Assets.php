@@ -300,7 +300,7 @@ trait Assets {
 			'linkDuration'         => __( 'Link Duration (minutes)', 'arraypress' ),
 			'linkDurationHelp'     => __( 'Enter how long the link should remain valid (1 minute to 7 days).', 'arraypress' ),
 			'generatedLink'        => __( 'Generated Link', 'arraypress' ),
-			'generateLinkFirst'    => __( 'Click "Generate Link" to create a shareable URL', 'arraypress' ),
+			'generateLinkFirst'    => __( 'Click Generate Link to create a shareable URL', 'arraypress' ),
 			'generateLink'         => __( 'Generate Link', 'arraypress' ),
 			'copyToClipboard'      => __( 'Copy to Clipboard', 'arraypress' ),
 			'generatingLink'       => __( 'Generating link...', 'arraypress' ),
