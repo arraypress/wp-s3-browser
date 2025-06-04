@@ -623,33 +623,6 @@ abstract class Provider implements ProviderInterface {
 	 *
 	 * @return string Complete HTTPS URL
 	 */
-	public function format_url_with_encoded_key( string $bucket, string $encoded_key ): string {
-		$endpoint = $this->get_endpoint();
-
-		if ( $this->uses_path_style() ) {
-			return 'https://' . $endpoint . '/' . $bucket . '/' . $encoded_key;
-		} else {
-			return 'https://' . $bucket . '.' . $endpoint . '/' . $encoded_key;
-		}
-	}
-
-	/**
-	 * Build URL with encoded object key for specific operations
-	 *
-	 * Builds a complete URL with an already-encoded object key.
-	 * This is useful for operations like DELETE where you need precise
-	 * control over the encoding process.
-	 *
-	 * Used primarily by:
-	 * - Delete operations
-	 * - Operations requiring custom encoding
-	 * - Cases where the key is pre-encoded
-	 *
-	 * @param string $bucket      Bucket name
-	 * @param string $encoded_key Already URL-encoded object key
-	 *
-	 * @return string Complete HTTPS URL
-	 */
 	public function build_url_with_encoded_key( string $bucket, string $encoded_key ): string {
 		$endpoint = $this->get_endpoint();
 

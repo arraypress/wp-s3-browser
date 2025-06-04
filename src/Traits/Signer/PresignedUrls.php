@@ -106,7 +106,7 @@ trait PresignedUrls {
 		// Calculate the signature
 		$signature = $this->calculate_signature( $string_to_sign, $datestamp );
 
-		$url = $this->provider->format_url_with_encoded_key( $bucket, $encoded_key );
+		$url = $this->provider->build_url_with_encoded_key( $bucket, $encoded_key );
 
 		$presigned_url = $url . '?' . $canonical_querystring . '&X-Amz-Signature=' . $signature;
 
@@ -195,7 +195,7 @@ trait PresignedUrls {
 		// Calculate the signature
 		$signature = $this->calculate_signature( $string_to_sign, $datestamp );
 
-		$url = $this->provider->format_url_with_encoded_key( $bucket, $encoded_key );
+		$url = $this->provider->build_url_with_encoded_key( $bucket, $encoded_key );
 
 		$presigned_url = $url . '?' . $canonical_querystring . '&X-Amz-Signature=' . $signature;
 
