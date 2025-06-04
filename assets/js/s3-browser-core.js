@@ -27,7 +27,6 @@
             this.countInitialItems();
             this.initUploadToggle();
             this.initRowActions();
-            this.initUpload();
         },
 
         /**
