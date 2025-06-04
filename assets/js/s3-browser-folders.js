@@ -57,8 +57,9 @@
             var bucket = $button.data('bucket');
             var folderPath = $button.data('prefix');
 
-            // Show progress overlay
-            this.showProgressOverlay('Deleting folder "' + folderName + '"...');
+            // Show progress overlay with translatable message
+            var progressMessage = s3BrowserConfig.i18n.deletingFolderProgress.replace('{name}', folderName);
+            this.showProgressOverlay(progressMessage);
 
             this.makeAjaxRequest('s3_delete_folder_', {
                 bucket: bucket,
@@ -66,7 +67,7 @@
                 recursive: true
             }, {
                 success: function (response) {
-                    self.updateProgressOverlay('Folder deleted successfully!');
+                    self.updateProgressOverlay(s3BrowserConfig.i18n.folderDeletedSuccess);
 
                     setTimeout(function () {
                         self.hideProgressOverlay();
@@ -161,14 +162,15 @@
             if (folderName.length > 63) {
                 return {valid: false, message: i18n.folderNameTooLong};
             }
-            if (!/^[a-zA-Z0-9._-]+$/.test(folderName)) {
+            // Allow spaces in folder names - updated regex to include space
+            if (!/^[a-zA-Z0-9 ._-]+$/.test(folderName)) {
                 return {valid: false, message: i18n.folderNameInvalidChars};
             }
             if (['.', '-'].includes(folderName[0]) || ['.', '-'].includes(folderName[folderName.length - 1])) {
-                return {valid: false, message: 'Folder name cannot start or end with dots or hyphens'};
+                return {valid: false, message: i18n.folderNameStartEnd};
             }
             if (folderName.includes('..')) {
-                return {valid: false, message: 'Folder name cannot contain consecutive dots'};
+                return {valid: false, message: i18n.folderNameConsecutiveDots};
             }
 
             return {valid: true, message: ''};

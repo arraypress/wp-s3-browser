@@ -30,11 +30,12 @@
             }, {
                 success: function (response) {
                     self.showNotification(response.data.message || s3BrowserConfig.i18n.deleteSuccess, 'success');
+
+                    // Fade out the deleted row, then reload the page
                     $button.closest('tr').fadeOut(300, function () {
-                        $(this).remove();
-                        self.totalLoadedItems--;
-                        self.updateTotalCount(false);
-                        self.refreshSearch();
+                        setTimeout(function () {
+                            window.location.reload();
+                        }, 500);
                     });
                 },
                 error: function (message) {
@@ -126,27 +127,32 @@
          * Format checksum information for display
          */
         formatChecksumInfo: function (fileData) {
+            var i18n = s3BrowserConfig.i18n;
+
             if (!fileData.md5) {
                 return {
-                    display: 'No checksum available',
-                    type: 'None',
+                    display: i18n.noChecksumAvailable,
+                    type: i18n.checksumNone,
                     class: 's3-checksum-none'
                 };
             }
 
             if (fileData.isMultipart) {
-                var partText = fileData.partCount ? fileData.partCount + ' parts' : 'multiple parts';
+                var partText = fileData.partCount ?
+                    fileData.partCount + ' parts' :
+                    i18n.multipleParts;
+
                 return {
                     display: fileData.md5,
-                    type: 'MD5 (Composite)',
-                    note: 'Hash of hashes from ' + partText + ' - not directly verifiable against file content',
+                    type: i18n.checksumMD5Composite,
+                    note: i18n.checksumCompositeNote.replace('{parts}', partText),
                     class: 's3-checksum-multipart'
                 };
             } else {
                 return {
                     display: fileData.md5,
-                    type: 'MD5',
-                    note: 'Direct MD5 of file content - can be verified after download',
+                    type: i18n.checksumMD5,
+                    note: i18n.checksumDirectNote,
                     class: 's3-checksum-single'
                 };
             }

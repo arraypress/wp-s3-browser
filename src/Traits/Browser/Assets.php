@@ -360,7 +360,18 @@ trait Assets {
 			'removeDefault'          => __( 'Remove as default bucket', 'arraypress' ),
 
 			// File details
-			'fileDetails'            => __( 'File Details', 'arraypress' ),
+			'noChecksumAvailable'    => __( 'No checksum available', 'arraypress' ),
+			'checksumNone'           => __( 'None', 'arraypress' ),
+			'checksumMD5Composite'   => __( 'MD5 (Composite)', 'arraypress' ),
+			'checksumMD5'            => __( 'MD5', 'arraypress' ),
+			'checksumCompositeNote'  => __( 'Hash of hashes from {parts} - not directly verifiable against file content', 'arraypress' ),
+			'checksumDirectNote'     => __( 'Direct MD5 of file content - can be verified after download', 'arraypress' ),
+			'multipleParts'          => __( 'multiple parts', 'arraypress' ),
+
+			'folderNameStartEnd'           => __( 'Folder name cannot start or end with dots or hyphens', 'arraypress' ),
+			'folderNameConsecutiveDots'    => __( 'Folder name cannot contain consecutive dots', 'arraypress' ),
+			'deletingFolderProgress'       => __( 'Deleting folder "{name}"...', 'arraypress' ),
+			'folderDeletedSuccess'         => __( 'Folder deleted successfully!', 'arraypress' ),
 
 			// Folder creation translations
 			'newFolder'              => __( 'New Folder', 'arraypress' ),
