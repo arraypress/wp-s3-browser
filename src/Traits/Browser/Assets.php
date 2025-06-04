@@ -1,9 +1,9 @@
 <?php
 /**
- * Browser Assets Management Trait - Enhanced with Folder Delete Support
+ * Browser Assets Management Trait - Updated with New File Structure
  *
  * Handles asset loading and configuration for the S3 Browser using
- * the new WP Composer Assets library for simplified asset management.
+ * the new simplified JavaScript file structure.
  *
  * @package     ArrayPress\S3\Traits\Browser
  * @copyright   Copyright (c) 2025, ArrayPress Limited
@@ -22,11 +22,11 @@ namespace ArrayPress\S3\Traits\Browser;
 trait Assets {
 
 	/**
-	 * Store the browser script handle for later reference
+	 * Store the browser script handles for later reference
 	 *
-	 * @var string|null
+	 * @var array
 	 */
-	private ?string $browser_script_handle = null;
+	private array $browser_script_handles = [];
 
 	/**
 	 * Enqueue global configuration script
@@ -77,12 +77,8 @@ trait Assets {
 				$shared_config['defaultPrefix'] = $prefix_to_use;
 			}
 
-			// Apply contextual filters if context trait is available
-			if ( method_exists( $this, 'apply_contextual_filters' ) ) {
-				$shared_config = $this->apply_contextual_filters( 's3_browser_global_config', $shared_config, $this->provider_id );
-			} else {
-				$shared_config = apply_filters( 's3_browser_global_config', $shared_config, $this->provider_id );
-			}
+			// Apply contextual filters
+			$shared_config = $this->apply_contextual_filters( 's3_browser_global_config', $shared_config, $this->provider_id );
 
 			// Localize the script
 			wp_localize_script( $handle, 'S3BrowserGlobalConfig', $shared_config );
@@ -123,13 +119,13 @@ trait Assets {
 		$config_handle = $this->enqueue_global_config();
 
 		// Enqueue main styles and scripts
-		$script_handle = $this->enqueue_core_browser_assets( $config_handle );
+		$this->enqueue_core_browser_assets( $config_handle );
 
 		// Enqueue upload functionality
 		$this->enqueue_upload_assets( $config_handle );
 
 		// Localize the main browser script
-		$this->localize_browser_script( $script_handle );
+		$this->localize_browser_script();
 	}
 
 	/**
@@ -164,7 +160,7 @@ trait Assets {
 	}
 
 	/**
-	 * Enqueue core browser assets (CSS and main JS)
+	 * Enqueue core browser assets (CSS and main JS files)
 	 *
 	 * @param string $config_handle Global config script handle
 	 *
@@ -178,19 +174,49 @@ trait Assets {
 			'css/s3-browser.css'
 		);
 
-		// Enqueue main browser script
-		$success = wp_enqueue_script_from_composer_file(
-			's3-browser-script',
-			__FILE__,
-			'js/s3-browser.js',
-			[ 'jquery', $config_handle ]
-		);
+		// Define script loading order and dependencies
+		$scripts = [
+			's3-browser-core'         => [
+				'file' => 'js/s3-browser-core.js',
+				'deps' => [ 'jquery', $config_handle ]
+			],
+			's3-browser-modals'       => [
+				'file' => 'js/s3-browser-modals.js',
+				'deps' => [ 'jquery', 's3-browser-core' ]
+			],
+			's3-browser-files'        => [
+				'file' => 'js/s3-browser-files.js',
+				'deps' => [ 'jquery', 's3-browser-core', 's3-browser-modals' ]
+			],
+			's3-browser-folders'      => [
+				'file' => 'js/s3-browser-folders.js',
+				'deps' => [ 'jquery', 's3-browser-core', 's3-browser-modals' ]
+			],
+			's3-browser-integrations' => [
+				'file' => 'js/s3-browser-integrations.js',
+				'deps' => [ 'jquery', 's3-browser-core' ]
+			]
+		];
 
-		if ( $success ) {
-			$this->browser_script_handle = 's3-browser-script';
+		$all_enqueued = true;
+
+		// Enqueue scripts in order
+		foreach ( $scripts as $handle => $script_config ) {
+			$success = wp_enqueue_script_from_composer_file(
+				$handle,
+				__FILE__,
+				$script_config['file'],
+				$script_config['deps']
+			);
+
+			if ( $success ) {
+				$this->browser_script_handles[] = $handle;
+			} else {
+				$all_enqueued = false;
+			}
 		}
 
-		return $success;
+		return $all_enqueued;
 	}
 
 	/**
@@ -201,19 +227,20 @@ trait Assets {
 	 * @return void
 	 */
 	private function enqueue_upload_assets( string $config_handle ): void {
-		// Get the main browser script handle for dependency
-		$main_script_handle = $this->browser_script_handle ?? null;
-
-		if ( ! $main_script_handle ) {
+		// Check if core scripts were enqueued
+		if ( empty( $this->browser_script_handles ) ) {
 			return;
 		}
+
+		// Get dependencies (core scripts + config)
+		$dependencies = array_merge( [ 'jquery', $config_handle ], $this->browser_script_handles );
 
 		// Enqueue upload script
 		wp_enqueue_script_from_composer_file(
 			's3-upload-script',
 			__FILE__,
 			'js/s3-upload.js',
-			[ 'jquery', $config_handle, $main_script_handle ]
+			$dependencies
 		);
 
 		// Enqueue upload styles
@@ -227,12 +254,11 @@ trait Assets {
 	/**
 	 * Localize the main browser script with configuration and translations
 	 *
-	 * @param bool $script_success Whether the script was successfully enqueued
-	 *
 	 * @return void
 	 */
-	private function localize_browser_script( bool $script_success ): void {
-		if ( ! $script_success || ! $this->browser_script_handle ) {
+	private function localize_browser_script(): void {
+		// Check if core script was enqueued
+		if ( ! in_array( 's3-browser-core', $this->browser_script_handles ) ) {
 			return;
 		}
 
@@ -245,15 +271,11 @@ trait Assets {
 			'i18n'     => $this->get_browser_translations()
 		];
 
-		// Apply contextual filters if context trait is available
-		if ( method_exists( $this, 'apply_contextual_filters' ) ) {
-			$browser_config = $this->apply_contextual_filters( 's3_browser_config', $browser_config, $this->provider_id );
-		} else {
-			$browser_config = apply_filters( 's3_browser_config', $browser_config, $this->provider_id );
-		}
+		// Apply contextual filters
+		$browser_config = $this->apply_contextual_filters( 's3_browser_config', $browser_config, $this->provider_id );
 
-		// Localize the script
-		wp_localize_script( $this->browser_script_handle, 's3BrowserConfig', $browser_config );
+		// Localize the core script
+		wp_localize_script( 's3-browser-core', 's3BrowserConfig', $browser_config );
 	}
 
 	/**
@@ -264,80 +286,80 @@ trait Assets {
 	private function get_browser_translations(): array {
 		$default_translations = [
 			// Browser UI strings
-			'uploadFiles'          => __( 'Upload Files', 'arraypress' ),
-			'dropFilesHere'        => __( 'Drop files here to upload', 'arraypress' ),
-			'or'                   => __( 'or', 'arraypress' ),
-			'chooseFiles'          => __( 'Choose Files', 'arraypress' ),
-			'waitForUploads'       => __( 'Please wait for uploads to complete before closing', 'arraypress' ),
+			'uploadFiles'            => __( 'Upload Files', 'arraypress' ),
+			'dropFilesHere'          => __( 'Drop files here to upload', 'arraypress' ),
+			'or'                     => __( 'or', 'arraypress' ),
+			'chooseFiles'            => __( 'Choose Files', 'arraypress' ),
+			'waitForUploads'         => __( 'Please wait for uploads to complete before closing', 'arraypress' ),
 
 			// File operation strings
-			'confirmDelete'        => __( 'Are you sure you want to delete "{filename}"?\n\nThis action cannot be undone.', 'arraypress' ),
-			'deleteSuccess'        => __( 'File successfully deleted', 'arraypress' ),
-			'deleteError'          => __( 'Failed to delete file', 'arraypress' ),
+			'confirmDelete'          => __( 'Are you sure you want to delete "{filename}"?\n\nThis action cannot be undone.', 'arraypress' ),
+			'deleteSuccess'          => __( 'File successfully deleted', 'arraypress' ),
+			'deleteError'            => __( 'Failed to delete file', 'arraypress' ),
 
 			// Folder operation strings
-			'confirmDeleteFolder'  => __( 'Are you sure you want to delete the folder "{foldername}" and all its contents?\n\nThis action cannot be undone.', 'arraypress' ),
-			'deleteFolderSuccess'  => __( 'Folder successfully deleted', 'arraypress' ),
-			'deleteFolderError'    => __( 'Failed to delete folder', 'arraypress' ),
-			'deletingFolder'       => __( 'Deleting folder...', 'arraypress' ),
+			'confirmDeleteFolder'    => __( 'Are you sure you want to delete the folder "{foldername}" and all its contents?\n\nThis action cannot be undone.', 'arraypress' ),
+			'deleteFolderSuccess'    => __( 'Folder successfully deleted', 'arraypress' ),
+			'deleteFolderError'      => __( 'Failed to delete folder', 'arraypress' ),
+			'deletingFolder'         => __( 'Deleting folder...', 'arraypress' ),
 
 			// Rename operation strings
-			'renameFile'           => __( 'Rename File', 'arraypress' ),
-			'newFilename'          => __( 'New Filename', 'arraypress' ),
-			'filenameLabel'        => __( 'Enter the new filename:', 'arraypress' ),
-			'filenameHelp'         => __( 'Enter a new filename. The file extension will be preserved.', 'arraypress' ),
-			'renameSuccess'        => __( 'File renamed successfully', 'arraypress' ),
-			'renameError'          => __( 'Failed to rename file', 'arraypress' ),
-			'renamingFile'         => __( 'Renaming file...', 'arraypress' ),
-			'filenameRequired'     => __( 'Filename is required', 'arraypress' ),
-			'filenameInvalid'      => __( 'Filename contains invalid characters', 'arraypress' ),
-			'filenameTooLong'      => __( 'Filename is too long', 'arraypress' ),
-			'filenameExists'       => __( 'A file with this name already exists', 'arraypress' ),
-			'filenameSame'         => __( 'The new filename is the same as the current filename', 'arraypress' ),
+			'renameFile'             => __( 'Rename File', 'arraypress' ),
+			'newFilename'            => __( 'New Filename', 'arraypress' ),
+			'filenameLabel'          => __( 'Enter the new filename:', 'arraypress' ),
+			'filenameHelp'           => __( 'Enter a new filename. The file extension will be preserved.', 'arraypress' ),
+			'renameSuccess'          => __( 'File renamed successfully', 'arraypress' ),
+			'renameError'            => __( 'Failed to rename file', 'arraypress' ),
+			'renamingFile'           => __( 'Renaming file...', 'arraypress' ),
+			'filenameRequired'       => __( 'Filename is required', 'arraypress' ),
+			'filenameInvalid'        => __( 'Filename contains invalid characters', 'arraypress' ),
+			'filenameTooLong'        => __( 'Filename is too long', 'arraypress' ),
+			'filenameExists'         => __( 'A file with this name already exists', 'arraypress' ),
+			'filenameSame'           => __( 'The new filename is the same as the current filename', 'arraypress' ),
 
-			// Copy Link operation strings - NEW
-			'copyLink'             => __( 'Copy Link', 'arraypress' ),
-			'linkDuration'         => __( 'Link Duration (minutes)', 'arraypress' ),
-			'linkDurationHelp'     => __( 'Enter how long the link should remain valid (1 minute to 7 days).', 'arraypress' ),
-			'generatedLink'        => __( 'Generated Link', 'arraypress' ),
-			'generateLinkFirst'    => __( 'Click Generate Link to create a shareable URL', 'arraypress' ),
-			'generateLink'         => __( 'Generate Link', 'arraypress' ),
-			'copyToClipboard'      => __( 'Copy to Clipboard', 'arraypress' ),
-			'generatingLink'       => __( 'Generating link...', 'arraypress' ),
-			'linkGenerated'        => __( 'Link generated successfully!', 'arraypress' ),
-			'linkGeneratedSuccess' => __( 'Link generated successfully', 'arraypress' ),
-			'linkExpiresAt'        => __( 'Link expires at: {time}', 'arraypress' ),
-			'linkCopied'           => __( 'Link copied to clipboard!', 'arraypress' ),
-			'copyFailed'           => __( 'Failed to copy link. Please copy manually.', 'arraypress' ),
-			'invalidDuration'      => __( 'Duration must be between 1 minute and 7 days (10080 minutes)', 'arraypress' ),
+			// Copy Link operation strings
+			'copyLink'               => __( 'Copy Link', 'arraypress' ),
+			'linkDuration'           => __( 'Link Duration (minutes)', 'arraypress' ),
+			'linkDurationHelp'       => __( 'Enter how long the link should remain valid (1 minute to 7 days).', 'arraypress' ),
+			'generatedLink'          => __( 'Generated Link', 'arraypress' ),
+			'generateLinkFirst'      => __( 'Click Generate Link to create a shareable URL', 'arraypress' ),
+			'generateLink'           => __( 'Generate Link', 'arraypress' ),
+			'copyToClipboard'        => __( 'Copy to Clipboard', 'arraypress' ),
+			'generatingLink'         => __( 'Generating link...', 'arraypress' ),
+			'linkGenerated'          => __( 'Link generated successfully!', 'arraypress' ),
+			'linkGeneratedSuccess'   => __( 'Link generated successfully', 'arraypress' ),
+			'linkExpiresAt'          => __( 'Link expires at: {time}', 'arraypress' ),
+			'linkCopied'             => __( 'Link copied to clipboard!', 'arraypress' ),
+			'copyFailed'             => __( 'Failed to copy link. Please copy manually.', 'arraypress' ),
+			'invalidDuration'        => __( 'Duration must be between 1 minute and 7 days (10080 minutes)', 'arraypress' ),
 
 			// Cache and refresh
-			'cacheRefreshed'       => __( 'Cache refreshed successfully', 'arraypress' ),
-			'refreshError'         => __( 'Failed to refresh data', 'arraypress' ),
+			'cacheRefreshed'         => __( 'Cache refreshed successfully', 'arraypress' ),
+			'refreshError'           => __( 'Failed to refresh data', 'arraypress' ),
 
 			// Loading and errors
-			'loadingText'          => __( 'Loading...', 'arraypress' ),
-			'loadMoreItems'        => __( 'Load More Items', 'arraypress' ),
-			'loadMoreError'        => __( 'Failed to load more items. Please try again.', 'arraypress' ),
-			'networkError'         => __( 'Network error. Please try again.', 'arraypress' ),
+			'loadingText'            => __( 'Loading...', 'arraypress' ),
+			'loadMoreItems'          => __( 'Load More Items', 'arraypress' ),
+			'loadMoreError'          => __( 'Failed to load more items. Please try again.', 'arraypress' ),
+			'networkError'           => __( 'Network error. Please try again.', 'arraypress' ),
 
 			// Search results
-			'noMatchesFound'       => __( 'No matches found', 'arraypress' ),
-			'noFilesFound'         => __( 'No files or folders found matching "{term}"', 'arraypress' ),
-			'itemsMatch'           => __( '{visible} of {total} items match', 'arraypress' ),
+			'noMatchesFound'         => __( 'No matches found', 'arraypress' ),
+			'noFilesFound'           => __( 'No files or folders found matching "{term}"', 'arraypress' ),
+			'itemsMatch'             => __( '{visible} of {total} items match', 'arraypress' ),
 
 			// Item counts
-			'singleItem'           => __( 'item', 'arraypress' ),
-			'multipleItems'        => __( 'items', 'arraypress' ),
-			'moreAvailable'        => __( ' (more available)', 'arraypress' ),
+			'singleItem'             => __( 'item', 'arraypress' ),
+			'multipleItems'          => __( 'items', 'arraypress' ),
+			'moreAvailable'          => __( ' (more available)', 'arraypress' ),
 
 			// Favorites
-			'opening'              => __( 'Opening...', 'arraypress' ),
-			'folderOpenError'      => __( 'Failed to open folder', 'arraypress' ),
-			'setDefault'           => __( 'Set as default bucket', 'arraypress' ),
-			'removeDefault'        => __( 'Remove as default bucket', 'arraypress' ),
+			'opening'                => __( 'Opening...', 'arraypress' ),
+			'folderOpenError'        => __( 'Failed to open folder', 'arraypress' ),
+			'setDefault'             => __( 'Set as default bucket', 'arraypress' ),
+			'removeDefault'          => __( 'Remove as default bucket', 'arraypress' ),
 
-			// Favorites
+			// File details
 			'fileDetails'            => __( 'File Details', 'arraypress' ),
 
 			// Folder creation translations
@@ -367,6 +389,7 @@ trait Assets {
 			]
 		];
 
+		// Apply contextual filters if available
 		return $this->apply_contextual_filters( 's3_browser_translations', $default_translations, $this->provider_id );
 	}
 
