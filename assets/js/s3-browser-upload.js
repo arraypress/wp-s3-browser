@@ -333,4 +333,11 @@
 
     });
 
+    // Initialize upload functionality when document is ready
+    $(document).ready(function () {
+        if (window.S3Browser) {
+            S3Browser.initUpload();
+        }
+    });
+
 })(jQuery);

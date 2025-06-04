@@ -202,7 +202,7 @@ trait Assets {
 			],
 			's3-upload-script'        => [
 				'file' => 'js/s3-upload.js',
-				'deps' => [ 'jquery', 's3-browser-core', 's3-browser-modals', 's3-browser-files', 's3-browser-folders' ]
+				'deps' => [ 'jquery', $config_handle, 's3-browser-core' ]
 			]
 		];
 
