@@ -142,7 +142,7 @@ trait Assets {
 			wp_enqueue_script_from_composer_file(
 				's3-browser-woocommerce',
 				__FILE__,
-				'js/integrations/s3-browser-woocommerce.js',
+				'js/integrations/woocommerce.js',
 				[ 'jquery', $config_handle ]
 			);
 		} elseif ( $post_type === 'download' ) {
@@ -150,7 +150,7 @@ trait Assets {
 			wp_enqueue_script_from_composer_file(
 				's3-browser-edd',
 				__FILE__,
-				'js/integrations/s3-browser-edd.js',
+				'js/integrations/easy-digital-downloads.js',
 				[ 'jquery', $config_handle ]
 			);
 		}
@@ -181,27 +181,27 @@ trait Assets {
 		// Define script loading order and dependencies
 		$scripts = [
 			's3-browser-core'         => [
-				'file' => 'js/s3-browser-core.js',
+				'file' => 'js/browser/core.js',
 				'deps' => [ 'jquery', $config_handle ]
 			],
 			's3-browser-modals'       => [
-				'file' => 'js/s3-browser-modals.js',
+				'file' => 'js/browser/modal.js',
 				'deps' => [ 'jquery', 's3-browser-core' ]
 			],
 			's3-browser-files'        => [
-				'file' => 'js/s3-browser-files.js',
+				'file' => 'js/browser/files.js',
 				'deps' => [ 'jquery', 's3-browser-core', 's3-browser-modals' ]
 			],
 			's3-browser-folders'      => [
-				'file' => 'js/s3-browser-folders.js',
+				'file' => 'js/browser/folders.js',
 				'deps' => [ 'jquery', 's3-browser-core', 's3-browser-modals' ]
 			],
 			's3-browser-integrations' => [
-				'file' => 'js/s3-browser-integrations.js',
+				'file' => 'js/browser/integrations.js',
 				'deps' => [ 'jquery', 's3-browser-core' ]
 			],
 			's3-upload-script'        => [
-				'file' => 'js/s3-browser-upload.js',
+				'file' => 'js/browser/upload.js',
 				'deps' => [ 'jquery', $config_handle, 's3-browser-core' ]
 			]
 		];
