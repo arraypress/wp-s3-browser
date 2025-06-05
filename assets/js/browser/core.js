@@ -194,7 +194,7 @@
             e.preventDefault();
             const $button = $(e.target);
             window.S3Folders?.openCreateFolderModal($button.data('bucket'), $button.data('prefix'));
-        }
+        },
 
         // ===========================================
         // SEARCH FUNCTIONALITY
