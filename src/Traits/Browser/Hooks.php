@@ -57,7 +57,7 @@ trait Hooks {
 		add_action( 'wp_ajax_s3_get_bucket_details_' . $this->provider_id, [ $this, 'handle_ajax_get_bucket_details' ] );
 
 		// Register AJAX handlers for CORS operations
-		add_action( 'wp_ajax_s3_setup_cors_upload_' . $this->provider_id, [ $this, 'handle_ajax_setup_cors_upload' ] );
+		add_action( 'wp_ajax_s3_setup_cors_' . $this->provider_id, [ $this, 'handle_ajax_setup_cors_upload' ] );
 		add_action( 'wp_ajax_s3_delete_cors_configuration_' . $this->provider_id, [ $this, 'handle_ajax_delete_cors_configuration' ] );
 
 		// Add plugin integrations
