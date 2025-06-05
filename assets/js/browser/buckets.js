@@ -133,20 +133,21 @@
          * Build bucket details content
          */
         buildBucketDetailsContent: function (bucket, data) {
+            var self = this; // Capture 'this' reference at the beginning
             var content = '<div class="s3-bucket-details-content">';
 
             // Basic bucket information
             content += '<div class="s3-details-section">';
             content += '<h4>Bucket Information</h4>';
             content += '<table class="s3-details-table">';
-            content += '<tr><td><strong>Bucket Name:</strong></td><td><code>' + this.escapeHtml(bucket) + '</code></td></tr>';
+            content += '<tr><td><strong>Bucket Name:</strong></td><td><code>' + self.escapeHtml(bucket) + '</code></td></tr>';
 
             if (data.basic) {
                 if (data.basic.region) {
-                    content += '<tr><td><strong>Region:</strong></td><td>' + this.escapeHtml(data.basic.region) + '</td></tr>';
+                    content += '<tr><td><strong>Region:</strong></td><td>' + self.escapeHtml(data.basic.region) + '</td></tr>';
                 }
                 if (data.basic.created) {
-                    content += '<tr><td><strong>Created:</strong></td><td>' + this.escapeHtml(data.basic.created) + '</td></tr>';
+                    content += '<tr><td><strong>Created:</strong></td><td>' + self.escapeHtml(data.basic.created) + '</td></tr>';
                 }
             }
 
@@ -168,10 +169,10 @@
                 }
 
                 content += '</td></tr>';
-                content += '<tr><td><strong>Current Domain:</strong></td><td>' + this.escapeHtml(data.cors.current_origin || window.location.origin) + '</td></tr>';
+                content += '<tr><td><strong>Current Domain:</strong></td><td>' + self.escapeHtml(data.cors.current_origin || window.location.origin) + '</td></tr>';
 
                 if (data.cors.details) {
-                    content += '<tr><td colspan="2"><small>' + this.escapeHtml(data.cors.details) + '</small></td></tr>';
+                    content += '<tr><td colspan="2"><small>' + self.escapeHtml(data.cors.details) + '</small></td></tr>';
                 }
 
                 content += '</table>';
