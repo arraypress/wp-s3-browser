@@ -33,7 +33,6 @@
             this.setupDropZone();
             this.setupFileInput();
             this.setupEventHandlers();
-            this.setupDragAndDrop();
         },
 
         /**
