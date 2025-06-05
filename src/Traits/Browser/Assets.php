@@ -179,34 +179,81 @@ trait Assets {
 		);
 
 		// Define script loading order and dependencies
+//		$scripts = [
+//			's3-browser-core'         => [
+//				'file' => 'js/browser/core.js',
+//				'deps' => [ 'jquery', $config_handle ]
+//			],
+//			's3-browser-modals'       => [
+//				'file' => 'js/browser/modal.js',
+//				'deps' => [ 'jquery', 's3-browser-core' ]
+//			],
+//			's3-browser-files'        => [
+//				'file' => 'js/browser/files.js',
+//				'deps' => [ 'jquery', 's3-browser-core', 's3-browser-modals' ]
+//			],
+//			's3-browser-folders'      => [
+//				'file' => 'js/browser/folders.js',
+//				'deps' => [ 'jquery', 's3-browser-core', 's3-browser-modals' ]
+//			],
+//			's3-browser-integrations' => [
+//				'file' => 'js/browser/integrations.js',
+//				'deps' => [ 'jquery', 's3-browser-core' ]
+//			],
+//			's3-browser-cors'         => [
+//				'file' => 'js/browser/buckets.js',
+//				'deps' => [ 'jquery', 's3-browser-core', 's3-browser-modals' ]
+//			],
+//			's3-upload-script'        => [
+//				'file' => 'js/browser/upload.js',
+//				'deps' => [ 'jquery', $config_handle, 's3-browser-core' ]
+//			]
+//		];
+
 		$scripts = [
-			's3-browser-core'         => [
-				'file' => 'js/browser/core.js',
+			// Core utilities (must load first)
+			's3-browser-utils'        => [
+				'file' => 'js/browser/utils.js',
 				'deps' => [ 'jquery', $config_handle ]
 			],
+
+			// Core functionality
+			's3-browser-core'         => [
+				'file' => 'js/browser/core.js',
+				'deps' => [ 'jquery', 's3-browser-utils' ]
+			],
+
+			// Modal system
 			's3-browser-modals'       => [
 				'file' => 'js/browser/modal.js',
-				'deps' => [ 'jquery', 's3-browser-core' ]
+				'deps' => [ 'jquery', 's3-browser-utils' ]
 			],
+
+			// Feature modules (can load in parallel)
 			's3-browser-files'        => [
 				'file' => 'js/browser/files.js',
-				'deps' => [ 'jquery', 's3-browser-core', 's3-browser-modals' ]
+				'deps' => [ 's3-browser-utils', 's3-browser-modals' ]
 			],
+
 			's3-browser-folders'      => [
 				'file' => 'js/browser/folders.js',
-				'deps' => [ 'jquery', 's3-browser-core', 's3-browser-modals' ]
+				'deps' => [ 's3-browser-utils', 's3-browser-modals' ]
 			],
+
+			's3-browser-buckets'      => [
+				'file' => 'js/browser/buckets.js',
+				'deps' => [ 's3-browser-utils', 's3-browser-modals' ]
+			],
+
 			's3-browser-integrations' => [
 				'file' => 'js/browser/integrations.js',
-				'deps' => [ 'jquery', 's3-browser-core' ]
+				'deps' => [ 's3-browser-utils' ]
 			],
-			's3-browser-cors'         => [
-				'file' => 'js/browser/buckets.js',
-				'deps' => [ 'jquery', 's3-browser-core', 's3-browser-modals' ]
-			],
-			's3-upload-script'        => [
+
+			// Upload system (depends on modals for progress)
+			's3-browser-upload'       => [
 				'file' => 'js/browser/upload.js',
-				'deps' => [ 'jquery', $config_handle, 's3-browser-core' ]
+				'deps' => [ 's3-browser-utils', 's3-browser-modals' ]
 			]
 		];
 
