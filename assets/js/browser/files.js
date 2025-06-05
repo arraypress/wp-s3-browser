@@ -1,101 +1,70 @@
 /**
- * S3 Browser Files - Lightweight file operations
- * Handles file operations with improved UX and error handling
+ * S3 Browser Files - File operations (rename, delete, copy link, details)
+ * Handles all file-specific operations with simplified modal system
  */
 (function ($) {
     'use strict';
 
-    // Files namespace
-    window.S3Files = {
-
-        // ===========================================
-        // FILE DELETION
-        // ===========================================
+    // Extend the main S3Browser object with file operation methods
+    $.extend(window.S3Browser, {
 
         /**
-         * Delete file with confirmation and smooth UI feedback
+         * Delete a file from S3
          */
         deleteFile: function ($button) {
-            const filename = $button.data('filename');
-            const confirmMessage = s3BrowserConfig.i18n.files.confirmDelete
+            var self = this;
+            var filename = $button.data('filename');
+            var confirmMessage = s3BrowserConfig.i18n.files.confirmDelete
                 .replace('{filename}', filename)
                 .replace(/\\n/g, '\n');
 
-            S3M.confirm(
-                'Delete File',
-                confirmMessage,
-                () => this.performDelete($button)
-            );
-        },
+            if (!confirm(confirmMessage)) return;
 
-        /**
-         * Perform the actual file deletion
-         */
-        performDelete: function ($button) {
-            const $icon = $button.find('.dashicons');
-            const $row = $button.closest('tr');
-
-            // Visual feedback
+            var $icon = $button.find('.dashicons');
             $icon.addClass('spin');
             $button.prop('disabled', true);
-            $row.addClass('deleting');
 
-            S3.ajax('s3_delete_object_', {
+            this.makeAjaxRequest('s3_delete_object_', {
                 bucket: $button.data('bucket'),
                 key: $button.data('key')
             }, {
-                success: (response) => {
-                    S3.notify(response.data.message || s3BrowserConfig.i18n.files.deleteSuccess, 'success');
+                success: function (response) {
+                    self.showNotification(response.data.message || s3BrowserConfig.i18n.files.deleteSuccess, 'success');
 
-                    // Smooth row removal
-                    $row.fadeOut(400, function() {
-                        $(this).remove();
-                        S3Browser.refreshSearch?.();
+                    // Fade out the deleted row, then reload the page
+                    $button.closest('tr').fadeOut(300, function () {
+                        setTimeout(function () {
+                            window.location.reload();
+                        }, 500);
                     });
                 },
-                error: (message) => {
-                    S3.notify(message, 'error');
+                error: function (message) {
+                    self.showNotification(message, 'error');
                     $icon.removeClass('spin');
                     $button.prop('disabled', false);
-                    $row.removeClass('deleting');
                 }
             });
         },
 
-        // ===========================================
-        // FILE DETAILS
-        // ===========================================
-
         /**
-         * Open file details modal with enhanced information
+         * Open file details modal
          */
         openDetailsModal: function ($trigger) {
-            const fileData = this.extractFileData($trigger);
-            if (!fileData) {
-                S3.notify('Could not find file data', 'error');
+            var key = $trigger.data('key');
+            var $row = $trigger.closest('tr');
+
+            if (!$row.length) {
+                $row = $('.wp-list-table tr').find('[data-key="' + key + '"]').closest('tr');
+            }
+
+            if (!$row.length) {
+                this.showNotification('Could not find file data', 'error');
                 return;
             }
 
-            this.showDetailsModal(fileData);
-        },
-
-        /**
-         * Extract file data from DOM elements
-         */
-        extractFileData: function ($trigger) {
-            const key = $trigger.data('key');
-            let $row = $trigger.closest('tr');
-
-            // Fallback to find row by key
-            if (!$row.length) {
-                $row = $('.wp-list-table tr').find(`[data-key="${key}"]`).closest('tr');
-            }
-
-            if (!$row.length) return null;
-
-            const $fileElement = $row.find('[data-key]');
-
-            return {
+            // Extract file data from row data attributes
+            var $fileElement = $row.find('[data-key]');
+            var fileData = {
                 filename: $fileElement.data('filename'),
                 key: $fileElement.data('key'),
                 sizeBytes: $fileElement.data('size-bytes'),
@@ -110,88 +79,55 @@
                 category: $fileElement.data('category'),
                 partCount: $fileElement.data('part-count') || null
             };
+
+            this.showDetailsModal(fileData);
         },
 
         /**
-         * Show enhanced file details modal
+         * Show file details modal
          */
         showDetailsModal: function (fileData) {
-            const checksumInfo = this.formatChecksumInfo(fileData);
-            const content = this.buildDetailsContent(fileData, checksumInfo);
+            var self = this;
+            var checksumInfo = this.formatChecksumInfo(fileData);
+            var detailsHtml = this.buildDetailsHtml(fileData, checksumInfo);
 
-            const buttons = [
+            this.showModal('s3DetailsModal', s3BrowserConfig.i18n.fileDetails.title, detailsHtml, [
                 {
                     text: s3BrowserConfig.i18n.ui.cancel,
                     action: 'close',
                     classes: 'button-secondary',
-                    callback: () => S3M.hide('s3DetailsModal')
+                    callback: function () {
+                        self.hideModal('s3DetailsModal');
+                    }
                 },
                 {
                     text: s3BrowserConfig.i18n.copyLink.copyLink,
                     action: 'copy_link',
                     classes: 'button-primary',
-                    callback: () => {
-                        S3M.hide('s3DetailsModal');
-                        setTimeout(() => this.openCopyLinkModal({ data: () => fileData }), 200);
+                    callback: function () {
+                        self.hideModal('s3DetailsModal');
+                        setTimeout(function () {
+                            self.openCopyLinkModal({
+                                data: function (key) {
+                                    var values = {
+                                        filename: fileData.filename,
+                                        bucket: S3BrowserGlobalConfig.defaultBucket,
+                                        key: fileData.key
+                                    };
+                                    return values[key];
+                                }
+                            });
+                        }, 100);
                     }
                 }
-            ];
-
-            S3M.show('s3DetailsModal', s3BrowserConfig.i18n.fileDetails.title, content, buttons);
-        },
-
-        /**
-         * Build comprehensive details content
-         */
-        buildDetailsContent: function (fileData, checksumInfo) {
-            const details = s3BrowserConfig.i18n.fileDetails;
-
-            return `
-                <div class="s3-details-content">
-                    <div class="s3-details-section">
-                        <h4>${details.basicInfo}</h4>
-                        <table class="s3-details-table">
-                            <tr><td><strong>${details.filename}</strong></td><td>${S3.escapeHtml(fileData.filename)}</td></tr>
-                            <tr><td><strong>${details.objectKey}</strong></td><td><code>${S3.escapeHtml(fileData.key)}</code></td></tr>
-                            <tr><td><strong>${details.size}</strong></td><td>${fileData.sizeFormatted} (${fileData.sizeBytes.toLocaleString()} ${details.bytes})</td></tr>
-                            <tr><td><strong>${details.lastModified}</strong></td><td>${fileData.modifiedFormatted}</td></tr>
-                            <tr><td><strong>${details.mimeType}</strong></td><td>${S3.escapeHtml(fileData.mimeType)}</td></tr>
-                            <tr><td><strong>${details.category}</strong></td><td>${S3.escapeHtml(fileData.category)}</td></tr>
-                        </table>
-                    </div>
-                    
-                    <div class="s3-details-section">
-                        <h4>${details.storageInfo}</h4>
-                        <table class="s3-details-table">
-                            <tr><td><strong>${details.storageClass}</strong></td><td>${S3.escapeHtml(fileData.storageClass)}</td></tr>
-                            <tr><td><strong>${details.etag}</strong></td><td><code>${S3.escapeHtml(fileData.etag)}</code></td></tr>
-                            <tr>
-                                <td><strong>${details.uploadType}</strong></td>
-                                <td>${fileData.isMultipart ?
-                `${details.multipart}${fileData.partCount ? ` (${fileData.partCount} ${details.parts})` : ''}` :
-                details.singlePart
-            }</td>
-                            </tr>
-                        </table>
-                    </div>
-                    
-                    <div class="s3-details-section">
-                        <h4>${details.checksumInfo}</h4>
-                        <table class="s3-details-table">
-                            <tr><td><strong>${details.checksumType}</strong></td><td><span class="${checksumInfo.class}">${checksumInfo.type}</span></td></tr>
-                            <tr><td><strong>${details.checksumValue}</strong></td><td><code class="${checksumInfo.class}">${checksumInfo.display}</code></td></tr>
-                            ${checksumInfo.note ? `<tr><td colspan="2"><small class="description">${checksumInfo.note}</small></td></tr>` : ''}
-                        </table>
-                    </div>
-                </div>
-            `;
+            ]);
         },
 
         /**
          * Format checksum information for display
          */
         formatChecksumInfo: function (fileData) {
-            const checksum = s3BrowserConfig.i18n.checksum;
+            var checksum = s3BrowserConfig.i18n.checksum;
 
             if (!fileData.md5) {
                 return {
@@ -202,8 +138,8 @@
             }
 
             if (fileData.isMultipart) {
-                const partText = fileData.partCount ?
-                    `${fileData.partCount} ${s3BrowserConfig.i18n.fileDetails.parts}` :
+                var partText = fileData.partCount ?
+                    fileData.partCount + ' ' + s3BrowserConfig.i18n.fileDetails.parts :
                     checksum.multipleParts;
 
                 return {
@@ -212,348 +148,376 @@
                     note: checksum.compositeNote.replace('{parts}', partText),
                     class: 's3-checksum-multipart'
                 };
+            } else {
+                return {
+                    display: fileData.md5,
+                    type: checksum.md5,
+                    note: checksum.directNote,
+                    class: 's3-checksum-single'
+                };
             }
-
-            return {
-                display: fileData.md5,
-                type: checksum.md5,
-                note: checksum.directNote,
-                class: 's3-checksum-single'
-            };
         },
 
-        // ===========================================
-        // COPY LINK FUNCTIONALITY
-        // ===========================================
+        /**
+         * Build details HTML content
+         */
+        buildDetailsHtml: function (fileData, checksumInfo) {
+            var details = s3BrowserConfig.i18n.fileDetails;
+
+            return [
+                '<div class="s3-details-content">',
+                '  <div class="s3-details-section">',
+                '    <h4>' + details.basicInfo + '</h4>',
+                '    <table class="s3-details-table">',
+                '      <tr><td><strong>' + details.filename + '</strong></td><td>' + $('<div>').text(fileData.filename).html() + '</td></tr>',
+                '      <tr><td><strong>' + details.objectKey + '</strong></td><td><code>' + $('<div>').text(fileData.key).html() + '</code></td></tr>',
+                '      <tr><td><strong>' + details.size + '</strong></td><td>' + fileData.sizeFormatted + ' (' + fileData.sizeBytes.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') + ' ' + details.bytes + ')</td></tr>',
+                '      <tr><td><strong>' + details.lastModified + '</strong></td><td>' + fileData.modifiedFormatted + '</td></tr>',
+                '      <tr><td><strong>' + details.mimeType + '</strong></td><td>' + $('<div>').text(fileData.mimeType).html() + '</td></tr>',
+                '      <tr><td><strong>' + details.category + '</strong></td><td>' + $('<div>').text(fileData.category).html() + '</td></tr>',
+                '    </table>',
+                '  </div>',
+                '  <div class="s3-details-section">',
+                '    <h4>' + details.storageInfo + '</h4>',
+                '    <table class="s3-details-table">',
+                '      <tr><td><strong>' + details.storageClass + '</strong></td><td>' + $('<div>').text(fileData.storageClass).html() + '</td></tr>',
+                '      <tr><td><strong>' + details.etag + '</strong></td><td><code>' + $('<div>').text(fileData.etag).html() + '</code></td></tr>',
+                fileData.isMultipart ?
+                    '      <tr><td><strong>' + details.uploadType + '</strong></td><td>' + details.multipart + (fileData.partCount ? ' (' + fileData.partCount + ' ' + details.parts + ')' : '') + '</td></tr>' :
+                    '      <tr><td><strong>' + details.uploadType + '</strong></td><td>' + details.singlePart + '</td></tr>',
+                '    </table>',
+                '  </div>',
+                '  <div class="s3-details-section">',
+                '    <h4>' + details.checksumInfo + '</h4>',
+                '    <table class="s3-details-table">',
+                '      <tr><td><strong>' + details.checksumType + '</strong></td><td><span class="' + checksumInfo.class + '">' + checksumInfo.type + '</span></td></tr>',
+                '      <tr><td><strong>' + details.checksumValue + '</strong></td><td><code class="' + checksumInfo.class + '">' + checksumInfo.display + '</code></td></tr>',
+                checksumInfo.note ?
+                    '      <tr><td colspan="2"><small class="description">' + checksumInfo.note + '</small></td></tr>' : '',
+                '    </table>',
+                '  </div>',
+                '</div>'
+            ].join('');
+        },
 
         /**
-         * Open copy link modal with improved UX
+         * Open copy link modal for a file
          */
         openCopyLinkModal: function ($button) {
-            const fileData = typeof $button.data === 'function' ? {
-                filename: $button.data('filename'),
-                bucket: $button.data('bucket'),
-                key: $button.data('key')
-            } : $button.data();
+            var self = this;
+            var filename = $button.data('filename');
+            var bucket = $button.data('bucket');
+            var key = $button.data('key');
 
-            const content = this.buildCopyLinkContent();
-            const buttons = this.buildCopyLinkButtons(fileData);
+            // Store context for later use
+            var context = {filename: filename, bucket: bucket, key: key};
 
-            const $modal = S3M.show('s3CopyLinkModal', s3BrowserConfig.i18n.copyLink.copyLink, content, buttons);
+            var content = [
+                '<div class="s3-modal-field">',
+                '<label for="s3ExpiresInput">' + s3BrowserConfig.i18n.copyLink.linkDuration + '</label>',
+                '<input type="number" id="s3ExpiresInput" min="1" max="10080" value="60">',
+                '<p class="description">' + s3BrowserConfig.i18n.copyLink.linkDurationHelp + '</p>',
+                '</div>',
+                '<div class="s3-modal-field">',
+                '<label for="s3GeneratedUrl">' + s3BrowserConfig.i18n.copyLink.generatedLink + '</label>',
+                '<textarea id="s3GeneratedUrl" rows="4" readonly placeholder="' + s3BrowserConfig.i18n.copyLink.generateLinkFirst + '"></textarea>',
+                '</div>'
+            ].join('');
 
-            // Setup real-time validation
-            this.setupCopyLinkValidation($modal);
-
-            // Focus and select duration input
-            setTimeout(() => $('#s3ExpiresInput').focus().select(), 250);
-        },
-
-        /**
-         * Build copy link modal content
-         */
-        buildCopyLinkContent: function () {
-            return `
-                <div class="s3-modal-field">
-                    <label for="s3ExpiresInput">${s3BrowserConfig.i18n.copyLink.linkDuration}</label>
-                    <input type="number" id="s3ExpiresInput" min="1" max="10080" value="60" step="1">
-                    <p class="description">${s3BrowserConfig.i18n.copyLink.linkDurationHelp}</p>
-                </div>
-                <div class="s3-modal-field">
-                    <label for="s3GeneratedUrl">${s3BrowserConfig.i18n.copyLink.generatedLink}</label>
-                    <textarea id="s3GeneratedUrl" rows="4" readonly placeholder="${s3BrowserConfig.i18n.copyLink.generateLinkFirst}"></textarea>
-                    <p class="description"></p>
-                </div>
-            `;
-        },
-
-        /**
-         * Build copy link modal buttons
-         */
-        buildCopyLinkButtons: function (fileData) {
-            return [
+            var $modal = this.showModal('s3CopyLinkModal', s3BrowserConfig.i18n.copyLink.copyLink, content, [
                 {
                     text: s3BrowserConfig.i18n.ui.cancel,
                     action: 'cancel',
-                    classes: 'button-secondary',
-                    callback: () => S3M.hide('s3CopyLinkModal')
+                    callback: function () {
+                        self.hideModal('s3CopyLinkModal');
+                    }
                 },
                 {
                     text: s3BrowserConfig.i18n.copyLink.generateLink,
                     action: 'generate',
                     classes: 'button-primary',
-                    callback: () => this.generatePresignedUrl(fileData)
+                    callback: function () {
+                        self.generatePresignedUrl(context);
+                    }
                 },
                 {
                     text: s3BrowserConfig.i18n.copyLink.copyToClipboard,
                     action: 'copy',
                     classes: 'button-secondary',
-                    disabled: true,
-                    callback: () => this.copyLinkToClipboard()
-                }
-            ];
-        },
-
-        /**
-         * Setup copy link validation and interactions
-         */
-        setupCopyLinkValidation: function ($modal) {
-            $modal.on('input', '#s3ExpiresInput', (e) => {
-                const value = parseInt(e.target.value, 10);
-                const $generateBtn = $modal.find('button[data-action="generate"]');
-
-                // Validate range
-                if (value < 1 || value > 10080 || isNaN(value)) {
-                    $generateBtn.prop('disabled', true);
-                } else {
-                    $generateBtn.prop('disabled', false);
-                }
-            });
-
-            // Enter key handling
-            $modal.on('keydown', '#s3ExpiresInput', (e) => {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    const $generateBtn = $modal.find('button[data-action="generate"]');
-                    if (!$generateBtn.prop('disabled')) {
-                        $generateBtn.trigger('click');
+                    callback: function () {
+                        self.copyLinkToClipboard();
                     }
                 }
-            });
-        },
+            ]);
 
-        /**
-         * Generate presigned URL with enhanced feedback
-         */
-        generatePresignedUrl: function (fileData) {
-            const expiresMinutes = parseInt($('#s3ExpiresInput').val(), 10) || 60;
+            // Initially disable copy button
+            $modal.find('button[data-action="copy"]').prop('disabled', true);
 
-            if (expiresMinutes < 1 || expiresMinutes > 10080) {
-                S3M.showError('s3CopyLinkModal', s3BrowserConfig.i18n.copyLink.invalidDuration);
-                return;
-            }
-
-            S3M.setLoading('s3CopyLinkModal', true, s3BrowserConfig.i18n.copyLink.generatingLink);
-
-            S3.ajax('s3_get_presigned_url_', {
-                bucket: fileData.bucket,
-                object_key: fileData.key,
-                expires_minutes: expiresMinutes
-            }, {
-                success: (response) => this.handleUrlGenerated(response, expiresMinutes),
-                error: (message) => S3M.showError('s3CopyLinkModal', message)
-            });
-        },
-
-        /**
-         * Handle successful URL generation
-         */
-        handleUrlGenerated: function (response, expiresMinutes) {
-            const data = response.data;
-            const $modal = $('#s3CopyLinkModal');
-
-            // Update URL field
-            $('#s3GeneratedUrl').val(data.url);
-
-            // Enable copy button
-            $modal.find('button[data-action="copy"]').prop('disabled', false);
-
-            // Update description with expiration info
-            const expiresAt = new Date(data.expires_at * 1000);
-            const durationText = S3.formatDuration(expiresMinutes);
-            const expirationText = s3BrowserConfig.i18n.linkExpiresAt
-                .replace('{time}', expiresAt.toLocaleString());
-
-            $('.s3-modal-field:last .description').html(
-                `<strong>${s3BrowserConfig.i18n.linkGenerated}</strong><br>
-                Duration: ${durationText}<br>
-                ${expirationText}`
-            );
-
-            S3M.setLoading('s3CopyLinkModal', false);
-            S3.notify(data.message || s3BrowserConfig.i18n.linkGeneratedSuccess, 'success');
-        },
-
-        /**
-         * Copy generated link to clipboard with feedback
-         */
-        copyLinkToClipboard: function () {
-            const url = $('#s3GeneratedUrl').val();
-            if (!url) return;
-
-            S3.copyToClipboard(url)
-                .then(() => {
-                    S3.notify(s3BrowserConfig.i18n.copyLink.linkCopied, 'success');
-                    S3M.hide('s3CopyLinkModal');
-                })
-                .catch(() => {
-                    S3.notify(s3BrowserConfig.i18n.copyLink.copyFailed, 'error');
-                });
-        },
-
-        // ===========================================
-        // FILE RENAMING
-        // ===========================================
-
-        /**
-         * Open rename modal with enhanced validation
-         */
-        openRenameModal: function ($button) {
-            const fileData = {
-                filename: $button.data('filename'),
-                bucket: $button.data('bucket'),
-                key: $button.data('key')
-            };
-
-            const content = this.buildRenameContent(fileData);
-            const buttons = this.buildRenameButtons(fileData);
-
-            const $modal = S3M.show('s3RenameModal', s3BrowserConfig.i18n.files.renameFile, content, buttons);
-
-            // Setup validation and interactions
-            this.setupRenameValidation($modal, fileData);
-
-            // Focus and select filename
-            setTimeout(() => {
-                const $input = $('#s3RenameInput');
-                $input.focus().select();
+            // Focus and select the expiry input
+            setTimeout(function () {
+                $('#s3ExpiresInput').focus().select();
             }, 250);
         },
 
         /**
-         * Build rename modal content
+         * Generate presigned URL via AJAX
          */
-        buildRenameContent: function (fileData) {
-            // Extract filename without extension for editing
-            const lastDot = fileData.filename.lastIndexOf('.');
-            const nameWithoutExt = lastDot > 0 ? fileData.filename.substring(0, lastDot) : fileData.filename;
-            const extension = lastDot > 0 ? fileData.filename.substring(lastDot) : '';
+        generatePresignedUrl: function (context) {
+            var self = this;
+            var expiresMinutes = parseInt($('#s3ExpiresInput').val(), 10) || 60;
 
-            return `
-                <div class="s3-modal-field">
-                    <label for="s3RenameInput">${s3BrowserConfig.i18n.files.filenameLabel}</label>
-                    <input type="text" id="s3RenameInput" maxlength="255" value="${S3.escapeHtml(nameWithoutExt)}">
-                    <p class="description">${s3BrowserConfig.i18n.files.filenameHelp}${extension ? ` Extension "${extension}" will be preserved.` : ''}</p>
-                </div>
-            `;
+            if (expiresMinutes < 1 || expiresMinutes > 10080) {
+                this.showModalError('s3CopyLinkModal', s3BrowserConfig.i18n.copyLink.invalidDuration);
+                return;
+            }
+
+            this.setModalLoading('s3CopyLinkModal', true, s3BrowserConfig.i18n.copyLink.generatingLink);
+
+            this.makeAjaxRequest('s3_get_presigned_url_', {
+                bucket: context.bucket,
+                object_key: context.key,
+                expires_minutes: expiresMinutes
+            }, {
+                success: function (response) {
+                    var url = response.data.url;
+                    var expiresAt = new Date(response.data.expires_at * 1000);
+
+                    $('#s3GeneratedUrl').val(url);
+                    $('#s3CopyLinkModal button[data-action="copy"]').prop('disabled', false);
+
+                    self.setModalLoading('s3CopyLinkModal', false);
+
+                    var expirationText = s3BrowserConfig.i18n.linkExpiresAt.replace('{time}', expiresAt.toLocaleString());
+                    $('#s3CopyLinkModal .description').last().html(
+                        '<strong>' + s3BrowserConfig.i18n.linkGenerated + '</strong><br>' + expirationText
+                    );
+
+                    self.showNotification(response.data.message || s3BrowserConfig.i18n.linkGeneratedSuccess, 'success');
+                },
+                error: function (message) {
+                    self.showModalError('s3CopyLinkModal', message);
+                }
+            });
         },
 
         /**
-         * Build rename modal buttons
+         * Copy generated link to clipboard
          */
-        buildRenameButtons: function (fileData) {
-            return [
+        copyLinkToClipboard: function () {
+            var url = $('#s3GeneratedUrl').val();
+            if (!url) return;
+
+            var self = this;
+
+            // Try modern clipboard API first
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(url).then(function () {
+                    self.showNotification(s3BrowserConfig.i18n.copyLink.linkCopied, 'success');
+                }).catch(function () {
+                    self.fallbackCopyToClipboard(url);
+                });
+            } else {
+                self.fallbackCopyToClipboard(url);
+            }
+        },
+
+        /**
+         * Fallback clipboard copy method
+         */
+        fallbackCopyToClipboard: function (text) {
+            var textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.top = '-999px';
+            textArea.style.left = '-999px';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+
+            try {
+                var successful = document.execCommand('copy');
+                this.showNotification(
+                    successful ? s3BrowserConfig.i18n.copyLink.linkCopied : s3BrowserConfig.i18n.copyLink.copyFailed,
+                    successful ? 'success' : 'error'
+                );
+            } catch (err) {
+                this.showNotification(s3BrowserConfig.i18n.copyLink.copyFailed, 'error');
+            }
+
+            document.body.removeChild(textArea);
+        },
+
+        /**
+         * Open rename modal for a file
+         */
+        openRenameModal: function ($button) {
+            var self = this;
+            var filename = $button.data('filename');
+            var bucket = $button.data('bucket');
+            var key = $button.data('key');
+
+            // Store context
+            var context = {filename: filename, bucket: bucket, key: key};
+
+            // Get filename without extension for editing
+            var lastDot = filename.lastIndexOf('.');
+            var nameWithoutExt = lastDot > 0 ? filename.substring(0, lastDot) : filename;
+
+            var content = [
+                '<div class="s3-modal-field">',
+                '<label for="s3RenameInput">' + s3BrowserConfig.i18n.files.filenameLabel + '</label>',
+                '<input type="text" id="s3RenameInput" maxlength="255" value="' + $('<div>').text(nameWithoutExt).html() + '">',
+                '<p class="description">' + s3BrowserConfig.i18n.files.filenameHelp + '</p>',
+                '</div>'
+            ].join('');
+
+            var $modal = this.showModal('s3RenameModal', s3BrowserConfig.i18n.files.renameFile, content, [
                 {
                     text: s3BrowserConfig.i18n.ui.cancel,
                     action: 'cancel',
-                    classes: 'button-secondary',
-                    callback: () => S3M.hide('s3RenameModal')
+                    callback: function () {
+                        self.hideModal('s3RenameModal');
+                    }
                 },
                 {
                     text: s3BrowserConfig.i18n.files.renameFile,
                     action: 'submit',
                     classes: 'button-primary',
-                    disabled: true,
-                    callback: () => this.submitRename(fileData)
+                    callback: function () {
+                        self.submitRenameForm(context);
+                    }
                 }
-            ];
-        },
+            ]);
 
-        /**
-         * Setup rename validation with real-time feedback
-         */
-        setupRenameValidation: function ($modal, fileData) {
-            $modal.on('input', '#s3RenameInput', (e) => {
-                const newName = e.target.value.trim();
-                const $submitBtn = $modal.find('button[data-action="submit"]');
+            // Initially disable submit button
+            $modal.find('button[data-action="submit"]').prop('disabled', true);
 
-                S3M.clearMessages('s3RenameModal');
+            // Bind real-time validation
+            $modal.on('keyup', '#s3RenameInput', function (e) {
+                var newName = e.target.value.trim();
+                var $submit = $modal.find('button[data-action="submit"]');
+                var $error = $modal.find('.s3-modal-error');
+
+                $error.hide();
 
                 if (!newName) {
-                    $submitBtn.prop('disabled', true);
+                    $submit.prop('disabled', true);
                     return;
                 }
 
-                // Build full filename with extension
-                const lastDot = fileData.filename.lastIndexOf('.');
-                const originalExt = lastDot > 0 ? fileData.filename.substring(lastDot) : '';
-                const fullNewName = newName + originalExt;
+                // Get original extension and rebuild filename
+                var lastDot = context.filename.lastIndexOf('.');
+                var originalExt = lastDot > 0 ? context.filename.substring(lastDot + 1) : '';
+                var fullNewName = newName + (originalExt ? '.' + originalExt : '');
 
-                // Validate
-                const validation = S3.validateFilename(newName, 'rename');
+                var validation = self.validateFilename(newName, fullNewName, context.filename);
 
                 if (!validation.valid) {
-                    S3M.showError('s3RenameModal', validation.message);
-                    $submitBtn.prop('disabled', true);
-                } else if (fullNewName === fileData.filename) {
-                    S3M.showError('s3RenameModal', s3BrowserConfig.i18n.files.filenameSame);
-                    $submitBtn.prop('disabled', true);
+                    $error.text(validation.message).show();
+                    $submit.prop('disabled', true);
                 } else {
-                    $submitBtn.prop('disabled', false);
+                    $submit.prop('disabled', false);
                 }
-            });
-
-            // Enter key handling
-            $modal.on('keydown', '#s3RenameInput', (e) => {
+            }).on('keydown', '#s3RenameInput', function (e) {
                 if (e.key === 'Enter') {
                     e.preventDefault();
-                    const $submitBtn = $modal.find('button[data-action="submit"]');
-                    if (!$submitBtn.prop('disabled')) {
-                        $submitBtn.trigger('click');
+                    var $submit = $modal.find('button[data-action="submit"]');
+                    if (!$submit.prop('disabled')) {
+                        self.submitRenameForm(context);
                     }
                 }
             });
+
+            // Focus and select the input
+            setTimeout(function () {
+                $('#s3RenameInput').focus().select();
+            }, 250);
         },
 
         /**
-         * Submit rename operation
+         * Validate filename for renaming
          */
-        submitRename: function (fileData) {
-            const newNameWithoutExt = $('#s3RenameInput').val().trim();
+        validateFilename: function (nameWithoutExt, fullName, originalFilename) {
+            var files = s3BrowserConfig.i18n.files;
 
-            // Rebuild full filename
-            const lastDot = fileData.filename.lastIndexOf('.');
-            const originalExt = lastDot > 0 ? fileData.filename.substring(lastDot) : '';
-            const fullNewName = newNameWithoutExt + originalExt;
+            if (nameWithoutExt.length === 0) {
+                return {valid: false, message: files.filenameRequired};
+            }
 
-            // Final validation
-            const validation = S3.validateFilename(newNameWithoutExt, 'rename');
+            if (fullName.length > 255) {
+                return {valid: false, message: files.filenameTooLong};
+            }
+
+            // Check for invalid characters
+            if (/[<>:"|?*\/\\]/.test(nameWithoutExt)) {
+                return {valid: false, message: files.filenameInvalid};
+            }
+
+            // Check if starts with problematic characters
+            if (/^[.\-_]/.test(nameWithoutExt)) {
+                return {valid: false, message: files.filenameInvalid};
+            }
+
+            // Check for relative path indicators
+            if (nameWithoutExt.includes('..')) {
+                return {valid: false, message: files.filenameInvalid};
+            }
+
+            // Check if the new name is the same as current
+            if (fullName === originalFilename) {
+                return {valid: false, message: files.filenameSame};
+            }
+
+            return {valid: true, message: ''};
+        },
+
+        /**
+         * Submit rename form
+         */
+        submitRenameForm: function (context) {
+            var newNameWithoutExt = $('#s3RenameInput').val().trim();
+
+            // Get original extension and rebuild filename
+            var lastDot = context.filename.lastIndexOf('.');
+            var originalExt = lastDot > 0 ? context.filename.substring(lastDot + 1) : '';
+            var fullNewName = newNameWithoutExt + (originalExt ? '.' + originalExt : '');
+
+            var validation = this.validateFilename(newNameWithoutExt, fullNewName, context.filename);
             if (!validation.valid) {
-                S3M.showError('s3RenameModal', validation.message);
+                this.showModalError('s3RenameModal', validation.message);
                 return;
             }
 
-            if (fullNewName === fileData.filename) {
-                S3M.showError('s3RenameModal', s3BrowserConfig.i18n.files.filenameSame);
-                return;
-            }
-
-            this.performRename(fileData, fullNewName);
+            this.renameFile(context, fullNewName);
         },
 
         /**
-         * Perform the actual rename operation
+         * Perform file rename via AJAX
          */
-        performRename: function (fileData, newFilename) {
-            S3M.setLoading('s3RenameModal', true, s3BrowserConfig.i18n.files.renamingFile);
+        renameFile: function (context, newFilename) {
+            var self = this;
 
-            S3.ajax('s3_rename_object_', {
-                bucket: fileData.bucket,
-                current_key: fileData.key,
+            this.setModalLoading('s3RenameModal', true, s3BrowserConfig.i18n.files.renamingFile);
+
+            this.makeAjaxRequest('s3_rename_object_', {
+                bucket: context.bucket,
+                current_key: context.key,
                 new_filename: newFilename
             }, {
-                success: (response) => {
-                    S3.notify(response.data.message || s3BrowserConfig.i18n.files.renameSuccess, 'success');
-                    S3M.hide('s3RenameModal');
+                success: function (response) {
+                    self.showNotification(response.data.message || s3BrowserConfig.i18n.files.renameSuccess, 'success');
+                    self.hideModal('s3RenameModal');
 
-                    // Refresh page after delay
-                    setTimeout(() => window.location.reload(), 1500);
+                    setTimeout(function () {
+                        window.location.reload();
+                    }, 1500);
                 },
-                error: (message) => S3M.showError('s3RenameModal', message)
+                error: function (message) {
+                    self.showModalError('s3RenameModal', message);
+                }
             });
         }
-    };
 
-    // Global shorthand
-    window.S3F = window.S3Files;
+    });
 
 })(jQuery);

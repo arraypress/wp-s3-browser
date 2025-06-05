@@ -1,430 +1,226 @@
 /**
- * S3 Browser Folders - Lightweight folder operations
- * Handles folder creation, deletion, and navigation with enhanced UX
+ * S3 Browser Folders - Folder operations (create, delete, navigate)
+ * Handles folder creation, deletion, and navigation with simplified modals
  */
 (function ($) {
     'use strict';
 
-    // Folders namespace
-    window.S3Folders = {
-
-        // ===========================================
-        // FOLDER NAVIGATION
-        // ===========================================
+    // Extend the main S3Browser object with folder methods
+    $.extend(window.S3Browser, {
 
         /**
-         * Handle folder opening with enhanced feedback
+         * Handle folder open button click
          */
         handleFolderOpen: function ($button) {
-            const prefix = $button.data('prefix');
-            const bucket = $button.data('bucket');
+            var prefix = $button.data('prefix');
+            var bucket = $button.data('bucket');
 
-            if (!bucket || !prefix) {
-                S3.notify('Invalid folder data', 'error');
-                return;
-            }
+            // Add loading state to the button
+            var originalHtml = $button.html();
+            $button.html('<span class="dashicons dashicons-update s3-spin"></span> ' + s3BrowserConfig.i18n.folders.opening);
+            $button.prop('disabled', true);
 
-            // Visual feedback during navigation
-            const originalHtml = $button.html();
-            $button.html('<span class="dashicons dashicons-update s3-spin"></span> ' + s3BrowserConfig.i18n.folders.opening)
-                .prop('disabled', true)
-                .addClass('navigating');
-
+            // Navigate to the folder
             try {
-                S3.navigate({ bucket, prefix });
+                this.navigateTo({
+                    bucket: bucket,
+                    prefix: prefix
+                });
             } catch (error) {
-                // Reset button state on error
-                $button.html(originalHtml)
-                    .prop('disabled', false)
-                    .removeClass('navigating');
-                S3.notify(s3BrowserConfig.i18n.folders.folderOpenError, 'error');
+                // Reset button state if navigation fails
+                $button.html(originalHtml);
+                $button.prop('disabled', false);
+                this.showNotification(s3BrowserConfig.i18n.folders.folderOpenError, 'error');
             }
         },
 
-        // ===========================================
-        // FOLDER DELETION
-        // ===========================================
-
         /**
-         * Confirm folder deletion with detailed warning
+         * Confirm folder deletion
          */
         deleteFolderConfirm: function ($button) {
-            const folderName = $button.data('folder-name');
-            const folderPath = $button.data('prefix');
+            var folderName = $button.data('folder-name');
+            var confirmMessage = s3BrowserConfig.i18n.folders.confirmDeleteFolder
+                .replace('{foldername}', folderName)
+                .replace(/\\n/g, '\n');
 
-            if (!folderName) {
-                S3.notify('Invalid folder data', 'error');
-                return;
-            }
+            if (!confirm(confirmMessage)) return;
 
-            // Enhanced confirmation with folder info
-            const confirmContent = `
-                <div class="s3-folder-delete-confirm">
-                    <p><strong>You are about to delete:</strong></p>
-                    <div class="folder-info">
-                        <span class="dashicons dashicons-category"></span>
-                        <code>${S3.escapeHtml(folderName)}</code>
-                    </div>
-                    <div class="warning-box">
-                        <p><strong>⚠️ Warning:</strong></p>
-                        <ul>
-                            <li>This will delete the folder and <strong>all its contents</strong></li>
-                            <li>All files and subfolders will be permanently removed</li>
-                            <li>This action <strong>cannot be undone</strong></li>
-                        </ul>
-                    </div>
-                    <p>Type <strong>"${folderName}"</strong> to confirm deletion:</p>
-                    <input type="text" id="confirmFolderName" class="confirm-input" placeholder="Type folder name here">
-                </div>
-            `;
-
-            const modal = S3M.show(
-                'confirmDeleteFolder',
-                `Delete Folder: ${folderName}`,
-                confirmContent,
-                [
-                    {
-                        text: s3BrowserConfig.i18n.ui.cancel,
-                        action: 'cancel',
-                        classes: 'button-secondary',
-                        callback: () => S3M.hide('confirmDeleteFolder')
-                    },
-                    {
-                        text: 'Delete Folder',
-                        action: 'delete',
-                        classes: 'button-primary button-destructive',
-                        disabled: true,
-                        callback: () => this.performFolderDeletion($button, folderName, folderPath)
-                    }
-                ],
-                { closeOnOverlay: false }
-            );
-
-            // Setup confirmation validation
-            this.setupDeleteConfirmation(modal, folderName);
+            this.deleteFolder($button);
         },
 
         /**
-         * Setup deletion confirmation validation
+         * Delete a folder from S3 with progress indicator
          */
-        setupDeleteConfirmation: function (modal, folderName) {
-            modal.on('input', '#confirmFolderName', (e) => {
-                const $deleteBtn = modal.find('button[data-action="delete"]');
-                const isMatch = e.target.value.trim() === folderName;
-                $deleteBtn.prop('disabled', !isMatch);
-            });
+        deleteFolder: function ($button) {
+            var self = this;
+            var folderName = $button.data('folder-name');
+            var bucket = $button.data('bucket');
+            var folderPath = $button.data('prefix');
 
-            modal.on('keydown', '#confirmFolderName', (e) => {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    const $deleteBtn = modal.find('button[data-action="delete"]');
-                    if (!$deleteBtn.prop('disabled')) {
-                        $deleteBtn.trigger('click');
-                    }
-                }
-            });
+            // Show progress overlay with translatable message
+            var progressMessage = s3BrowserConfig.i18n.folders.deletingFolderProgress.replace('{name}', folderName);
+            this.showProgressOverlay(progressMessage);
 
-            // Focus the confirmation input
-            setTimeout(() => modal.find('#confirmFolderName').focus(), 300);
-        },
-
-        /**
-         * Perform folder deletion with progress tracking
-         */
-        performFolderDeletion: function ($button, folderName, folderPath) {
-            const bucket = $button.data('bucket');
-
-            S3M.hide('confirmDeleteFolder');
-
-            // Show progress modal
-            const progressModal = S3M.progress(
-                'Deleting Folder',
-                s3BrowserConfig.i18n.folders.deletingFolderProgress.replace('{name}', folderName)
-            );
-
-            S3.ajax('s3_delete_folder_', {
+            this.makeAjaxRequest('s3_delete_folder_', {
                 bucket: bucket,
                 folder_path: folderPath,
                 recursive: true
             }, {
-                success: (response) => {
-                    progressModal.update(s3BrowserConfig.i18n.folders.folderDeletedSuccess);
+                success: function (response) {
+                    self.updateProgressOverlay(s3BrowserConfig.i18n.folders.folderDeletedSuccess);
 
-                    setTimeout(() => {
-                        progressModal.close();
-                        S3.notify(
+                    setTimeout(function () {
+                        self.hideProgressOverlay();
+                        self.showNotification(
                             response.data.message || s3BrowserConfig.i18n.folders.deleteFolderSuccess,
                             'success'
                         );
 
-                        // Smooth page refresh
-                        setTimeout(() => window.location.reload(), 1500);
-                    }, 1000);
+                        setTimeout(function () {
+                            window.location.reload();
+                        }, 1500);
+                    }, 500);
                 },
-                error: (message) => {
-                    progressModal.close();
-                    S3.notify(message, 'error');
+                error: function (message) {
+                    self.hideProgressOverlay();
+                    self.showNotification(message, 'error');
                 }
             });
         },
 
-        // ===========================================
-        // FOLDER CREATION
-        // ===========================================
-
         /**
-         * Open enhanced folder creation modal
+         * Open folder creation modal
          */
-        openCreateFolderModal: function (bucket, prefix = '') {
-            if (!bucket) {
-                S3.notify('Bucket information is required', 'error');
-                return;
-            }
+        openCreateFolderModal: function (bucket, prefix) {
+            var self = this;
 
-            const content = this.buildCreateFolderContent(prefix);
-            const buttons = this.buildCreateFolderButtons(bucket, prefix);
+            var content = [
+                '<div class="s3-modal-field">',
+                '<label for="s3FolderNameInput">' + s3BrowserConfig.i18n.folders.folderName + '</label>',
+                '<input type="text" id="s3FolderNameInput" maxlength="63" placeholder="' + s3BrowserConfig.i18n.folders.folderNamePlaceholder + '">',
+                '<p class="description">' + s3BrowserConfig.i18n.folders.folderNameHelp + '</p>',
+                '</div>'
+            ].join('');
 
-            const modal = S3M.show(
-                's3FolderModal',
-                s3BrowserConfig.i18n.folders.newFolder,
-                content,
-                buttons
-            );
-
-            // Setup validation and interactions
-            this.setupCreateFolderValidation(modal, bucket, prefix);
-
-            // Focus the input
-            setTimeout(() => modal.find('#s3FolderNameInput').focus(), 250);
-        },
-
-        /**
-         * Build create folder modal content
-         */
-        buildCreateFolderContent: function (prefix) {
-            const currentPath = prefix ? `Current location: ${prefix}` : 'Creating in root directory';
-
-            return `
-                <div class="s3-folder-create-content">
-                    <div class="current-location">
-                        <small>${currentPath}</small>
-                    </div>
-                    
-                    <div class="s3-modal-field">
-                        <label for="s3FolderNameInput">${s3BrowserConfig.i18n.folders.folderName}</label>
-                        <input type="text" id="s3FolderNameInput" maxlength="63" 
-                               placeholder="${s3BrowserConfig.i18n.folders.folderNamePlaceholder}"
-                               autocomplete="off">
-                        <p class="description">${s3BrowserConfig.i18n.folders.folderNameHelp}</p>
-                    </div>
-
-                    <div class="folder-preview" style="display: none;">
-                        <p><strong>Folder will be created as:</strong></p>
-                        <div class="preview-path">
-                            <span class="dashicons dashicons-category"></span>
-                            <code id="folderPreviewPath"></code>
-                        </div>
-                    </div>
-                </div>
-            `;
-        },
-
-        /**
-         * Build create folder modal buttons
-         */
-        buildCreateFolderButtons: function (bucket, prefix) {
-            return [
+            var $modal = this.showModal('s3FolderModal', s3BrowserConfig.i18n.folders.newFolder, content, [
                 {
                     text: s3BrowserConfig.i18n.ui.cancel,
                     action: 'cancel',
-                    classes: 'button-secondary',
-                    callback: () => S3M.hide('s3FolderModal')
+                    callback: function () {
+                        self.hideModal('s3FolderModal');
+                    }
                 },
                 {
                     text: s3BrowserConfig.i18n.folders.createFolder,
                     action: 'submit',
                     classes: 'button-primary',
-                    disabled: true,
-                    callback: () => this.submitFolderCreation(bucket, prefix)
-                }
-            ];
-        },
-
-        /**
-         * Setup create folder validation with real-time feedback
-         */
-        setupCreateFolderValidation: function (modal, bucket, prefix) {
-            const $input = modal.find('#s3FolderNameInput');
-            const $submitBtn = modal.find('button[data-action="submit"]');
-            const $preview = modal.find('.folder-preview');
-            const $previewPath = modal.find('#folderPreviewPath');
-
-            const validateInput = S3.debounce((folderName) => {
-                S3M.clearMessages('s3FolderModal');
-
-                if (!folderName) {
-                    $submitBtn.prop('disabled', true);
-                    $preview.hide();
-                    return;
-                }
-
-                // Validate folder name
-                const validation = S3.validateFolderName(folderName);
-
-                if (!validation.valid) {
-                    S3M.showError('s3FolderModal', validation.message);
-                    $submitBtn.prop('disabled', true);
-                    $preview.hide();
-                } else {
-                    // Show preview of final path
-                    const fullPath = prefix ? `${prefix}${folderName}/` : `${folderName}/`;
-                    $previewPath.text(fullPath);
-                    $preview.show();
-                    $submitBtn.prop('disabled', false);
-                }
-            }, 300);
-
-            // Real-time validation
-            $input.on('input', (e) => {
-                const folderName = e.target.value.trim();
-                validateInput(folderName);
-            });
-
-            // Enter key handling
-            $input.on('keydown', (e) => {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    if (!$submitBtn.prop('disabled')) {
-                        $submitBtn.trigger('click');
+                    callback: function () {
+                        self.submitFolderForm(bucket, prefix || '');
                     }
                 }
-            });
+            ]);
 
-            // Auto-format folder name (replace spaces with dashes if desired)
-            $input.on('blur', (e) => {
-                const value = e.target.value.trim();
-                if (value && value !== e.target.value) {
-                    e.target.value = value;
-                    validateInput(value);
+            // Initially disable submit button
+            $modal.find('button[data-action="submit"]').prop('disabled', true);
+
+            // Bind validation
+            $modal.on('keyup', '#s3FolderNameInput', function (e) {
+                var folderName = e.target.value.trim();
+                var validation = self.validateFolderName(folderName);
+                var $submit = $modal.find('button[data-action="submit"]');
+                var $error = $modal.find('.s3-modal-error');
+
+                $error.hide();
+
+                if (!validation.valid && folderName.length > 0) {
+                    $error.text(validation.message).show();
+                }
+
+                $submit.prop('disabled', !validation.valid);
+            }).on('keydown', '#s3FolderNameInput', function (e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    self.submitFolderForm(bucket, prefix || '');
                 }
             });
+
+            // Focus the input
+            setTimeout(function () {
+                $('#s3FolderNameInput').focus();
+            }, 250);
         },
 
         /**
-         * Submit folder creation
+         * Validate folder name
          */
-        submitFolderCreation: function (bucket, prefix) {
-            const folderName = $('#s3FolderNameInput').val().trim();
+        validateFolderName: function (folderName) {
+            var i18n = s3BrowserConfig.i18n;
 
-            // Final validation
-            const validation = S3.validateFolderName(folderName);
+            if (folderName.length === 0) {
+                return {valid: false, message: i18n.folders.folderNameRequired};
+            }
+            if (folderName.length > 63) {
+                return {valid: false, message: i18n.folders.folderNameTooLong};
+            }
+            // Allow spaces in folder names - updated regex to include space
+            if (!/^[a-zA-Z0-9 ._-]+$/.test(folderName)) {
+                return {valid: false, message: i18n.folders.folderNameInvalidChars};
+            }
+            if (['.', '-'].includes(folderName[0]) || ['.', '-'].includes(folderName[folderName.length - 1])) {
+                return {valid: false, message: i18n.folders.folderNameStartEnd};
+            }
+            if (folderName.includes('..')) {
+                return {valid: false, message: i18n.folders.folderNameConsecutiveDots};
+            }
+
+            return {valid: true, message: ''};
+        },
+
+        /**
+         * Submit folder creation form
+         */
+        submitFolderForm: function (bucket, prefix) {
+            var folderName = $('#s3FolderNameInput').val().trim();
+            var validation = this.validateFolderName(folderName);
+
             if (!validation.valid) {
-                S3M.showError('s3FolderModal', validation.message);
+                this.showModalError('s3FolderModal', validation.message);
                 return;
             }
 
-            this.performFolderCreation(bucket, prefix, folderName);
+            this.createFolder(bucket, prefix, folderName);
         },
 
         /**
-         * Perform folder creation with progress feedback
+         * Create folder via AJAX
          */
-        performFolderCreation: function (bucket, prefix, folderName) {
-            S3M.setLoading('s3FolderModal', true, s3BrowserConfig.i18n.folders.creatingFolder);
+        createFolder: function (bucket, prefix, folderName) {
+            var self = this;
 
-            S3.ajax('s3_create_folder_', {
+            this.setModalLoading('s3FolderModal', true, s3BrowserConfig.i18n.folders.creatingFolder);
+
+            this.makeAjaxRequest('s3_create_folder_', {
                 bucket: bucket,
                 prefix: prefix,
                 folder_name: folderName
             }, {
-                success: (response) => {
-                    const successMessage = response.data.message ||
+                success: function (response) {
+                    var successMessage = response.data.message ||
                         s3BrowserConfig.i18n.folders.createFolderSuccess.replace('{name}', folderName);
 
-                    S3.notify(successMessage, 'success');
-                    S3M.hide('s3FolderModal');
+                    self.showNotification(successMessage, 'success');
+                    self.hideModal('s3FolderModal');
 
-                    // Navigate to new folder or refresh
-                    setTimeout(() => {
-                        if (response.data.folder_key) {
-                            // Navigate to the new folder
-                            S3.navigate({
-                                bucket: bucket,
-                                prefix: response.data.folder_key
-                            });
-                        } else {
-                            // Fallback to page refresh
-                            window.location.reload();
-                        }
+                    setTimeout(function () {
+                        window.location.reload();
                     }, 1500);
                 },
-                error: (message) => S3M.showError('s3FolderModal', message)
+                error: function (message) {
+                    self.showModalError('s3FolderModal', message);
+                }
             });
-        },
-
-        // ===========================================
-        // UTILITY FUNCTIONS
-        // ===========================================
-
-        /**
-         * Get folder hierarchy for breadcrumbs
-         */
-        getFolderHierarchy: function (prefix) {
-            if (!prefix || prefix === '/') return [];
-
-            const parts = prefix.split('/').filter(part => part.length > 0);
-            const hierarchy = [];
-            let currentPath = '';
-
-            parts.forEach((part, index) => {
-                currentPath += part + '/';
-                hierarchy.push({
-                    name: part,
-                    path: currentPath,
-                    isLast: index === parts.length - 1
-                });
-            });
-
-            return hierarchy;
-        },
-
-        /**
-         * Format folder size for display
-         */
-        formatFolderInfo: function (itemCount, totalSize) {
-            const items = itemCount === 1 ? 'item' : 'items';
-            const size = totalSize ? ` (${S3.formatSize(totalSize)})` : '';
-            return `${itemCount} ${items}${size}`;
-        },
-
-        /**
-         * Check if folder name conflicts with existing items
-         */
-        checkFolderNameConflict: function (folderName, existingItems = []) {
-            const normalizedName = folderName.toLowerCase();
-
-            return existingItems.some(item => {
-                const itemName = item.name || item.filename || item.key;
-                return itemName && itemName.toLowerCase() === normalizedName;
-            });
-        },
-
-        /**
-         * Generate folder suggestions based on context
-         */
-        generateFolderSuggestions: function (context = 'general') {
-            const suggestions = {
-                general: ['documents', 'images', 'downloads', 'uploads'],
-                media: ['photos', 'videos', 'audio', 'graphics'],
-                backup: ['daily', 'weekly', 'monthly', 'archive'],
-                project: ['assets', 'resources', 'output', 'temp']
-            };
-
-            return suggestions[context] || suggestions.general;
         }
-    };
 
-    // Global shorthand
-    window.S3Folder = window.S3Folders;
+    });
 
 })(jQuery);
