@@ -17,6 +17,51 @@
         },
 
         // ===========================================
+        // INITIALIZATION & EVENT BINDING
+        // ===========================================
+
+        /**
+         * Initialize buckets functionality
+         */
+        init: function () {
+            this.bindBucketEvents();
+        },
+
+        /**
+         * Bind bucket-related event handlers
+         */
+        bindBucketEvents: function () {
+            // Browse bucket actions (both button and row title)
+            S3.on('.browse-bucket-button, .bucket-name', 'click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const bucket = $(e.target).data('bucket');
+                if (bucket) {
+                    this.browseBucket(bucket);
+                }
+            });
+
+            // Bucket details action
+            S3.on('.s3-bucket-details', 'click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const $button = $(e.target);
+                const bucket = $button.data('bucket');
+                const provider = $button.data('provider');
+                if (bucket) {
+                    this.showBucketDetails(bucket, provider);
+                }
+            });
+
+            // Favorite toggle (delegate to integrations)
+            S3.on('.s3-favorite-bucket, .s3-favorite-star', 'click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.toggleFavoriteBucket($(e.target));
+            });
+        },
+
+        // ===========================================
         // BUCKET NAVIGATION & BROWSING
         // ===========================================
 
@@ -752,6 +797,11 @@
             }
         }
     };
+
+    // Initialize on document ready
+    $(document).ready(() => {
+        S3Buckets.init();
+    });
 
     // Global shorthand
     window.S3B = window.S3Buckets;

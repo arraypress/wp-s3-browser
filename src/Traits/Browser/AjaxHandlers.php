@@ -842,4 +842,52 @@ trait AjaxHandlers {
 		];
 	}
 
+	/**
+	 * Handle AJAX delete CORS configuration request
+	 *
+	 * Removes all CORS rules from a bucket, disabling cross-origin access.
+	 * Used by the revoke CORS functionality in the bucket management interface.
+	 *
+	 * Expected POST parameters:
+	 * - bucket: S3 bucket name
+	 * - nonce: Security nonce
+	 *
+	 * @since 1.0.0
+	 */
+	public function handle_ajax_delete_cors_configuration(): void {
+		if ( ! check_ajax_referer( 's3_browser_nonce_' . $this->provider_id, 'nonce', false ) ) {
+			wp_send_json_error( [ 'message' => __( 'Security check failed', 'arraypress' ) ] );
+			return;
+		}
+
+		if ( ! current_user_can( $this->capability ) ) {
+			wp_send_json_error( [ 'message' => __( 'You do not have permission to perform this action', 'arraypress' ) ] );
+			return;
+		}
+
+		$bucket = isset( $_POST['bucket'] ) ? sanitize_text_field( $_POST['bucket'] ) : '';
+
+		if ( empty( $bucket ) ) {
+			wp_send_json_error( [ 'message' => __( 'Bucket name is required', 'arraypress' ) ] );
+			return;
+		}
+
+		// Delete CORS configuration using existing client method
+		$result = $this->client->delete_cors_configuration( $bucket );
+
+		if ( ! $result->is_successful() ) {
+			wp_send_json_error( [ 'message' => $result->get_error_message() ] );
+			return;
+		}
+
+		// Clear cache after successful deletion
+		$this->client->clear_all_cache();
+
+		wp_send_json_success( [
+			'bucket'  => $bucket,
+			'message' => sprintf( __( 'CORS configuration deleted for bucket "%s"', 'arraypress' ), $bucket ),
+			'status'  => 'revoked'
+		] );
+	}
+
 }

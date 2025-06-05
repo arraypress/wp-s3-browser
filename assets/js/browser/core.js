@@ -47,8 +47,7 @@
             S3.on('.s3-insert-file', 'click', this.handleFileSelection.bind(this));
             S3.on('.s3-open-folder', 'click', this.handleFolderOpen.bind(this));
 
-            // Navigation
-            S3.on('.bucket-name, .browse-bucket-button', 'click', this.handleBucketNavigation.bind(this));
+            // Folder navigation (specific to folder links, not bucket names)
             S3.on('.s3-folder-link', 'click', this.handleFolderNavigation.bind(this));
 
             // Search functionality
@@ -61,9 +60,6 @@
 
             // Folder creation
             S3.on('#s3-create-folder', 'click', this.handleCreateFolder.bind(this));
-
-            // Favorites
-            S3.on('.s3-favorite-bucket, .s3-favorite-star', 'click', this.handleFavoriteToggle.bind(this));
         },
 
         // ===========================================
@@ -133,17 +129,6 @@
         },
 
         /**
-         * Handle bucket navigation
-         */
-        handleBucketNavigation: function (e) {
-            e.preventDefault();
-            const bucket = $(e.target).data('bucket');
-            if (bucket) {
-                S3.navigate({ bucket });
-            }
-        },
-
-        /**
          * Handle folder navigation
          */
         handleFolderNavigation: function (e) {
@@ -209,16 +194,7 @@
             e.preventDefault();
             const $button = $(e.target);
             window.S3Folders?.openCreateFolderModal($button.data('bucket'), $button.data('prefix'));
-        },
-
-        /**
-         * Handle favorite toggle
-         */
-        handleFavoriteToggle: function (e) {
-            e.preventDefault();
-            e.stopPropagation();
-            window.S3Integrations?.toggleFavoriteBucket($(e.target));
-        },
+        }
 
         // ===========================================
         // SEARCH FUNCTIONALITY
