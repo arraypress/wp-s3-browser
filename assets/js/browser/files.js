@@ -287,12 +287,19 @@
 
                     self.setModalLoading('s3CopyLinkModal', false);
 
-                    var expirationText = s3BrowserConfig.i18n.linkExpiresAt.replace('{time}', expiresAt.toLocaleString());
+                    // Safe replacement with fallback
+                    var linkExpiresText = s3BrowserConfig.i18n.linkExpiresAt || 'Link expires at {time}';
+                    var expirationText = linkExpiresText.replace('{time}', expiresAt.toLocaleString());
+
+                    var linkGeneratedText = s3BrowserConfig.i18n.linkGenerated || 'Link generated successfully!';
+
                     $('#s3CopyLinkModal .description').last().html(
-                        '<strong>' + s3BrowserConfig.i18n.linkGenerated + '</strong><br>' + expirationText
+                        '<strong>' + linkGeneratedText + '</strong><br>' + expirationText
                     );
 
-                    self.showNotification(response.data.message || s3BrowserConfig.i18n.linkGeneratedSuccess, 'success');
+                    // Safe message with fallback
+                    var successMessage = response.data.message || s3BrowserConfig.i18n.linkGeneratedSuccess || 'Link generated successfully!';
+                    self.showNotification(successMessage, 'success');
                 },
                 error: function (message) {
                     self.showModalError('s3CopyLinkModal', message);
@@ -355,6 +362,14 @@
             var filename = $button.data('filename');
             var bucket = $button.data('bucket');
             var key = $button.data('key');
+
+            // Debug logging to check data
+            console.log('Rename modal data:', {
+                filename: filename,
+                bucket: bucket,
+                key: key,
+                buttonData: $button.data()
+            });
 
             // Store context
             var context = {filename: filename, bucket: bucket, key: key};
@@ -497,6 +512,13 @@
         renameFile: function (context, newFilename) {
             var self = this;
 
+            // Debug logging
+            console.log('Rename request data:', {
+                bucket: context.bucket,
+                current_key: context.key,
+                new_filename: newFilename
+            });
+
             this.setModalLoading('s3RenameModal', true, s3BrowserConfig.i18n.files.renamingFile);
 
             this.makeAjaxRequest('s3_rename_object_', {
@@ -513,6 +535,7 @@
                     }, 1500);
                 },
                 error: function (message) {
+                    console.error('Rename error:', message);
                     self.showModalError('s3RenameModal', message);
                 }
             });
