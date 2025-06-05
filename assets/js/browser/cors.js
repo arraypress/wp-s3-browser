@@ -220,6 +220,7 @@
                 content += '<div class="s3-cors-section">';
                 content += '<h4>Recommendations</h4>';
                 content += '<ul class="s3-cors-recommendations">';
+                var self = this;
                 analysis.recommendations.forEach(function (rec) {
                     content += '<li>' + self.escapeHtml(rec) + '</li>';
                 });
@@ -232,6 +233,7 @@
                 content += '<div class="s3-cors-section s3-cors-warnings">';
                 content += '<h4>Security Warnings</h4>';
                 content += '<ul>';
+                var self = this;
                 analysis.security_warnings.forEach(function (warning) {
                     content += '<li>' + self.escapeHtml(warning) + '</li>';
                 });
