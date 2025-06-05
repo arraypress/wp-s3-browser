@@ -105,17 +105,21 @@
                     classes: 'button-primary',
                     callback: function () {
                         self.hideModal('s3BucketDetailsModal');
-                        // Use existing CORS functionality from cors.js
+                        // Fallback to direct AJAX call if showCORSSetupModal doesn't exist
                         setTimeout(function () {
-                            if (window.S3Browser && window.S3Browser.showCORSSetupModal) {
+                            if (window.S3Browser && typeof window.S3Browser.showCORSSetupModal === 'function') {
+                                console.log('Using existing CORS setup modal');
                                 window.S3Browser.showCORSSetupModal(bucket);
+                            } else {
+                                console.log('Fallback to direct CORS setup');
+                                self.setupCORSDirectly(bucket);
                             }
                         }, 200);
                     }
                 });
             }
 
-            // Add CORS revoke button if CORS exists (NEW)
+            // Add CORS revoke button if CORS exists
             if (data.cors && data.cors.analysis && data.cors.analysis.has_cors) {
                 buttons.splice(-1, 0, {
                     text: 'Revoke CORS Rules',
@@ -246,7 +250,121 @@
         },
 
         /**
-         * Confirm CORS revocation with detailed warning (NEW)
+         * Direct CORS setup fallback method
+         */
+        setupCORSDirectly: function(bucket) {
+            var self = this;
+
+            // Show confirmation dialog
+            var confirmMessage = [
+                'Set up CORS (Cross-Origin Resource Sharing) for bucket "' + bucket + '"?',
+                '',
+                'This will:',
+                '• Enable file uploads from web browsers',
+                '• Allow cross-origin access from this domain: ' + window.location.origin,
+                '• Configure secure upload permissions',
+                '',
+                'This is required for the upload functionality to work properly.'
+            ].join('\n');
+
+            if (!confirm(confirmMessage)) {
+                return;
+            }
+
+            // Show progress
+            this.showProgressOverlay('Setting up CORS configuration...');
+
+            // Make the CORS setup request
+            this.makeAjaxRequest('s3_setup_cors_', {
+                bucket: bucket,
+                origin: window.location.origin
+            }, {
+                success: function (response) {
+                    self.hideProgressOverlay();
+                    self.showNotification(
+                        response.data.message || 'CORS successfully configured for bucket "' + bucket + '"',
+                        'success'
+                    );
+
+                    // Reload the page after a short delay to reflect changes
+                    setTimeout(function () {
+                        window.location.reload();
+                    }, 2000);
+                },
+                error: function (message) {
+                    self.hideProgressOverlay();
+                    self.showNotification('Failed to setup CORS: ' + message, 'error');
+
+                    // Show manual setup instructions
+                    setTimeout(function () {
+                        self.showManualCORSInstructions(bucket);
+                    }, 1000);
+                }
+            });
+        },
+
+        /**
+         * Show manual CORS setup instructions (S3-provider agnostic)
+         */
+        showManualCORSInstructions: function(bucket) {
+            var providerName = S3BrowserGlobalConfig.providerName || 'S3 Compatible Provider';
+
+            var content = [
+                '<div class="s3-cors-setup-content">',
+                '<p><strong>Automatic CORS setup failed.</strong> You can set up CORS manually through your ' + providerName + ' console or API.</p>',
+
+                '<div class="s3-cors-setup-details">',
+                '<h4>Required CORS Configuration:</h4>',
+                '<p>Add this minimal CORS rule to bucket <code>' + bucket + '</code>:</p>',
+                '<textarea readonly style="width: 100%; height: 140px; font-family: monospace; font-size: 12px;">',
+                '{',
+                '  "ID": "UploadFromBrowser",',
+                '  "AllowedOrigins": ["' + window.location.origin + '"],',
+                '  "AllowedMethods": ["PUT"],',
+                '  "AllowedHeaders": ["Content-Type", "Content-Length"],',
+                '  "MaxAgeSeconds": 3600',
+                '}',
+                '</textarea>',
+                '</div>',
+
+                '<div class="s3-cors-setup-details">',
+                '<h4>What This Rule Does:</h4>',
+                '<ul>',
+                '<li><strong>PUT method only:</strong> Enables secure file uploads via presigned URLs</li>',
+                '<li><strong>Minimal headers:</strong> Only Content-Type and Content-Length for security</li>',
+                '<li><strong>Single origin:</strong> Restricts access to your domain only</li>',
+                '<li><strong>1-hour cache:</strong> Reduces preflight requests</li>',
+                '</ul>',
+                '</div>',
+
+                '<div class="s3-cors-setup-warning">',
+                '<p><strong>Note:</strong> This configuration is optimized for browser uploads only. All other operations (delete, list, etc.) are handled server-side and don\'t require additional CORS permissions.</p>',
+                '</div>',
+                '</div>'
+            ].join('');
+
+            this.showModal('s3CORSManualSetupModal', 'Manual CORS Setup Instructions', content, [
+                {
+                    text: 'Close',
+                    action: 'close',
+                    classes: 'button-secondary',
+                    callback: function () {
+                        window.S3Browser.hideModal('s3CORSManualSetupModal');
+                    }
+                },
+                {
+                    text: 'Refresh Page',
+                    action: 'refresh',
+                    classes: 'button-primary',
+                    callback: function () {
+                        window.location.reload();
+                    }
+                }
+            ]);
+        },
+
+        /**
+         * Confirm CORS revocation with detailed warning
          */
         confirmRevokeCORS: function (bucket) {
             var confirmMessage = [
@@ -266,7 +384,7 @@
         },
 
         /**
-         * Revoke CORS rules via AJAX (NEW)
+         * Revoke CORS rules via AJAX
          */
         revokeCORSRules: function (bucket) {
             var self = this;
