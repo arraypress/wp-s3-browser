@@ -1,8 +1,8 @@
 <?php
 /**
- * Response for bucket listing operations - Updated with CORS support
+ * S3 Buckets List Table - Simplified Row Actions
  *
- * @package     ArrayPress\S3\Responses
+ * @package     ArrayPress\S3\Tables
  * @copyright   Copyright (c) 2025, ArrayPress Limited
  * @license     GPL2+
  * @version     1.0.0
@@ -53,7 +53,6 @@ class Buckets extends WP_List_Table {
 		return [
 			'name'    => __( 'Bucket Name', 'arraypress' ),
 			'created' => __( 'Creation Date', 'arraypress' ),
-			'cors'    => __( 'CORS Status', 'arraypress' ),
 			'actions' => __( 'Actions', 'arraypress' ),
 		];
 	}
@@ -113,34 +112,20 @@ class Buckets extends WP_List_Table {
 	 * Column name - Now clickable with proper attributes
 	 */
 	public function column_name( $item ) {
-		return sprintf(
-			'<span class="dashicons dashicons-database"></span> <a href="#" class="bucket-name" data-bucket="%s">%s</a>',
-			esc_attr( $item['name'] ),
-			esc_html( $item['name'] )
-		);
-	}
-
-	/**
-	 * Column CORS - Show CORS status with loading placeholder
-	 */
-	public function column_cors( $item ) {
 		$bucket = $item['name'];
+		$actions = $this->get_row_actions( $item );
 
-		return sprintf(
-			'<span class="s3-cors-status" data-bucket="%s" data-provider="%s">
-				<span class="s3-cors-loading">
-					<span class="spinner"></span> %s
-				</span>
-				<span class="s3-cors-result" style="display: none;"></span>
-			</span>',
+		$primary_content = sprintf(
+			'<span class="dashicons dashicons-database"></span> <a href="#" class="bucket-name" data-bucket="%s"><strong>%s</strong></a>',
 			esc_attr( $bucket ),
-			esc_attr( $this->provider_id ),
-			esc_html__( 'Checking...', 'arraypress' )
+			esc_html( $bucket )
 		);
+
+		return $primary_content . $this->row_actions( $actions );
 	}
 
 	/**
-	 * Column actions - Updated with CORS management and favorites
+	 * Column actions - Keep existing star favoriting system
 	 */
 	public function column_actions( $item ) {
 		$bucket    = $item['name'];
@@ -160,7 +145,7 @@ class Buckets extends WP_List_Table {
 		$favorite_title  = $is_favorite ? __( 'Remove as default bucket', 'arraypress' ) : __( 'Set as default bucket', 'arraypress' );
 		$favorite_action = $is_favorite ? 'remove' : 'add';
 
-		$actions_html = sprintf(
+		return sprintf(
 			'<span class="s3-favorite-star dashicons %s s3-favorite-bucket" data-bucket="%s" data-provider="%s" data-action="%s" data-post-type="%s" title="%s"></span>',
 			esc_attr( $favorite_class ),
 			esc_attr( $bucket ),
@@ -169,32 +154,10 @@ class Buckets extends WP_List_Table {
 			esc_attr( $post_type ),
 			esc_attr( $favorite_title )
 		);
-
-		// Add CORS info button
-		$actions_html .= sprintf(
-			' <button type="button" class="button button-small s3-cors-info" data-bucket="%s" data-provider="%s" title="%s">
-				<span class="dashicons dashicons-info"></span>
-			</button>',
-			esc_attr( $bucket ),
-			esc_attr( $this->provider_id ),
-			esc_attr__( 'View CORS information', 'arraypress' )
-		);
-
-		// Add CORS setup button
-		$actions_html .= sprintf(
-			' <button type="button" class="button button-small s3-cors-setup" data-bucket="%s" data-provider="%s" title="%s">
-				<span class="dashicons dashicons-admin-settings"></span>
-			</button>',
-			esc_attr( $bucket ),
-			esc_attr( $this->provider_id ),
-			esc_attr__( 'Setup CORS for uploads', 'arraypress' )
-		);
-
-		return $actions_html;
 	}
 
 	/**
-	 * Generate row actions for WordPress-style hover actions
+	 * Generate row actions - SIMPLIFIED to just Browse and Details
 	 *
 	 * @param array $item Item data
 	 *
@@ -204,44 +167,26 @@ class Buckets extends WP_List_Table {
 		$bucket = $item['name'];
 		$actions = [];
 
-		$actions['cors_info'] = sprintf(
-			'<a href="#" class="s3-cors-info-link" data-bucket="%s" data-provider="%s">%s</a>',
+		// Browse action
+		$actions['browse'] = sprintf(
+			'<a href="#" class="browse-bucket-button" data-bucket="%s">%s</a>',
 			esc_attr( $bucket ),
-			esc_attr( $this->provider_id ),
-			esc_html__( 'CORS Info', 'arraypress' )
+			esc_html__( 'Browse', 'arraypress' )
 		);
 
-		$actions['cors_setup'] = sprintf(
-			'<a href="#" class="s3-cors-setup-link" data-bucket="%s" data-provider="%s">%s</a>',
+		// Details action - comprehensive modal
+		$actions['details'] = sprintf(
+			'<a href="#" class="s3-bucket-details" data-bucket="%s" data-provider="%s">%s</a>',
 			esc_attr( $bucket ),
 			esc_attr( $this->provider_id ),
-			esc_html__( 'Setup CORS', 'arraypress' )
+			esc_html__( 'Details', 'arraypress' )
 		);
 
 		return $actions;
 	}
 
 	/**
-	 * Render the name column with icon, link, and row actions
-	 *
-	 * @param array $item Item data
-	 *
-	 * @return string Column HTML
-	 */
-	public function column_name_with_actions( array $item ): string {
-		$actions = $this->get_row_actions( $item );
-
-		$primary_content = sprintf(
-			'<span class="dashicons dashicons-database"></span> <a href="#" class="bucket-name" data-bucket="%s"><strong>%s</strong></a>',
-			esc_attr( $item['name'] ),
-			esc_html( $item['name'] )
-		);
-
-		return $primary_content . $this->row_actions( $actions );
-	}
-
-	/**
-	 * Display table navigation for BucketsTable.php
+	 * Display table navigation
 	 *
 	 * @param string $which Which tablenav ('top' or 'bottom')
 	 */
@@ -297,44 +242,6 @@ class Buckets extends WP_List_Table {
             <br class="clear"/>
         </div>
 		<?php
-	}
-
-	/**
-	 * Display custom pagination for S3
-	 */
-	public function pagination( $which ) {
-		if ( $which !== 'top' && isset( $this->_pagination_args['marker'] ) && ! empty( $this->_pagination_args['marker'] ) ) {
-			$marker = $this->_pagination_args['marker'];
-
-			// This URL should stay in the iframe
-			$post_id = isset( $_GET['post_id'] ) ? intval( $_GET['post_id'] ) : 0;
-			$url     = add_query_arg( [
-				'chromeless' => 1,
-				'post_id'    => $post_id,
-				'tab'        => 's3_' . $this->provider_id,
-				'view'       => 'buckets',
-				'marker'     => urlencode( $marker )
-			] );
-
-			echo '<div class="tablenav-pages">';
-			echo '<span class="displaying-num">' . esc_html( sprintf(
-					_n( '%s bucket', '%s buckets', count( $this->items ), 'arraypress' ),
-					number_format_i18n( count( $this->items ) )
-				) ) . '</span>';
-
-			echo '<span class="pagination-links">';
-			echo '<a class="next-page button s3-icon-button" href="' . esc_url( $url ) . '">' .
-			     esc_html__( 'Next Page', 'arraypress' ) . ' &raquo;</a>';
-			echo '</span>';
-			echo '</div>';
-		} else {
-			echo '<div class="tablenav-pages one-page">';
-			echo '<span class="displaying-num">' . esc_html( sprintf(
-					_n( '%s bucket', '%s buckets', count( $this->items ), 'arraypress' ),
-					number_format_i18n( count( $this->items ) )
-				) ) . '</span>';
-			echo '</div>';
-		}
 	}
 
 	/**

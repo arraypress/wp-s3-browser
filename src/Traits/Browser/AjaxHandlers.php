@@ -19,6 +19,7 @@ namespace ArrayPress\S3\Traits\Browser;
 use ArrayPress\S3\Tables\Objects;
 use ArrayPress\S3\Utils\Directory;
 use ArrayPress\S3\Utils\Validate;
+use Exception;
 
 /**
  * Trait AjaxHandlers
@@ -604,18 +605,18 @@ trait AjaxHandlers {
 	}
 
 	/**
-	 * Handle AJAX get CORS configuration request
+	 * Handle AJAX get bucket details request
 	 *
-	 * Retrieves the current CORS configuration for a bucket and analyzes
-	 * its capabilities, particularly for upload functionality.
+	 * Uses existing client methods to gather comprehensive bucket information.
 	 *
 	 * Expected POST parameters:
 	 * - bucket: S3 bucket name
+	 * - provider: Provider ID (optional)
 	 * - nonce: Security nonce
 	 *
 	 * @since 1.0.0
 	 */
-	public function handle_ajax_get_cors_info(): void {
+	public function handle_ajax_get_bucket_details(): void {
 		if ( ! check_ajax_referer( 's3_browser_nonce_' . $this->provider_id, 'nonce', false ) ) {
 			wp_send_json_error( [ 'message' => __( 'Security check failed', 'arraypress' ) ] );
 
@@ -636,45 +637,103 @@ trait AjaxHandlers {
 			return;
 		}
 
-		// Get CORS analysis
-		$analysis_result = $this->client->analyze_cors_configuration( $bucket );
-
-		if ( ! $analysis_result->is_successful() ) {
-			wp_send_json_error( [ 'message' => $analysis_result->get_error_message() ] );
-
-			return;
-		}
-
-		$analysis_data = $analysis_result->get_data();
-
-		// Check specifically for upload capability from current domain
-		$current_origin = $this->get_current_origin();
-		$upload_check   = $this->client->cors_allows_upload( $bucket, $current_origin );
-
-		$upload_capability = [
-			'allows_upload'  => false,
-			'current_origin' => $current_origin,
-			'details'        => 'CORS not configured'
+		$details = [
+			'bucket'      => $bucket,
+			'basic'       => [],
+			'cors'        => [],
+			'permissions' => [],
 		];
 
-		if ( $upload_check->is_successful() ) {
-			$upload_data       = $upload_check->get_data();
+		// Get basic bucket information using existing methods
+		$details['basic'] = $this->get_basic_bucket_info( $bucket );
+
+		// Get CORS information using existing analyze_cors_configuration method
+		$cors_result = $this->client->analyze_cors_configuration( $bucket );
+		if ( $cors_result->is_successful() ) {
+			$cors_data = $cors_result->get_data();
+
+			// Check upload capability using existing cors_allows_upload method
+			$current_origin = $this->get_current_origin();
+			$upload_check   = $this->client->cors_allows_upload( $bucket, $current_origin );
+
 			$upload_capability = [
-				'allows_upload'   => $upload_data['allows_upload'],
-				'current_origin'  => $current_origin,
-				'allowed_methods' => $upload_data['allowed_methods'] ?? [],
-				'details'         => $upload_data['allows_upload']
-					? __( 'Upload allowed from current domain', 'arraypress' )
-					: __( 'Upload not allowed from current domain', 'arraypress' )
+				'upload_ready'   => false,
+				'current_origin' => $current_origin,
+				'details'        => 'CORS not configured'
+			];
+
+			if ( $upload_check->is_successful() ) {
+				$upload_data       = $upload_check->get_data();
+				$upload_capability = [
+					'upload_ready'    => $upload_data['allows_upload'],
+					'current_origin'  => $current_origin,
+					'allowed_methods' => $upload_data['allowed_methods'] ?? [],
+					'details'         => $upload_data['allows_upload']
+						? __( 'Upload allowed from current domain', 'arraypress' )
+						: __( 'Upload not allowed from current domain', 'arraypress' )
+				];
+			}
+
+			$details['cors'] = [
+				'analysis'       => $cors_data,
+				'upload_ready'   => $upload_capability['upload_ready'],
+				'current_origin' => $upload_capability['current_origin'],
+				'details'        => $upload_capability['details']
 			];
 		}
 
-		wp_send_json_success( [
-			'bucket'            => $bucket,
-			'analysis'          => $analysis_data,
-			'upload_capability' => $upload_capability,
-			'message'           => sprintf( __( 'CORS information retrieved for bucket "%s"', 'arraypress' ), $bucket )
-		] );
+		// Get permissions using existing check_key_permissions method
+		try {
+			$permissions            = $this->client->check_key_permissions( $bucket, true );
+			$details['permissions'] = [
+				'read'   => $permissions['read'] ?? false,
+				'write'  => $permissions['write'] ?? false,
+				'delete' => $permissions['delete'] ?? false,
+			];
+		} catch ( Exception $e ) {
+			// Permissions check failed, skip this section
+			$details['permissions'] = null;
+		}
+
+		wp_send_json_success( $details );
+	}
+
+	/**
+	 * Get basic bucket information using existing client methods
+	 *
+	 * @param string $bucket Bucket name
+	 *
+	 * @return array Basic bucket info
+	 */
+	private function get_basic_bucket_info( string $bucket ): array {
+		$info = [
+			'name'    => $bucket,
+			'region'  => null,
+			'created' => null,
+		];
+
+		// Use existing get_bucket_location method
+		$location_result = $this->client->get_bucket_location( $bucket );
+		if ( $location_result->is_successful() ) {
+			$location_data  = $location_result->get_data();
+			$info['region'] = $location_data['location'] ?? null;
+		}
+
+		// Use existing get_bucket_models method to find creation date
+		$buckets_result = $this->client->get_bucket_models( 1000 );
+		if ( $buckets_result->is_successful() ) {
+			$buckets_data = $buckets_result->get_data();
+			$buckets      = $buckets_data['buckets'] ?? [];
+
+			foreach ( $buckets as $bucket_model ) {
+				if ( $bucket_model->get_name() === $bucket ) {
+					$info['created'] = $bucket_model->get_formatted_date();
+					break;
+				}
+			}
+		}
+
+		return $info;
 	}
 
 	/**

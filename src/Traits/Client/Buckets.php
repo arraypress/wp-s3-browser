@@ -387,4 +387,236 @@ trait Buckets {
 		);
 	}
 
+	/**
+	 * Get bucket location
+	 *
+	 * @param string $bucket    Bucket name
+	 * @param bool   $use_cache Whether to use cache
+	 *
+	 * @return ResponseInterface Response with location information
+	 */
+	public function get_bucket_location( string $bucket, bool $use_cache = true ): ResponseInterface {
+		// Apply contextual filter to modify request parameters
+		$params = $this->apply_contextual_filters(
+			'arraypress_s3_get_bucket_location_params',
+			[
+				'bucket'    => $bucket,
+				'use_cache' => $use_cache
+			],
+			$bucket
+		);
+
+		$bucket    = $params['bucket'];
+		$use_cache = $params['use_cache'];
+
+		if ( empty( $bucket ) ) {
+			return new ErrorResponse(
+				__( 'Bucket name is required', 'arraypress' ),
+				'invalid_parameters',
+				400
+			);
+		}
+
+		// Check cache if enabled
+		if ( $use_cache && $this->is_cache_enabled() ) {
+			$cache_key = $this->get_cache_key( 'bucket_location', [ 'bucket' => $bucket ] );
+			$cached    = $this->get_from_cache( $cache_key );
+			if ( $cached !== false ) {
+				return $cached;
+			}
+		}
+
+		// Use signer to get bucket location
+		$result = $this->signer->get_bucket_location( $bucket );
+
+		// Debug logging if enabled
+		$this->debug( 'Client: Raw result from signer for bucket location:', $result );
+
+		// Cache the result if successful
+		if ( $use_cache && $this->is_cache_enabled() && $result->is_successful() ) {
+			$this->save_to_cache( $cache_key, $result );
+		}
+
+		// Apply contextual filter to final response
+		return $this->apply_contextual_filters(
+			'arraypress_s3_get_bucket_location_response',
+			$result,
+			$bucket
+		);
+	}
+
+	/**
+	 * Get bucket versioning configuration
+	 *
+	 * @param string $bucket    Bucket name
+	 * @param bool   $use_cache Whether to use cache
+	 *
+	 * @return ResponseInterface Response with versioning information
+	 */
+	public function get_bucket_versioning( string $bucket, bool $use_cache = true ): ResponseInterface {
+		// Apply contextual filter to modify request parameters
+		$params = $this->apply_contextual_filters(
+			'arraypress_s3_get_bucket_versioning_params',
+			[
+				'bucket'    => $bucket,
+				'use_cache' => $use_cache
+			],
+			$bucket
+		);
+
+		$bucket    = $params['bucket'];
+		$use_cache = $params['use_cache'];
+
+		if ( empty( $bucket ) ) {
+			return new ErrorResponse(
+				__( 'Bucket name is required', 'arraypress' ),
+				'invalid_parameters',
+				400
+			);
+		}
+
+		// Check cache if enabled
+		if ( $use_cache && $this->is_cache_enabled() ) {
+			$cache_key = $this->get_cache_key( 'bucket_versioning', [ 'bucket' => $bucket ] );
+			$cached    = $this->get_from_cache( $cache_key );
+			if ( $cached !== false ) {
+				return $cached;
+			}
+		}
+
+		// Use signer to get bucket versioning
+		$result = $this->signer->get_bucket_versioning( $bucket );
+
+		// Debug logging if enabled
+		$this->debug( 'Client: Raw result from signer for bucket versioning:', $result );
+
+		// Cache the result if successful
+		if ( $use_cache && $this->is_cache_enabled() && $result->is_successful() ) {
+			$this->save_to_cache( $cache_key, $result );
+		}
+
+		// Apply contextual filter to final response
+		return $this->apply_contextual_filters(
+			'arraypress_s3_get_bucket_versioning_response',
+			$result,
+			$bucket
+		);
+	}
+
+	/**
+	 * Get bucket policy
+	 *
+	 * @param string $bucket    Bucket name
+	 * @param bool   $use_cache Whether to use cache
+	 *
+	 * @return ResponseInterface Response with policy information
+	 */
+	public function get_bucket_policy( string $bucket, bool $use_cache = true ): ResponseInterface {
+		// Apply contextual filter to modify request parameters
+		$params = $this->apply_contextual_filters(
+			'arraypress_s3_get_bucket_policy_params',
+			[
+				'bucket'    => $bucket,
+				'use_cache' => $use_cache
+			],
+			$bucket
+		);
+
+		$bucket    = $params['bucket'];
+		$use_cache = $params['use_cache'];
+
+		if ( empty( $bucket ) ) {
+			return new ErrorResponse(
+				__( 'Bucket name is required', 'arraypress' ),
+				'invalid_parameters',
+				400
+			);
+		}
+
+		// Check cache if enabled
+		if ( $use_cache && $this->is_cache_enabled() ) {
+			$cache_key = $this->get_cache_key( 'bucket_policy', [ 'bucket' => $bucket ] );
+			$cached    = $this->get_from_cache( $cache_key );
+			if ( $cached !== false ) {
+				return $cached;
+			}
+		}
+
+		// Use signer to get bucket policy
+		$result = $this->signer->get_bucket_policy( $bucket );
+
+		// Debug logging if enabled
+		$this->debug( 'Client: Raw result from signer for bucket policy:', $result );
+
+		// Cache the result if successful
+		if ( $use_cache && $this->is_cache_enabled() && $result->is_successful() ) {
+			$this->save_to_cache( $cache_key, $result );
+		}
+
+		// Apply contextual filter to final response
+		return $this->apply_contextual_filters(
+			'arraypress_s3_get_bucket_policy_response',
+			$result,
+			$bucket
+		);
+	}
+
+	/**
+	 * Get bucket lifecycle configuration
+	 *
+	 * @param string $bucket    Bucket name
+	 * @param bool   $use_cache Whether to use cache
+	 *
+	 * @return ResponseInterface Response with lifecycle information
+	 */
+	public function get_bucket_lifecycle( string $bucket, bool $use_cache = true ): ResponseInterface {
+		// Apply contextual filter to modify request parameters
+		$params = $this->apply_contextual_filters(
+			'arraypress_s3_get_bucket_lifecycle_params',
+			[
+				'bucket'    => $bucket,
+				'use_cache' => $use_cache
+			],
+			$bucket
+		);
+
+		$bucket    = $params['bucket'];
+		$use_cache = $params['use_cache'];
+
+		if ( empty( $bucket ) ) {
+			return new ErrorResponse(
+				__( 'Bucket name is required', 'arraypress' ),
+				'invalid_parameters',
+				400
+			);
+		}
+
+		// Check cache if enabled
+		if ( $use_cache && $this->is_cache_enabled() ) {
+			$cache_key = $this->get_cache_key( 'bucket_lifecycle', [ 'bucket' => $bucket ] );
+			$cached    = $this->get_from_cache( $cache_key );
+			if ( $cached !== false ) {
+				return $cached;
+			}
+		}
+
+		// Use signer to get bucket lifecycle
+		$result = $this->signer->get_bucket_lifecycle( $bucket );
+
+		// Debug logging if enabled
+		$this->debug( 'Client: Raw result from signer for bucket lifecycle:', $result );
+
+		// Cache the result if successful
+		if ( $use_cache && $this->is_cache_enabled() && $result->is_successful() ) {
+			$this->save_to_cache( $cache_key, $result );
+		}
+
+		// Apply contextual filter to final response
+		return $this->apply_contextual_filters(
+			'arraypress_s3_get_bucket_lifecycle_response',
+			$result,
+			$bucket
+		);
+	}
+
 }

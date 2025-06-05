@@ -201,7 +201,7 @@ trait Assets {
 				'deps' => [ 'jquery', 's3-browser-core' ]
 			],
 			's3-browser-cors'         => [
-				'file' => 'js/browser/cors.js',
+				'file' => 'js/browser/buckets.js',
 				'deps' => [ 'jquery', 's3-browser-core', 's3-browser-modals' ]
 			],
 			's3-upload-script'        => [

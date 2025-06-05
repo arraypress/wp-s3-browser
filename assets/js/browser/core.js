@@ -27,7 +27,7 @@
             this.setupAjaxLoading();
             this.countInitialItems();
             this.initUploadToggle();
-            this.initCORS();
+            this.bindBucketEvents();
         },
 
         /**

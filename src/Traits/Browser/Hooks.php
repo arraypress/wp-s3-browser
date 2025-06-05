@@ -53,8 +53,10 @@ trait Hooks {
 		add_action( 'wp_ajax_s3_create_folder_' . $this->provider_id, [ $this, 'handle_ajax_create_folder' ] );
 		add_action( 'wp_ajax_s3_delete_folder_' . $this->provider_id, [ $this, 'handle_ajax_delete_folder' ] );
 
+		// Register AJAX handlers for bucket operations
+		add_action( 'wp_ajax_s3_get_bucket_details_' . $this->provider_id, [ $this, 'handle_ajax_get_bucket_details' ] );
+
 		// Register AJAX handlers for CORS operations
-		add_action( 'wp_ajax_s3_get_cors_info_' . $this->provider_id, [ $this, 'handle_ajax_get_cors_info' ] );
 		add_action( 'wp_ajax_s3_setup_cors_upload_' . $this->provider_id, [ $this, 'handle_ajax_setup_cors_upload' ] );
 
 		// Add plugin integrations
