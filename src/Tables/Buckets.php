@@ -1,6 +1,6 @@
 <?php
 /**
- * Response for bucket listing operations
+ * Response for bucket listing operations - Updated with CORS support
  *
  * @package     ArrayPress\S3\Responses
  * @copyright   Copyright (c) 2025, ArrayPress Limited
@@ -53,13 +53,11 @@ class Buckets extends WP_List_Table {
 		return [
 			'name'    => __( 'Bucket Name', 'arraypress' ),
 			'created' => __( 'Creation Date', 'arraypress' ),
-			'actions' => __( 'Favorite', 'arraypress' ),
+			'cors'    => __( 'CORS Status', 'arraypress' ),
+			'actions' => __( 'Actions', 'arraypress' ),
 		];
 	}
 
-	/**
-	 * Prepare items
-	 */
 	/**
 	 * Prepare items
 	 */
@@ -123,7 +121,26 @@ class Buckets extends WP_List_Table {
 	}
 
 	/**
-	 * Column actions - Updated to use star-only favorites like WooCommerce
+	 * Column CORS - Show CORS status with loading placeholder
+	 */
+	public function column_cors( $item ) {
+		$bucket = $item['name'];
+
+		return sprintf(
+			'<span class="s3-cors-status" data-bucket="%s" data-provider="%s">
+				<span class="s3-cors-loading">
+					<span class="spinner"></span> %s
+				</span>
+				<span class="s3-cors-result" style="display: none;"></span>
+			</span>',
+			esc_attr( $bucket ),
+			esc_attr( $this->provider_id ),
+			esc_html__( 'Checking...', 'arraypress' )
+		);
+	}
+
+	/**
+	 * Column actions - Updated with CORS management and favorites
 	 */
 	public function column_actions( $item ) {
 		$bucket    = $item['name'];
@@ -143,7 +160,7 @@ class Buckets extends WP_List_Table {
 		$favorite_title  = $is_favorite ? __( 'Remove as default bucket', 'arraypress' ) : __( 'Set as default bucket', 'arraypress' );
 		$favorite_action = $is_favorite ? 'remove' : 'add';
 
-		return sprintf(
+		$actions_html = sprintf(
 			'<span class="s3-favorite-star dashicons %s s3-favorite-bucket" data-bucket="%s" data-provider="%s" data-action="%s" data-post-type="%s" title="%s"></span>',
 			esc_attr( $favorite_class ),
 			esc_attr( $bucket ),
@@ -152,6 +169,75 @@ class Buckets extends WP_List_Table {
 			esc_attr( $post_type ),
 			esc_attr( $favorite_title )
 		);
+
+		// Add CORS info button
+		$actions_html .= sprintf(
+			' <button type="button" class="button button-small s3-cors-info" data-bucket="%s" data-provider="%s" title="%s">
+				<span class="dashicons dashicons-info"></span>
+			</button>',
+			esc_attr( $bucket ),
+			esc_attr( $this->provider_id ),
+			esc_attr__( 'View CORS information', 'arraypress' )
+		);
+
+		// Add CORS setup button
+		$actions_html .= sprintf(
+			' <button type="button" class="button button-small s3-cors-setup" data-bucket="%s" data-provider="%s" title="%s">
+				<span class="dashicons dashicons-admin-settings"></span>
+			</button>',
+			esc_attr( $bucket ),
+			esc_attr( $this->provider_id ),
+			esc_attr__( 'Setup CORS for uploads', 'arraypress' )
+		);
+
+		return $actions_html;
+	}
+
+	/**
+	 * Generate row actions for WordPress-style hover actions
+	 *
+	 * @param array $item Item data
+	 *
+	 * @return array Array of action links
+	 */
+	protected function get_row_actions( array $item ): array {
+		$bucket = $item['name'];
+		$actions = [];
+
+		$actions['cors_info'] = sprintf(
+			'<a href="#" class="s3-cors-info-link" data-bucket="%s" data-provider="%s">%s</a>',
+			esc_attr( $bucket ),
+			esc_attr( $this->provider_id ),
+			esc_html__( 'CORS Info', 'arraypress' )
+		);
+
+		$actions['cors_setup'] = sprintf(
+			'<a href="#" class="s3-cors-setup-link" data-bucket="%s" data-provider="%s">%s</a>',
+			esc_attr( $bucket ),
+			esc_attr( $this->provider_id ),
+			esc_html__( 'Setup CORS', 'arraypress' )
+		);
+
+		return $actions;
+	}
+
+	/**
+	 * Render the name column with icon, link, and row actions
+	 *
+	 * @param array $item Item data
+	 *
+	 * @return string Column HTML
+	 */
+	public function column_name_with_actions( array $item ): string {
+		$actions = $this->get_row_actions( $item );
+
+		$primary_content = sprintf(
+			'<span class="dashicons dashicons-database"></span> <a href="#" class="bucket-name" data-bucket="%s"><strong>%s</strong></a>',
+			esc_attr( $item['name'] ),
+			esc_html( $item['name'] )
+		);
+
+		return $primary_content . $this->row_actions( $actions );
 	}
 
 	/**

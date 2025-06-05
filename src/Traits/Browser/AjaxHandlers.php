@@ -603,4 +603,184 @@ trait AjaxHandlers {
 		] );
 	}
 
+	/**
+	 * Handle AJAX get CORS configuration request
+	 *
+	 * Retrieves the current CORS configuration for a bucket and analyzes
+	 * its capabilities, particularly for upload functionality.
+	 *
+	 * Expected POST parameters:
+	 * - bucket: S3 bucket name
+	 * - nonce: Security nonce
+	 *
+	 * @since 1.0.0
+	 */
+	public function handle_ajax_get_cors_info(): void {
+		if ( ! check_ajax_referer( 's3_browser_nonce_' . $this->provider_id, 'nonce', false ) ) {
+			wp_send_json_error( [ 'message' => __( 'Security check failed', 'arraypress' ) ] );
+
+			return;
+		}
+
+		if ( ! current_user_can( $this->capability ) ) {
+			wp_send_json_error( [ 'message' => __( 'You do not have permission to perform this action', 'arraypress' ) ] );
+
+			return;
+		}
+
+		$bucket = isset( $_POST['bucket'] ) ? sanitize_text_field( $_POST['bucket'] ) : '';
+
+		if ( empty( $bucket ) ) {
+			wp_send_json_error( [ 'message' => __( 'Bucket name is required', 'arraypress' ) ] );
+
+			return;
+		}
+
+		// Get CORS analysis
+		$analysis_result = $this->client->analyze_cors_configuration( $bucket );
+
+		if ( ! $analysis_result->is_successful() ) {
+			wp_send_json_error( [ 'message' => $analysis_result->get_error_message() ] );
+
+			return;
+		}
+
+		$analysis_data = $analysis_result->get_data();
+
+		// Check specifically for upload capability from current domain
+		$current_origin = $this->get_current_origin();
+		$upload_check   = $this->client->cors_allows_upload( $bucket, $current_origin );
+
+		$upload_capability = [
+			'allows_upload'  => false,
+			'current_origin' => $current_origin,
+			'details'        => 'CORS not configured'
+		];
+
+		if ( $upload_check->is_successful() ) {
+			$upload_data       = $upload_check->get_data();
+			$upload_capability = [
+				'allows_upload'   => $upload_data['allows_upload'],
+				'current_origin'  => $current_origin,
+				'allowed_methods' => $upload_data['allowed_methods'] ?? [],
+				'details'         => $upload_data['allows_upload']
+					? __( 'Upload allowed from current domain', 'arraypress' )
+					: __( 'Upload not allowed from current domain', 'arraypress' )
+			];
+		}
+
+		wp_send_json_success( [
+			'bucket'            => $bucket,
+			'analysis'          => $analysis_data,
+			'upload_capability' => $upload_capability,
+			'message'           => sprintf( __( 'CORS information retrieved for bucket "%s"', 'arraypress' ), $bucket )
+		] );
+	}
+
+	/**
+	 * Handle AJAX setup CORS for uploads request
+	 *
+	 * Sets up minimal CORS configuration optimized for browser uploads
+	 * from the current domain. Uses a minimal ruleset focused on upload functionality.
+	 *
+	 * Expected POST parameters:
+	 * - bucket: S3 bucket name
+	 * - origin: Origin to allow (optional, defaults to current)
+	 * - nonce: Security nonce
+	 *
+	 * @since 1.0.0
+	 */
+	public function handle_ajax_setup_cors_upload(): void {
+		if ( ! check_ajax_referer( 's3_browser_nonce_' . $this->provider_id, 'nonce', false ) ) {
+			wp_send_json_error( [ 'message' => __( 'Security check failed', 'arraypress' ) ] );
+
+			return;
+		}
+
+		if ( ! current_user_can( $this->capability ) ) {
+			wp_send_json_error( [ 'message' => __( 'You do not have permission to perform this action', 'arraypress' ) ] );
+
+			return;
+		}
+
+		$bucket = isset( $_POST['bucket'] ) ? sanitize_text_field( $_POST['bucket'] ) : '';
+		$origin = isset( $_POST['origin'] ) ? sanitize_text_field( $_POST['origin'] ) : $this->get_current_origin();
+
+		if ( empty( $bucket ) ) {
+			wp_send_json_error( [ 'message' => __( 'Bucket name is required', 'arraypress' ) ] );
+
+			return;
+		}
+
+		if ( empty( $origin ) ) {
+			wp_send_json_error( [ 'message' => __( 'Origin is required for CORS setup', 'arraypress' ) ] );
+
+			return;
+		}
+
+		// Generate upload-focused CORS rules
+		$cors_rules = $this->generate_upload_cors_rules( $origin );
+
+		// Set the CORS configuration
+		$set_result = $this->client->set_cors_configuration( $bucket, $cors_rules );
+
+		if ( ! $set_result->is_successful() ) {
+			wp_send_json_error( [ 'message' => $set_result->get_error_message() ] );
+
+			return;
+		}
+
+		// Verify the setup worked by checking upload capability
+		$verification_result  = $this->client->cors_allows_upload( $bucket, $origin, false );
+		$verification_success = false;
+
+		if ( $verification_result->is_successful() ) {
+			$verification_data    = $verification_result->get_data();
+			$verification_success = $verification_data['allows_upload'] ?? false;
+		}
+
+		wp_send_json_success( [
+			'bucket'              => $bucket,
+			'origin'              => $origin,
+			'rules_applied'       => count( $cors_rules ),
+			'verification_passed' => $verification_success,
+			'message'             => sprintf(
+				__( 'CORS configured for uploads from %s to bucket "%s"', 'arraypress' ),
+				$origin,
+				$bucket
+			)
+		] );
+	}
+
+	/**
+	 * Get current origin for CORS setup
+	 *
+	 * @return string Current origin (protocol + domain)
+	 */
+	private function get_current_origin(): string {
+		$protocol = is_ssl() ? 'https://' : 'http://';
+		$host     = $_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? 'localhost';
+
+		return $protocol . $host;
+	}
+
+	/**
+	 * Generate minimal CORS rules optimized for uploads
+	 *
+	 * @param string $origin Origin to allow
+	 *
+	 * @return array CORS rules array
+	 */
+	private function generate_upload_cors_rules( string $origin ): array {
+		return [
+			[
+				'ID'             => 'UploadFromBrowser',
+				'AllowedOrigins' => [ $origin ],
+				'AllowedMethods' => [ 'PUT' ], // Only PUT for presigned uploads
+				'AllowedHeaders' => [ 'Content-Type', 'Content-Length' ], // Minimal headers
+				'MaxAgeSeconds'  => 3600 // 1 hour cache
+			]
+		];
+	}
+
 }

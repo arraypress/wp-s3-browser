@@ -38,16 +38,24 @@ trait Hooks {
 		// Add media view strings for all post types
 		add_filter( 'media_view_strings', [ $this, 'add_media_view_strings' ], 20, 1 );
 
-		// Register AJAX handlers
+		// Register AJAX handlers for core functionality
 		add_action( 'wp_ajax_s3_load_more_' . $this->provider_id, [ $this, 'handle_ajax_load_more' ] );
 		add_action( 'wp_ajax_s3_toggle_favorite_' . $this->provider_id, [ $this, 'handle_ajax_toggle_favorite' ] );
 		add_action( 'wp_ajax_s3_clear_cache_' . $this->provider_id, [ $this, 'handle_ajax_clear_cache' ] );
 		add_action( 'wp_ajax_s3_get_upload_url_' . $this->provider_id, [ $this, 'handle_ajax_get_upload_url' ] );
+
+		// Register AJAX handlers for object operations
 		add_action( 'wp_ajax_s3_delete_object_' . $this->provider_id, [ $this, 'handle_ajax_delete_object' ] );
-		add_action( 'wp_ajax_s3_create_folder_' . $this->provider_id, [ $this, 'handle_ajax_create_folder' ] );
 		add_action( 'wp_ajax_s3_rename_object_' . $this->provider_id, [ $this, 'handle_ajax_rename_object' ] );
-		add_action( 'wp_ajax_s3_delete_folder_' . $this->provider_id, [ $this, 'handle_ajax_delete_folder' ] );
 		add_action( 'wp_ajax_s3_get_presigned_url_' . $this->provider_id, [ $this, 'handle_ajax_get_presigned_url' ] );
+
+		// Register AJAX handlers for folder operations
+		add_action( 'wp_ajax_s3_create_folder_' . $this->provider_id, [ $this, 'handle_ajax_create_folder' ] );
+		add_action( 'wp_ajax_s3_delete_folder_' . $this->provider_id, [ $this, 'handle_ajax_delete_folder' ] );
+
+		// Register AJAX handlers for CORS operations
+		add_action( 'wp_ajax_s3_get_cors_info_' . $this->provider_id, [ $this, 'handle_ajax_get_cors_info' ] );
+		add_action( 'wp_ajax_s3_setup_cors_upload_' . $this->provider_id, [ $this, 'handle_ajax_setup_cors_upload' ] );
 
 		// Add plugin integrations
 		$this->add_edd_integration();

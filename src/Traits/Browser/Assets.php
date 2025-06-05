@@ -1,6 +1,6 @@
 <?php
 /**
- * Browser Assets Management Trait - Final with Grouped Translations
+ * Browser Assets Management Trait - Final with Grouped Translations and CORS Support
  *
  * Handles asset loading and configuration for the S3 Browser using
  * the new simplified JavaScript file structure and grouped translations.
@@ -118,7 +118,7 @@ trait Assets {
 		// First enqueue the global config
 		$config_handle = $this->enqueue_global_config();
 
-		// Enqueue main styles and scripts (includes upload)
+		// Enqueue main styles and scripts (includes upload and CORS)
 		$this->enqueue_core_browser_assets( $config_handle );
 
 		// Localize the main browser script
@@ -199,6 +199,10 @@ trait Assets {
 			's3-browser-integrations' => [
 				'file' => 'js/browser/integrations.js',
 				'deps' => [ 'jquery', 's3-browser-core' ]
+			],
+			's3-browser-cors'         => [
+				'file' => 'js/browser/cors.js',
+				'deps' => [ 'jquery', 's3-browser-core', 's3-browser-modals' ]
 			],
 			's3-upload-script'        => [
 				'file' => 'js/browser/upload.js',
@@ -363,6 +367,25 @@ trait Assets {
 				'folderDeletedSuccess'      => __( 'Folder deleted successfully!', 'arraypress' ),
 				'opening'                   => __( 'Opening...', 'arraypress' ),
 				'folderOpenError'           => __( 'Failed to open folder', 'arraypress' ),
+			],
+
+			// CORS operations
+			'cors'        => [
+				'corsInfo'              => __( 'CORS Information', 'arraypress' ),
+				'corsSetup'             => __( 'Setup CORS', 'arraypress' ),
+				'corsSetupForUploads'   => __( 'Setup CORS for Uploads', 'arraypress' ),
+				'loadingCorsInfo'       => __( 'Loading CORS information...', 'arraypress' ),
+				'configuringCors'       => __( 'Configuring CORS...', 'arraypress' ),
+				'corsConfigured'        => __( 'CORS configured successfully!', 'arraypress' ),
+				'corsVerificationFailed' => __( 'CORS configured, but verification failed. Please check manually.', 'arraypress' ),
+				'corsError'             => __( 'Failed to configure CORS', 'arraypress' ),
+				'corsNone'              => __( 'No CORS', 'arraypress' ),
+				'corsUploadOk'          => __( 'Upload OK', 'arraypress' ),
+				'corsLimited'           => __( 'Limited', 'arraypress' ),
+				'corsAllowsUploads'     => __( 'CORS allows uploads from this domain', 'arraypress' ),
+				'corsNoUploads'         => __( 'CORS configured but uploads not allowed from this domain', 'arraypress' ),
+				'corsSetupNote'         => __( 'This will configure CORS to allow file uploads from your current domain to the bucket.', 'arraypress' ),
+				'corsSetupWarning'      => __( 'This will replace any existing CORS configuration on this bucket. The configuration is minimal and focused only on upload functionality.', 'arraypress' ),
 			],
 
 			// Cache and system operations

@@ -964,3 +964,246 @@
         width: 100%;
     }
 }
+
+/* CORS Status Display */
+.s3-cors-status {
+    display: inline-block;
+    min-width: 80px;
+}
+
+.s3-cors-loading {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: #666;
+}
+
+.s3-cors-loading .spinner {
+    float: none;
+    margin: 0;
+    width: 16px;
+    height: 16px;
+}
+
+.s3-cors-result {
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.s3-cors-none {
+    color: #d63638;
+    font-style: italic;
+}
+
+.s3-cors-good {
+    color: #00a32a;
+    font-weight: 600;
+}
+
+.s3-cors-limited {
+    color: #dba617;
+    font-weight: 600;
+}
+
+.s3-cors-error {
+    color: #d63638;
+    font-size: 11px;
+    font-style: italic;
+}
+
+/* CORS Action Buttons */
+.s3-cors-info,
+.s3-cors-setup {
+    margin-left: 4px;
+    padding: 2px 6px;
+    font-size: 11px;
+    line-height: 1.2;
+    min-height: auto;
+}
+
+.s3-cors-info .dashicons,
+.s3-cors-setup .dashicons {
+    font-size: 12px;
+    width: 12px;
+    height: 12px;
+}
+
+.s3-cors-info:hover {
+    background-color: #f0f6fc;
+    border-color: #0969da;
+    color: #0969da;
+}
+
+.s3-cors-setup {
+    background-color: #dba617;
+    border-color: #dba617;
+    color: white;
+}
+
+.s3-cors-setup:hover {
+    background-color: #b8941a;
+    border-color: #b8941a;
+}
+
+/* CORS Info Modal */
+#s3CORSInfoModal .s3-modal {
+    max-width: 600px;
+}
+
+.s3-cors-info-content {
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.s3-cors-section {
+    margin-bottom: 20px;
+}
+
+.s3-cors-section:last-child {
+    margin-bottom: 0;
+}
+
+.s3-cors-section h4 {
+    margin: 0 0 10px 0;
+    padding: 0 0 5px 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #23282d;
+    border-bottom: 1px solid #e1e1e1;
+}
+
+.s3-cors-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.s3-cors-table td {
+    padding: 6px 8px 6px 0;
+    border-bottom: 1px solid #f1f1f1;
+    vertical-align: top;
+}
+
+.s3-cors-table td:first-child {
+    width: 35%;
+    font-weight: 500;
+    color: #555;
+}
+
+.s3-cors-table tr:last-child td {
+    border-bottom: none;
+}
+
+.s3-cors-status-good {
+    color: #00a32a;
+    font-weight: 600;
+}
+
+.s3-cors-status-bad {
+    color: #d63638;
+    font-weight: 600;
+}
+
+.s3-cors-warning {
+    color: #dba617;
+    font-weight: 500;
+}
+
+/* CORS Recommendations */
+.s3-cors-recommendations,
+.s3-cors-warnings ul {
+    margin: 8px 0;
+    padding-left: 20px;
+}
+
+.s3-cors-recommendations li,
+.s3-cors-warnings li {
+    margin-bottom: 4px;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.s3-cors-warnings {
+    background: #fef7f1;
+    border-left: 4px solid #dba617;
+    padding: 12px;
+    border-radius: 0 3px 3px 0;
+}
+
+.s3-cors-warnings h4 {
+    color: #dba617;
+    border-bottom-color: #dba617;
+}
+
+/* CORS Setup Modal */
+#s3CORSSetupModal .s3-modal {
+    max-width: 500px;
+}
+
+.s3-cors-setup-content {
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.s3-cors-setup-details {
+    background: #f8f9fa;
+    border: 1px solid #e5e5e5;
+    border-radius: 3px;
+    padding: 12px;
+    margin: 12px 0;
+}
+
+.s3-cors-setup-details h4 {
+    margin: 0 0 8px 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: #23282d;
+}
+
+.s3-cors-setup-details ul {
+    margin: 0;
+    padding-left: 20px;
+}
+
+.s3-cors-setup-details li {
+    margin-bottom: 4px;
+    font-size: 12px;
+}
+
+.s3-cors-setup-warning {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    border-radius: 3px;
+    padding: 12px;
+    margin: 12px 0;
+}
+
+.s3-cors-setup-warning p {
+    margin: 0;
+    font-size: 13px;
+    color: #856404;
+}
+
+/* Responsive adjustments */
+@media screen and (max-width: 782px) {
+    .s3-cors-info,
+    .s3-cors-setup {
+        margin: 2px;
+        padding: 4px 8px;
+    }
+
+    .s3-cors-table td:first-child {
+        width: 40%;
+        font-size: 12px;
+    }
+
+    .s3-cors-table td:last-child {
+        font-size: 12px;
+    }
+
+    #s3CORSInfoModal .s3-modal,
+    #s3CORSSetupModal .s3-modal {
+        max-width: 95vw;
+        margin: 10px;
+    }
+}
