@@ -298,14 +298,17 @@ trait ContentRendering {
 		?>
         <div class="s3-upload-wrapper">
             <div class="s3-toolbar-buttons">
-                <button type="button" id="s3-toggle-upload" class="button button-primary s3-icon-button">
-                    <span class="dashicons dashicons-upload"></span> <?php esc_html_e( 'Upload Files', 'arraypress' ); ?>
+                <!-- Use WordPress native button classes -->
+                <button type="button" id="s3-toggle-upload" class="button button-primary">
+                    <span class="dashicons dashicons-upload"></span>
+					<?php esc_html_e( 'Upload Files', 'arraypress' ); ?>
                 </button>
 
-                <button type="button" id="s3-create-folder" class="button s3-icon-button"
+                <button type="button" id="s3-create-folder" class="button button-secondary"
                         data-bucket="<?php echo esc_attr( $bucket ); ?>"
                         data-prefix="<?php echo esc_attr( $prefix ); ?>">
-                    <span class="dashicons dashicons-plus-alt"></span> <?php esc_html_e( 'New Folder', 'arraypress' ); ?>
+                    <span class="dashicons dashicons-plus-alt"></span>
+					<?php esc_html_e( 'New Folder', 'arraypress' ); ?>
                 </button>
             </div>
 
@@ -324,8 +327,10 @@ trait ContentRendering {
                         <p><?php esc_html_e( 'Drop files to upload', 'arraypress' ); ?></p>
                         <p class="s3-upload-or"><?php esc_html_e( 'or', 'arraypress' ); ?></p>
                         <input type="file" multiple class="s3-file-input" id="s3FileUpload">
-                        <label for="s3FileUpload"
-                               class="button"><?php esc_html_e( 'Select Files', 'arraypress' ); ?></label>
+                        <!-- WordPress native button styling -->
+                        <label for="s3FileUpload" class="button button-secondary">
+							<?php esc_html_e( 'Select Files', 'arraypress' ); ?>
+                        </label>
                     </div>
                 </div>
                 <div class="s3-upload-list"></div>

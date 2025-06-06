@@ -303,9 +303,9 @@ class Objects extends WP_List_Table {
 	public function column_actions( array $item ): string {
 		if ( $item['type'] === 'file' ) {
 			return sprintf(
-				'<button type="button" class="button button-primary s3-icon-button s3-insert-file" data-filename="%s" data-bucket="%s" data-key="%s" title="%s">
-					<span class="dashicons dashicons-insert"></span> %s
-				</button>',
+				'<button type="button" class="button button-primary s3-insert-file" data-filename="%s" data-bucket="%s" data-key="%s" title="%s">
+                <span class="dashicons dashicons-insert"></span> %s
+            </button>',
 				esc_attr( $item['name'] ),
 				esc_attr( $this->bucket ),
 				esc_attr( $item['key'] ),
@@ -314,9 +314,9 @@ class Objects extends WP_List_Table {
 			);
 		} elseif ( $item['type'] === 'folder' ) {
 			return sprintf(
-				'<button type="button" class="button button-secondary s3-icon-button s3-open-folder" data-prefix="%s" data-bucket="%s" data-folder-name="%s" title="%s">
-					<span class="dashicons dashicons-portfolio"></span> %s
-				</button>',
+				'<button type="button" class="button button-secondary s3-open-folder" data-prefix="%s" data-bucket="%s" data-folder-name="%s" title="%s">
+                <span class="dashicons dashicons-portfolio"></span> %s
+            </button>',
 				esc_attr( $item['prefix'] ),
 				esc_attr( $this->bucket ),
 				esc_attr( $item['name'] ),
@@ -325,7 +325,6 @@ class Objects extends WP_List_Table {
 			);
 		}
 
-		// Return empty for other types
 		return '';
 	}
 
@@ -386,20 +385,22 @@ class Objects extends WP_List_Table {
 			<?php if ( $which === 'top' ): ?>
                 <div class="s3-top-nav">
                     <div class="s3-search-container">
-                        <input type="search" id="s3-js-search"
+                        <!-- WordPress native search input styling -->
+                        <input type="search" id="s3-js-search" class="wp-filter-search"
                                placeholder="<?php esc_attr_e( 'Search files and folders...', 'arraypress' ); ?>"
                                autocomplete="off"/>
-                        <button type="button" id="s3-js-search-clear" class="button" style="display: none;">
+                        <button type="button" id="s3-js-search-clear" class="button button-secondary" style="display: none;">
 							<?php esc_html_e( 'Clear', 'arraypress' ); ?>
                         </button>
                         <span class="s3-search-stats"></span>
                     </div>
                     <div class="s3-actions-container">
 						<?php
+						// WordPress native button styling
 						printf(
-							'<button type="button" class="button s3-icon-button s3-refresh-button" data-type="objects" data-bucket="%s" data-prefix="%s" data-provider="%s">
-                            <span class="dashicons dashicons-update"></span> %s
-                        </button>',
+							'<button type="button" class="button button-secondary s3-refresh-button" data-type="objects" data-bucket="%s" data-prefix="%s" data-provider="%s">
+                        <span class="dashicons dashicons-update"></span> %s
+                    </button>',
 							esc_attr( $this->bucket ),
 							esc_attr( $this->prefix ),
 							esc_attr( $this->provider_id ),
@@ -410,34 +411,35 @@ class Objects extends WP_List_Table {
                 </div>
 			<?php else: ?>
                 <div class="tablenav-pages">
-                    <span class="displaying-num" id="s3-total-count">
-                        <?php
-                        $count    = count( $this->items );
-                        $has_more = isset( $this->_pagination_args['continuation_token'] ) && $this->_pagination_args['continuation_token'];
+                <span class="displaying-num" id="s3-total-count">
+                    <?php
+                    $count    = count( $this->items );
+                    $has_more = isset( $this->_pagination_args['continuation_token'] ) && $this->_pagination_args['continuation_token'];
 
-                        echo esc_html( sprintf(
-	                        _n( '%s item', '%s items', $count, 'arraypress' ),
-	                        number_format_i18n( $count )
-                        ) );
+                    echo esc_html( sprintf(
+	                    _n( '%s item', '%s items', $count, 'arraypress' ),
+	                    number_format_i18n( $count )
+                    ) );
 
-                        if ( $has_more ) {
-	                        echo esc_html__( ' (more available)', 'arraypress' );
-                        }
-                        ?>
-                    </span>
+                    if ( $has_more ) {
+	                    echo esc_html__( ' (more available)', 'arraypress' );
+                    }
+                    ?>
+                </span>
 					<?php if ( isset( $this->_pagination_args['continuation_token'] ) && $this->_pagination_args['continuation_token'] ): ?>
                         <span class="pagination-links">
-                            <button type="button" id="s3-load-more" class="button button-secondary s3-icon-button"
-                                    data-token="<?php echo esc_attr( $this->_pagination_args['continuation_token'] ); ?>"
-                                    data-bucket="<?php echo esc_attr( $this->bucket ); ?>"
-                                    data-prefix="<?php echo esc_attr( $this->prefix ); ?>"
-                                    data-provider="<?php echo esc_attr( $this->provider_id ); ?>">
-                                <span class="dashicons dashicons-update"></span>
-                                <span class="s3-button-text"><?php esc_html_e( 'Load More Items', 'arraypress' ); ?></span>
-                                <span class="spinner" style="display: none;"></span>
-                            </button>
-                            <span class="s3-load-status"></span>
-                        </span>
+                        <!-- WordPress native load more button -->
+                        <button type="button" id="s3-load-more" class="button button-secondary"
+                                data-token="<?php echo esc_attr( $this->_pagination_args['continuation_token'] ); ?>"
+                                data-bucket="<?php echo esc_attr( $this->bucket ); ?>"
+                                data-prefix="<?php echo esc_attr( $this->prefix ); ?>"
+                                data-provider="<?php echo esc_attr( $this->provider_id ); ?>">
+                            <span class="dashicons dashicons-update"></span>
+                            <span class="s3-button-text"><?php esc_html_e( 'Load More Items', 'arraypress' ); ?></span>
+                            <span class="spinner" style="display: none;"></span>
+                        </button>
+                        <span class="s3-load-status"></span>
+                    </span>
 					<?php endif; ?>
                 </div>
 			<?php endif; ?>

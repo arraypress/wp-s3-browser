@@ -135,7 +135,7 @@ class Buckets extends WP_List_Table {
 		// Get current user ID
 		$user_id = get_current_user_id();
 
-		// Check if this bucket is a favorite using straightforward meta-check
+		// Check if this bucket is a favorite
 		$meta_key        = "s3_favorite_{$this->provider_id}_{$post_type}";
 		$favorite_bucket = get_user_meta( $user_id, $meta_key, true );
 		$is_favorite     = ( $favorite_bucket === $bucket );
@@ -197,10 +197,11 @@ class Buckets extends WP_List_Table {
                 <div class="s3-top-nav">
                     <div class="s3-actions-container">
 						<?php
+						// Use WordPress native button classes
 						printf(
-							'<button type="button" class="button s3-icon-button s3-refresh-button" data-type="buckets" data-provider="%s">
-							<span class="dashicons dashicons-update"></span>%s
-						</button>',
+							'<button type="button" class="button button-secondary s3-refresh-button" data-type="buckets" data-provider="%s">
+                        <span class="dashicons dashicons-update"></span> %s
+                    </button>',
 							esc_attr( $this->provider_id ),
 							esc_html__( 'Refresh', 'arraypress' )
 						);
@@ -208,34 +209,35 @@ class Buckets extends WP_List_Table {
                     </div>
                 </div>
 			<?php else: ?>
-                <!-- Bottom navigation matching WordPress standard structure -->
+                <!-- Bottom navigation with WordPress styling -->
                 <div class="tablenav-pages">
-					<span class="displaying-num">
-						<?php
-						$count = count( $this->items );
-						echo esc_html( sprintf(
-							_n( '%s bucket', '%s buckets', $count, 'arraypress' ),
-							number_format_i18n( $count )
-						) );
-						?>
-					</span>
+                <span class="displaying-num">
+                    <?php
+                    $count = count( $this->items );
+                    echo esc_html( sprintf(
+	                    _n( '%s bucket', '%s buckets', $count, 'arraypress' ),
+	                    number_format_i18n( $count )
+                    ) );
+                    ?>
+                </span>
 					<?php if ( isset( $this->_pagination_args['marker'] ) && ! empty( $this->_pagination_args['marker'] ) ): ?>
                         <span class="pagination-links">
-							<?php
-							$marker  = $this->_pagination_args['marker'];
-							$post_id = isset( $_GET['post_id'] ) ? intval( $_GET['post_id'] ) : 0;
-							$url     = add_query_arg( [
-								'chromeless' => 1,
-								'post_id'    => $post_id,
-								'tab'        => 's3_' . $this->provider_id,
-								'view'       => 'buckets',
-								'marker'     => urlencode( $marker )
-							] );
-							?>
-							<a class="next-page button s3-icon-button" href="<?php echo esc_url( $url ); ?>">
-								<?php esc_html_e( 'Next Page', 'arraypress' ); ?> &raquo;
-							</a>
-						</span>
+                        <?php
+                        $marker  = $this->_pagination_args['marker'];
+                        $post_id = isset( $_GET['post_id'] ) ? intval( $_GET['post_id'] ) : 0;
+                        $url     = add_query_arg( [
+	                        'chromeless' => 1,
+	                        'post_id'    => $post_id,
+	                        'tab'        => 's3_' . $this->provider_id,
+	                        'view'       => 'buckets',
+	                        'marker'     => urlencode( $marker )
+                        ] );
+                        ?>
+                        <!-- WordPress native pagination button -->
+                        <a class="button button-secondary" href="<?php echo esc_url( $url ); ?>">
+                            <?php esc_html_e( 'Next Page', 'arraypress' ); ?> &raquo;
+                        </a>
+                    </span>
 					<?php endif; ?>
                 </div>
 			<?php endif; ?>
@@ -243,6 +245,7 @@ class Buckets extends WP_List_Table {
         </div>
 		<?php
 	}
+
 
 	/**
 	 * No items found text

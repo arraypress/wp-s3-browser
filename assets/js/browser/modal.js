@@ -18,8 +18,7 @@
             // Build buttons HTML
             var buttonsHtml = '';
             buttons.forEach(function (button) {
-                var classes = 'button ' + (button.classes || '');
-                buttonsHtml += '<button type="button" class="' + classes + '" data-action="' + button.action + '">' +
+                buttonsHtml += '<button type="button" class="button ' + (button.classes || 'button-secondary') + '" data-action="' + button.action + '">' +
                     button.text + '</button>';
             });
 
