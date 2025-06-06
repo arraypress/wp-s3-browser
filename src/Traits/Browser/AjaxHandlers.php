@@ -727,7 +727,7 @@ trait AjaxHandlers {
 
 			foreach ( $buckets as $bucket_model ) {
 				if ( $bucket_model->get_name() === $bucket ) {
-					$info['created'] = $bucket_model->get_formatted_date();
+					$info['created'] = $bucket_model->get_creation_date( true );
 					break;
 				}
 			}
