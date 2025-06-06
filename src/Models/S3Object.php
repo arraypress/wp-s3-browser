@@ -239,6 +239,30 @@ class S3Object {
 	}
 
 	/**
+	 * Get dashicon class for this file type
+	 *
+	 * @return string Dashicon class
+	 */
+	public function get_dashicon_class(): string {
+		$category = $this->get_category();
+
+		switch ( $category ) {
+			case 'image':
+				return 'dashicons-format-image';
+			case 'video':
+				return 'dashicons-media-video';
+			case 'audio':
+				return 'dashicons-media-audio';
+			case 'document':
+				return 'dashicons-media-document';
+			case 'archive':
+				return 'dashicons-media-archive';
+			default:
+				return 'dashicons-media-default';
+		}
+	}
+
+	/**
 	 * Get presigned URL for this object
 	 *
 	 * @param Client $client  S3 Client
