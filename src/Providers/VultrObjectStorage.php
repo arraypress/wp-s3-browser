@@ -104,7 +104,7 @@ class VultrObjectStorage extends Provider {
 				'Invalid region "%s" for provider "%s". Available regions: %s',
 				$this->region,
 				$this->get_label(),
-				$this->get_region_codes_list()
+				implode( ', ', array_keys( $this->regions ) )
 			) );
 		}
 
@@ -147,4 +147,5 @@ class VultrObjectStorage extends Provider {
 		// For object operations, use '/bucket/object'
 		return '/' . $bucket . '/' . ltrim( $object_key, '/' );
 	}
+
 }

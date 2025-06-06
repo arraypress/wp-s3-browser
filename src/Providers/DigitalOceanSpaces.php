@@ -148,7 +148,7 @@ class DigitalOceanSpaces extends Provider {
 		// Handle CDN URLs: bucket.region.cdn.digitaloceanspaces.com
 		if ( str_contains( $endpoint, '.cdn.digitaloceanspaces.com' ) ) {
 			$pattern = '/^[^.]+\.' . preg_quote( $endpoint, '/' ) . '/';
-			return preg_match( $pattern, $url_without_protocol );
+			return (bool) preg_match( $pattern, $url_without_protocol );
 		}
 
 		// Use parent logic for standard endpoints and custom CDN domains

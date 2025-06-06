@@ -135,7 +135,7 @@ class WasabiStorage extends Provider {
 				'Invalid region "%s" for provider "%s". Available regions: %s',
 				$this->region,
 				$this->get_label(),
-				$this->get_region_codes_list()
+				implode( ', ', array_keys( $this->regions ) )
 			) );
 		}
 

@@ -191,7 +191,7 @@ class CloudflareR2 extends Provider {
 			// Parse R2 public domains: bucket.account-id.r2.dev/object
 			$r2_public_pattern = '/^([^.]+)\.' . preg_quote( $account_id, '/' ) . '\.r2\.dev(?:\/(.*))?$/';
 
-			if ( (bool) preg_match( $r2_public_pattern, $url_without_protocol, $matches ) ) {
+			if ( preg_match( $r2_public_pattern, $url_without_protocol, $matches ) ) {
 				return [
 					'bucket' => $matches[1],
 					'object' => isset( $matches[2] ) ? $matches[2] : ''

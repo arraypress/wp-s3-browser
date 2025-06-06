@@ -176,21 +176,19 @@ class LinodeObjectStorage extends Provider {
 				'Invalid region "%s" for provider "%s". Available regions: %s',
 				$this->region,
 				$this->get_label(),
-				$this->get_region_codes_list()
+				implode( ', ', array_keys( $this->regions ) )
 			) );
 		}
 
 		// Get the endpoint for the selected region
-		$endpoint = $this->get_current_region_attribute( 'endpoint', '' );
-
-		if ( empty( $endpoint ) ) {
+		if ( ! isset( $this->regions[ $this->region ]['endpoint'] ) ) {
 			throw new InvalidArgumentException( sprintf(
 				'No endpoint found for region "%s"',
 				$this->region
 			) );
 		}
 
-		return $endpoint;
+		return $this->regions[ $this->region ]['endpoint'];
 	}
 
 	/**

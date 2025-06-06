@@ -167,7 +167,7 @@ class BackblazeB2 extends Provider {
 			// Parse Backblaze download URLs: f{accountId}.backblazeb2.com/file/bucket/object
 			$download_pattern = '/^f' . preg_quote( $account_id, '/' ) . '\.backblazeb2\.com\/file\/([^\/]+)\/(.*)$/';
 
-			if ( preg_match( $download_pattern, $url_without_protocol, $matches ) ) {
+			if ( (bool) preg_match( $download_pattern, $url_without_protocol, $matches ) ) {
 				return [
 					'bucket' => $matches[1],
 					'object' => $matches[2]
