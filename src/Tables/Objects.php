@@ -161,7 +161,6 @@ class Objects extends WP_List_Table {
 
 		if ( is_wp_error( $result ) ) {
 			$this->items = [];
-
 			return;
 		}
 
@@ -181,14 +180,14 @@ class Objects extends WP_List_Table {
 			];
 		}
 
-		// Add files
+		// Add files with consolidated method calls
 		foreach ( $objects as $object ) {
 			$items[] = [
 				'type'     => 'file',
 				'name'     => $object->get_filename(),
 				'key'      => $object->get_key(),
-				'size'     => $object->get_formatted_size(),
-				'modified' => $object->get_formatted_date(),
+				'size'     => $object->get_size( true ), // Use consolidated method with formatting
+				'modified' => $object->get_last_modified( true, 'M j, Y g:i A' ), // Use consolidated method with custom format
 				'mime'     => $object->get_mime_type(),
 				'object'   => $object,
 			];
@@ -220,8 +219,48 @@ class Objects extends WP_List_Table {
 			return '<span class="s3-type-folder">' . esc_html__( 'Folder', 'arraypress' ) . '</span>';
 		}
 
-		// For files, show the MIME type
-		return '<span class="s3-type-file" title="' . esc_attr( $item['mime'] ) . '">' . esc_html( $item['mime'] ) . '</span>';
+		// For files, show the category instead of raw MIME type for better UX
+		$category = $item['object']->get_category();
+		$category_display = ucfirst( $category ); // image -> Image, video -> Video, etc.
+
+		return sprintf(
+			'<span class="s3-type-file s3-category-%s" title="%s">%s</span>',
+			esc_attr( $category ),
+			esc_attr( $item['mime'] ), // Keep MIME in tooltip
+			esc_html( $category_display )
+		);
+	}
+
+	/**
+	 * Render the modified column with relative time
+	 *
+	 * @param array $item Item data
+	 *
+	 * @return string Column HTML
+	 */
+	public function column_modified( array $item ): string {
+		if ( $item['type'] === 'folder' || $item['modified'] === '-' ) {
+			return '<span class="s3-no-date">-</span>';
+		}
+
+		// Get the object and add relative time
+		$object = $item['object'];
+		$formatted_date = $item['modified']; // Already formatted in prepare_items
+		$raw_date = $object->get_last_modified(); // Get raw timestamp
+
+		// Add relative time if we have a valid date
+		$relative_time = '';
+		if ( ! empty( $raw_date ) ) {
+			$timestamp = strtotime( $raw_date );
+			if ( $timestamp ) {
+				$relative_time = sprintf(
+					'<br><small class="description">%s</small>',
+					esc_html( human_time_diff( $timestamp ) . ' ago' )
+				);
+			}
+		}
+
+		return $formatted_date . $relative_time;
 	}
 
 	/**
@@ -358,7 +397,7 @@ class Objects extends WP_List_Table {
 				esc_html( $item['name'] )
 			);
 		} else {
-			$icon_class      = $item['object']->get_dashicon_class();
+			$icon_class = $item['object']->get_dashicon_class();
 
 			$primary_content = sprintf(
 				'<span class="dashicons %s"></span> <span class="s3-filename" data-original-name="%s" %s><strong>%s</strong></span>',
@@ -510,7 +549,7 @@ class Objects extends WP_List_Table {
 		$output .= '<td class="column-name has-row-actions">' . $this->column_name( $item ) . '</td>';
 		$output .= '<td class="column-type">' . $this->column_type( $item ) . '</td>';
 		$output .= '<td class="column-size">' . esc_html( $item['size'] ) . '</td>';
-		$output .= '<td class="column-modified">' . esc_html( $item['modified'] ) . '</td>';
+		$output .= '<td class="column-modified">' . $this->column_modified( $item ) . '</td>';
 		$output .= '<td class="column-actions">' . $this->column_actions( $item ) . '</td>';
 		$output .= '</tr>';
 

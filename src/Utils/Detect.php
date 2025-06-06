@@ -1,8 +1,8 @@
 <?php
 /**
- * Enhanced Detect Utility Class
+ * Detect Utility Class
  *
- * Handles detection and checking of S3 path properties with additional URL utilities.
+ * Handles detection and validation of S3 path properties.
  *
  * @package     ArrayPress\S3\Utils
  * @copyright   Copyright (c) 2025, ArrayPress Limited
@@ -20,12 +20,16 @@ use ArrayPress\S3\Abstracts\Provider;
 /**
  * Class Detect
  *
- * Enhanced detection and checking of S3 path properties
+ * Handles detection and validation of S3 path properties
  */
 class Detect {
 
 	/**
 	 * Check if a path looks like an S3 path
+	 *
+	 * Validates paths in the following formats:
+	 * - s3://bucket/object.ext
+	 * - bucket/object.ext
 	 *
 	 * @param string $path Path to check
 	 *
@@ -38,9 +42,9 @@ class Detect {
 			return false;
 		}
 
-		// Has s3:// protocol
+		// Strip s3:// protocol if present
 		if ( str_starts_with( $path, 's3://' ) ) {
-			return self::path_has_file_extension( $path );
+			$path = substr( $path, 5 );
 		}
 
 		// Must contain at least one slash for bucket/object format
@@ -54,7 +58,9 @@ class Detect {
 		}
 
 		// Must have file extension
-		return self::path_has_file_extension( $path );
+		$filename = basename( $path );
+
+		return ! empty( pathinfo( $filename, PATHINFO_EXTENSION ) );
 	}
 
 	/**
@@ -110,6 +116,9 @@ class Detect {
 	/**
 	 * Check if a path is S3-compatible OR belongs to a provider
 	 *
+	 * This is the main method used by WooCommerce integration to determine
+	 * if a file path should be handled by S3 logic.
+	 *
 	 * @param string        $path     Path to check
 	 * @param Provider|null $provider Optional provider instance
 	 *
@@ -127,53 +136,6 @@ class Detect {
 		}
 
 		return false;
-	}
-
-	/**
-	 * Check if a path looks like it should be S3 but isn't valid
-	 * Useful for validation warnings
-	 *
-	 * @param string $path Path to check
-	 *
-	 * @return bool
-	 */
-	public static function is_invalid_s3_like_path( string $path ): bool {
-		// Skip normal URLs and filesystem paths
-		if ( self::is_normal_url( $path ) || self::is_filesystem_path( $path ) ) {
-			return false;
-		}
-
-		// Has slash (looks like path structure) but isn't a valid S3 path
-		return strpos( $path, '/' ) !== false && ! self::is_s3_path( $path );
-	}
-
-	/**
-	 * Check if a path has a file extension
-	 *
-	 * @param string $path Full path to check
-	 *
-	 * @return bool
-	 */
-	public static function path_has_file_extension( string $path ): bool {
-		$parsed = Parse::path( $path );
-
-		if ( ! $parsed ) {
-			// If parsing fails, check the path directly
-			return File::has_extension( basename( $path ) );
-		}
-
-		return File::has_extension( $parsed['object'] );
-	}
-
-	/**
-	 * Check if an object key represents a file (has extension)
-	 *
-	 * @param string $object Object key
-	 *
-	 * @return bool
-	 */
-	public static function is_file( string $object ): bool {
-		return File::has_extension( $object );
 	}
 
 }

@@ -23,17 +23,6 @@ namespace ArrayPress\S3\Utils;
 class Directory {
 
 	/**
-	 * Get a directory path from an object key
-	 *
-	 * @param string $object_key Object key
-	 *
-	 * @return string Directory path
-	 */
-	public static function path( string $object_key ): string {
-		return dirname( $object_key );
-	}
-
-	/**
 	 * Get folder name from prefix
 	 *
 	 * @param string $prefix Prefix (folder path)
@@ -113,17 +102,6 @@ class Directory {
 		}
 
 		return $prefix;
-	}
-
-	/**
-	 * Check if a path is a directory/folder (ends with slash)
-	 *
-	 * @param string $path Path to check
-	 *
-	 * @return bool True if the path is a directory
-	 */
-	public static function is_directory( string $path ): bool {
-		return str_ends_with( $path, '/' );
 	}
 
 	/**

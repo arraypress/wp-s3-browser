@@ -64,10 +64,17 @@ class S3Bucket {
 	/**
 	 * Get creation date
 	 *
-	 * @return string
+	 * @param bool   $formatted Whether to return formatted date or raw timestamp
+	 * @param string $format    PHP date format for formatted output
+	 *
+	 * @return string Raw timestamp or formatted date
 	 */
-	public function get_creation_date(): string {
-		return $this->creation_date;
+	public function get_creation_date( bool $formatted = false, string $format = 'Y-m-d H:i:s' ): string {
+		if ( ! $formatted ) {
+			return $this->creation_date;
+		}
+
+		return empty( $this->creation_date ) ? '' : date( $format, strtotime( $this->creation_date ) );
 	}
 
 	/**
@@ -77,17 +84,6 @@ class S3Bucket {
 	 */
 	public function get_region(): ?string {
 		return $this->region;
-	}
-
-	/**
-	 * Get a formatted creation date
-	 *
-	 * @param string $format PHP date format
-	 *
-	 * @return string
-	 */
-	public function get_formatted_date( string $format = 'Y-m-d H:i:s' ): string {
-		return empty( $this->creation_date ) ? '' : date( $format, strtotime( $this->creation_date ) );
 	}
 
 	/**
@@ -103,12 +99,10 @@ class S3Bucket {
 			return '';
 		}
 
-		// Merge provided query args with required ones
 		$args = array_merge( [
 			'bucket' => $this->name
 		], $query_args );
 
-		// Add query parameters
 		return add_query_arg( $args, $admin_url );
 	}
 
@@ -122,7 +116,7 @@ class S3Bucket {
 			'Name'          => $this->name,
 			'CreationDate'  => $this->creation_date,
 			'Region'        => $this->region,
-			'FormattedDate' => $this->get_formatted_date()
+			'FormattedDate' => $this->get_creation_date( true )
 		];
 	}
 

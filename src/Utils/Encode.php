@@ -44,15 +44,4 @@ class Encode {
 		return str_replace( '%2F', '/', rawurlencode( $decoded ) );
 	}
 
-	/**
-	 * Decode object key from URL
-	 *
-	 * @param string $encoded_key Encoded object key
-	 *
-	 * @return string Decoded object key
-	 */
-	public static function decode_object_key( string $encoded_key ): string {
-		return rawurldecode( $encoded_key );
-	}
-
 }

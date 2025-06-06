@@ -81,7 +81,7 @@ class Buckets extends WP_List_Table {
 		foreach ( $buckets as $bucket ) {
 			$items[] = [
 				'name'    => $bucket->get_name(),
-				'created' => $bucket->get_formatted_date(),
+				'created' => $bucket->get_creation_date( true, 'M j, Y g:i A' ), // Updated to use consolidated method
 				'raw'     => $bucket,
 			];
 		}
@@ -122,6 +122,29 @@ class Buckets extends WP_List_Table {
 		);
 
 		return $primary_content . $this->row_actions( $actions );
+	}
+
+	/**
+	 * Column created - Display formatted creation date with relative time
+	 */
+	public function column_created( $item ) {
+		$bucket = $item['raw']; // Get the S3Bucket model object
+		$formatted_date = $item['created']; // Already formatted in prepare_items
+		$raw_date = $bucket->get_creation_date(); // Get raw timestamp
+
+		// Add relative time if we have a valid date
+		$relative_time = '';
+		if ( ! empty( $raw_date ) ) {
+			$timestamp = strtotime( $raw_date );
+			if ( $timestamp ) {
+				$relative_time = sprintf(
+					'<br><small class="description">%s</small>',
+					esc_html( human_time_diff( $timestamp ) . ' ago' )
+				);
+			}
+		}
+
+		return $formatted_date . $relative_time;
 	}
 
 	/**
@@ -245,7 +268,6 @@ class Buckets extends WP_List_Table {
         </div>
 		<?php
 	}
-
 
 	/**
 	 * No items found text

@@ -1,8 +1,8 @@
 <?php
 /**
- * S3 Object Model - Simplified Edition
+ * S3 Object Model - Streamlined Edition
  *
- * Represents an S3 object with streamlined checksum handling.
+ * Represents an S3 object with consolidated methods for better performance.
  *
  * @package     ArrayPress\S3\Models
  * @copyright   Copyright (c) 2025, ArrayPress Limited
@@ -99,42 +99,30 @@ class S3Object {
 	}
 
 	/**
-	 * Get object size in bytes
+	 * Get object size
 	 *
-	 * @return int
+	 * @param bool $formatted Whether to return formatted size or raw bytes
+	 * @param int  $precision Number of decimal places for formatted size
+	 *
+	 * @return string|int Formatted size string or raw bytes
 	 */
-	public function get_size(): int {
-		return $this->size;
-	}
-
-	/**
-	 * Get formatted size
-	 *
-	 * @param int $precision Number of decimal places
-	 *
-	 * @return string
-	 */
-	public function get_formatted_size( int $precision = 2 ): string {
-		return size_format( $this->size, $precision );
+	public function get_size( bool $formatted = false, int $precision = 2 ) {
+		return $formatted ? size_format( $this->size, $precision ) : $this->size;
 	}
 
 	/**
 	 * Get last modified date
 	 *
-	 * @return string
+	 * @param bool   $formatted Whether to return formatted date or raw timestamp
+	 * @param string $format    PHP date format for formatted output
+	 *
+	 * @return string Raw timestamp or formatted date
 	 */
-	public function get_last_modified(): string {
-		return $this->last_modified;
-	}
+	public function get_last_modified( bool $formatted = false, string $format = 'Y-m-d H:i:s' ): string {
+		if ( ! $formatted ) {
+			return $this->last_modified;
+		}
 
-	/**
-	 * Get formatted last modified date
-	 *
-	 * @param string $format PHP date format
-	 *
-	 * @return string
-	 */
-	public function get_formatted_date( string $format = 'Y-m-d H:i:s' ): string {
 		return empty( $this->last_modified ) ? '' : date( $format, strtotime( $this->last_modified ) );
 	}
 
@@ -160,12 +148,10 @@ class S3Object {
 		// For multipart uploads, return the composite hash part
 		if ( $this->is_multipart() ) {
 			$parts = explode( '-', $this->etag );
-
-			return $parts[0] ?? null; // The hash portion before the dash
+			return $parts[0] ?? null;
 		}
 
 		// For single-part uploads, ETag IS the MD5 (unless encrypted)
-		// Note: This may not be reliable if server-side encryption was used
 		return $this->etag;
 	}
 
@@ -204,7 +190,6 @@ class S3Object {
 			return null;
 		}
 
-		// Extract parts count from ETag like "hash-2"
 		$parts = explode( '-', $this->etag );
 		if ( count( $parts ) === 2 && is_numeric( $parts[1] ) ) {
 			return [
@@ -227,12 +212,12 @@ class S3Object {
 	}
 
 	/**
-	 * Get file type description
+	 * Get file category (image, video, audio, document, archive, other)
 	 *
 	 * @return string
 	 */
-	public function get_file_type(): string {
-		return File::type( $this->get_filename() );
+	public function get_category(): string {
+		return File::category( $this->get_filename() );
 	}
 
 	/**
@@ -245,105 +230,12 @@ class S3Object {
 	}
 
 	/**
-	 * Get file category (image, video, audio, document, archive, other)
-	 *
-	 * @return string
-	 */
-	public function get_category(): string {
-		return File::category( $this->get_filename() );
-	}
-
-	/**
-	 * Check if object is an image
-	 *
-	 * @return bool
-	 */
-	public function is_image(): bool {
-		return File::is_image( $this->get_filename() );
-	}
-
-	/**
-	 * Check if object is a video
-	 *
-	 * @return bool
-	 */
-	public function is_video(): bool {
-		return File::is_video( $this->get_filename() );
-	}
-
-	/**
-	 * Check if object is audio
-	 *
-	 * @return bool
-	 */
-	public function is_audio(): bool {
-		return File::is_audio( $this->get_filename() );
-	}
-
-	/**
-	 * Check if object is a document
-	 *
-	 * @return bool
-	 */
-	public function is_document(): bool {
-		return File::is_document( $this->get_filename() );
-	}
-
-	/**
 	 * Check if file type is allowed by WordPress
 	 *
 	 * @return bool
 	 */
 	public function is_allowed_type(): bool {
 		return File::is_allowed_type( $this->get_filename() );
-	}
-
-	/**
-	 * Get dashicon class for this file type
-	 *
-	 * @return string Dashicon class
-	 */
-	public function get_dashicon_class(): string {
-		$category = $this->get_category();
-
-		switch ( $category ) {
-			case 'image':
-				return 'dashicons-format-image';
-			case 'video':
-				return 'dashicons-media-video';
-			case 'audio':
-				return 'dashicons-media-audio';
-			case 'document':
-				return 'dashicons-media-document';
-			case 'archive':
-				return 'dashicons-media-archive';
-			default:
-				return 'dashicons-media-default';
-		}
-	}
-
-	/**
-	 * Get CSS class for icon styling
-	 *
-	 * @return string CSS class
-	 */
-	public function get_icon_class(): string {
-		$category = $this->get_category();
-
-		switch ( $category ) {
-			case 'image':
-				return 's3-image-icon';
-			case 'video':
-				return 's3-video-icon';
-			case 'audio':
-				return 's3-audio-icon';
-			case 'document':
-				return 's3-document-icon';
-			case 'archive':
-				return 's3-archive-icon';
-			default:
-				return '';
-		}
 	}
 
 	/**
@@ -382,25 +274,17 @@ class S3Object {
 			return '';
 		}
 
-		// Merge provided query args with required ones
 		$args = array_merge( [
 			'bucket' => $bucket,
 			'object' => $this->key,
 			'action' => 'view'
 		], $query_args );
 
-		// Add query parameters
 		return add_query_arg( $args, $admin_url );
 	}
 
 	/**
 	 * Check if this object should be excluded from display
-	 *
-	 * An object should be excluded if:
-	 * - It has an empty key
-	 * - It has a zero size (empty file), unless it's the current prefix
-	 * - It's a system/hidden file like .DS_Store
-	 * - It ends with '/' (folder marker)
 	 *
 	 * @param string $current_prefix The current prefix/path being browsed
 	 *
@@ -449,7 +333,6 @@ class S3Object {
 			'$RECYCLE.BIN'
 		];
 
-		// Make hidden files list filterable
 		$hidden_files = apply_filters( 's3_object_hidden_files', $hidden_files, $this->key, $current_prefix );
 
 		if ( in_array( $filename, $hidden_files, true ) ) {
@@ -473,10 +356,10 @@ class S3Object {
 		$data_attrs = [
 			'data-filename'           => esc_attr( $this->get_filename() ),
 			'data-key'                => esc_attr( $this->get_key() ),
-			'data-size-bytes'         => $this->get_size(),
-			'data-size-formatted'     => esc_attr( $this->get_formatted_size() ),
-			'data-modified'           => esc_attr( $this->get_last_modified() ),
-			'data-modified-formatted' => esc_attr( $this->get_formatted_date() ),
+			'data-size-bytes'         => $this->get_size(), // Raw bytes
+			'data-size-formatted'     => esc_attr( $this->get_size( true ) ), // Formatted
+			'data-modified'           => esc_attr( $this->get_last_modified() ), // Raw
+			'data-modified-formatted' => esc_attr( $this->get_last_modified( true ) ), // Formatted
 			'data-etag'               => esc_attr( $this->get_etag() ),
 			'data-md5'                => esc_attr( $this->get_md5_checksum() ?: '' ),
 			'data-is-multipart'       => $this->is_multipart() ? 'true' : 'false',
@@ -508,12 +391,11 @@ class S3Object {
 			'Key'           => $this->key,
 			'Filename'      => $this->get_filename(),
 			'LastModified'  => $this->last_modified,
-			'FormattedDate' => $this->get_formatted_date(),
+			'FormattedDate' => $this->get_last_modified( true ),
 			'ETag'          => $this->etag,
 			'Size'          => $this->size,
-			'FormattedSize' => $this->get_formatted_size(),
+			'FormattedSize' => $this->get_size( true ),
 			'StorageClass'  => $this->storage_class,
-			'Type'          => $this->get_file_type(),
 			'MimeType'      => $this->get_mime_type(),
 			'Category'      => $this->get_category(),
 			'IsMultipart'   => $this->is_multipart(),

@@ -202,7 +202,7 @@ trait AjaxHandlers {
 		}
 
 		// Validate the new filename
-		$validation_result = Validate::filename_comprehensive( $new_filename );
+		$validation_result = Validate::filename( $new_filename );
 		if ( ! $validation_result['valid'] ) {
 			wp_send_json_error( [ 'message' => $validation_result['message'] ] );
 
@@ -578,7 +578,7 @@ trait AjaxHandlers {
 			return;
 		}
 
-		$validation_result = Validate::folder_comprehensive( $folder_name );
+		$validation_result = Validate::folder_name( $folder_name );
 		if ( ! $validation_result['valid'] ) {
 			wp_send_json_error( [ 'message' => $validation_result['message'] ] );
 
