@@ -1166,6 +1166,103 @@
 }
 
 /* =============================================================================
+   BUCKET DETAILS MODAL - CSS CLASSES TO REPLACE INLINE STYLES
+   ============================================================================= */
+
+/* Status indicators */
+.s3-status-success {
+    color: #00a32a;
+    font-weight: 600;
+}
+
+.s3-status-error {
+    color: #d63638;
+    font-weight: 600;
+}
+
+.s3-status-warning {
+    color: #dba617;
+    font-weight: 600;
+}
+
+/* CORS setup content */
+.s3-cors-setup-content {
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.s3-cors-setup-details {
+    background: #f8f9fa;
+    border: 1px solid #e5e5e5;
+    border-radius: 3px;
+    padding: 12px;
+    margin: 12px 0;
+}
+
+.s3-cors-setup-details h4 {
+    margin: 0 0 8px 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: #23282d;
+}
+
+.s3-cors-config-textarea {
+    width: 100%;
+    height: 140px;
+    font-family: Consolas, Monaco, monospace;
+    font-size: 12px;
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    padding: 10px;
+    resize: vertical;
+    box-sizing: border-box;
+}
+
+.s3-cors-rule-list {
+    margin: 8px 0;
+    padding-left: 20px;
+}
+
+.s3-cors-rule-list li {
+    margin-bottom: 4px;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.s3-cors-setup-warning {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    border-radius: 3px;
+    padding: 12px;
+    margin: 12px 0;
+}
+
+.s3-cors-setup-warning p {
+    margin: 0;
+    font-size: 13px;
+    color: #856404;
+}
+
+/* Recommendations list */
+.s3-recommendations-list {
+    margin: 8px 0;
+    padding-left: 20px;
+}
+
+.s3-recommendations-list li {
+    margin-bottom: 4px;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+/* Bucket details content */
+.s3-bucket-details-content {
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+/* =============================================================================
    ANIMATIONS & KEYFRAMES (simplified - removed redundant ones)
    ============================================================================= */
 

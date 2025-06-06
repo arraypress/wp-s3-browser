@@ -273,6 +273,7 @@ trait Assets {
 				'chooseFiles'    => __( 'Choose Files', 'arraypress' ),
 				'waitForUploads' => __( 'Please wait for uploads to complete before closing', 'arraypress' ),
 				'cancel'         => __( 'Cancel', 'arraypress' ),
+				'close'              => __( 'Close', 'arraypress' ),
 			],
 
 			// File operations
@@ -386,6 +387,78 @@ trait Assets {
 				'corsNoUploads'         => __( 'CORS configured but uploads not allowed from this domain', 'arraypress' ),
 				'corsSetupNote'         => __( 'This will configure CORS to allow file uploads from your current domain to the bucket.', 'arraypress' ),
 				'corsSetupWarning'      => __( 'This will replace any existing CORS configuration on this bucket. The configuration is minimal and focused only on upload functionality.', 'arraypress' ),
+			],
+
+			'buckets' => [
+				// Modal titles and actions
+				'detailsTitle'          => __( 'Bucket Details: {bucket}', 'arraypress' ),
+				'browseBucket'          => __( 'Browse Bucket', 'arraypress' ),
+				'revokeCorsRules'       => __( 'Revoke CORS Rules', 'arraypress' ),
+				'loadingDetails'        => __( 'Loading bucket details...', 'arraypress' ),
+				'loadDetailsError'      => __( 'Failed to load bucket details: {message}', 'arraypress' ),
+				'manualCorsSetup'       => __( 'Manual CORS Setup Instructions', 'arraypress' ),
+				'refreshPage'           => __( 'Refresh Page', 'arraypress' ),
+
+				// Basic bucket information
+				'bucketInformation'     => __( 'Bucket Information', 'arraypress' ),
+				'bucketName'            => __( 'Bucket Name:', 'arraypress' ),
+				'region'                => __( 'Region:', 'arraypress' ),
+				'created'               => __( 'Created:', 'arraypress' ),
+				'provider'              => __( 'Provider:', 'arraypress' ),
+				's3Compatible'          => __( 'S3 Compatible', 'arraypress' ),
+
+				// Upload capability
+				'uploadCapability'      => __( 'Upload Capability', 'arraypress' ),
+				'uploadReady'           => __( 'Upload Ready:', 'arraypress' ),
+				'currentDomain'         => __( 'Current Domain:', 'arraypress' ),
+				'yes'                   => __( 'Yes', 'arraypress' ),
+				'no'                    => __( 'No', 'arraypress' ),
+
+				// CORS configuration
+				'corsConfiguration'     => __( 'CORS Configuration', 'arraypress' ),
+				'hasCors'               => __( 'Has CORS:', 'arraypress' ),
+				'rulesCount'            => __( 'Rules Count:', 'arraypress' ),
+				'securityWarnings'      => __( 'Security Warnings:', 'arraypress' ),
+				'warningCount'          => __( '{count} warning(s)', 'arraypress' ),
+
+				// Permissions
+				'permissions'           => __( 'Permissions', 'arraypress' ),
+				'readAccess'            => __( 'Read Access:', 'arraypress' ),
+				'writeAccess'           => __( 'Write Access:', 'arraypress' ),
+				'deleteAccess'          => __( 'Delete Access:', 'arraypress' ),
+
+				// Recommendations
+				'recommendations'       => __( 'Recommendations', 'arraypress' ),
+
+				// CORS setup process
+				'corsSetupConfirm'      => __( 'Set up CORS (Cross-Origin Resource Sharing) for bucket "{bucket}"?\n\nThis will:\n• Enable file uploads from web browsers\n• Allow cross-origin access from this domain: {origin}\n• Configure secure upload permissions\n\nThis is required for the upload functionality to work properly.', 'arraypress' ),
+				'settingUpCors'         => __( 'Setting up CORS configuration...', 'arraypress' ),
+				'corsSetupSuccess'      => __( 'CORS successfully configured for bucket "{bucket}"', 'arraypress' ),
+				'corsSetupError'        => __( 'Failed to setup CORS: {message}', 'arraypress' ),
+
+				// Manual CORS setup
+				's3CompatibleProvider'  => __( 'S3 Compatible Provider', 'arraypress' ),
+				'autoSetupFailed'       => __( 'Automatic CORS setup failed.', 'arraypress' ),
+				'manualSetupInstruction' => __( 'You can set up CORS manually through your {provider} console or API.', 'arraypress' ),
+				'requiredCorsConfig'    => __( 'Required CORS Configuration:', 'arraypress' ),
+				'addCorsRule'           => __( 'Add this minimal CORS rule to bucket {bucket}:', 'arraypress' ),
+				'whatRuleDoes'          => __( 'What This Rule Does:', 'arraypress' ),
+				'putMethodOnly'         => __( 'PUT method only:', 'arraypress' ),
+				'putMethodDesc'         => __( 'Enables secure file uploads via presigned URLs', 'arraypress' ),
+				'minimalHeaders'        => __( 'Minimal headers:', 'arraypress' ),
+				'minimalHeadersDesc'    => __( 'Only Content-Type and Content-Length for security', 'arraypress' ),
+				'singleOrigin'          => __( 'Single origin:', 'arraypress' ),
+				'singleOriginDesc'      => __( 'Restricts access to your domain only', 'arraypress' ),
+				'oneHourCache'          => __( '1-hour cache:', 'arraypress' ),
+				'oneHourCacheDesc'      => __( 'Reduces preflight requests', 'arraypress' ),
+				'note'                  => __( 'Note:', 'arraypress' ),
+				'configOptimized'       => __( 'This configuration is optimized for browser uploads only. All other operations (delete, list, etc.) are handled server-side and don\'t require additional CORS permissions.', 'arraypress' ),
+
+				// CORS revocation
+				'revokeConfirm'         => __( 'Are you sure you want to revoke all CORS rules for bucket "{bucket}"?\n\nThis will:\n• Disable file uploads from web browsers\n• Prevent cross-origin access to bucket resources\n• Require manual CORS reconfiguration to restore upload capability\n\nThis action cannot be undone automatically.', 'arraypress' ),
+				'revokingCors'          => __( 'Revoking CORS rules...', 'arraypress' ),
+				'revokeSuccess'         => __( 'CORS rules successfully revoked for bucket "{bucket}"', 'arraypress' ),
+				'revokeError'           => __( 'Failed to revoke CORS rules: {message}', 'arraypress' ),
 			],
 
 			// Cache and system operations

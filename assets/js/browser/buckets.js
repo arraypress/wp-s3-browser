@@ -1,6 +1,7 @@
 /**
- * S3 Browser - Buckets Table JavaScript
+ * S3 Browser - Buckets Table JavaScript (Cleaned Up)
  * Handles Browse and Details actions for the simplified buckets table
+ * All strings moved to PHP translations, all styles moved to CSS
  */
 (function ($) {
     'use strict';
@@ -61,7 +62,7 @@
         showBucketDetails: function (bucket, provider) {
             var self = this;
 
-            this.showProgressOverlay('Loading bucket details...');
+            this.showProgressOverlay(s3BrowserConfig.i18n.buckets.loadingDetails);
 
             // Load bucket details including CORS info
             this.makeAjaxRequest('s3_get_bucket_details_', {
@@ -74,7 +75,7 @@
                 },
                 error: function (message) {
                     self.hideProgressOverlay();
-                    self.showNotification('Failed to load bucket details: ' + message, 'error');
+                    self.showNotification(s3BrowserConfig.i18n.buckets.loadDetailsError.replace('{message}', message), 'error');
                 }
             });
         },
@@ -88,7 +89,7 @@
 
             var buttons = [
                 {
-                    text: 'Close',
+                    text: s3BrowserConfig.i18n.ui.close,
                     action: 'close',
                     classes: 'button-secondary',
                     callback: function () {
@@ -100,7 +101,7 @@
             // Add CORS setup button if CORS is not properly configured
             if (data.cors && !data.cors.upload_ready) {
                 buttons.unshift({
-                    text: 'Setup CORS',
+                    text: s3BrowserConfig.i18n.cors.corsSetup,
                     action: 'setup_cors',
                     classes: 'button-primary',
                     callback: function () {
@@ -120,7 +121,7 @@
             // Add CORS revoke button if CORS exists
             if (data.cors && data.cors.analysis && data.cors.analysis.has_cors) {
                 buttons.splice(-1, 0, {
-                    text: 'Revoke CORS Rules',
+                    text: s3BrowserConfig.i18n.buckets.revokeCorsRules,
                     action: 'revoke_cors',
                     classes: 'button-secondary button-destructive',
                     callback: function () {
@@ -134,7 +135,7 @@
 
             // Add browse button
             buttons.unshift({
-                text: 'Browse Bucket',
+                text: s3BrowserConfig.i18n.buckets.browseBucket,
                 action: 'browse',
                 classes: 'button-primary',
                 callback: function () {
@@ -143,50 +144,51 @@
                 }
             });
 
-            this.showModal('s3BucketDetailsModal', 'Bucket Details: ' + bucket, content, buttons);
+            this.showModal('s3BucketDetailsModal', s3BrowserConfig.i18n.buckets.detailsTitle.replace('{bucket}', bucket), content, buttons);
         },
 
         /**
          * Build bucket details content
          */
         buildBucketDetailsContent: function (bucket, data) {
-            var self = this; // Capture 'this' reference at the beginning
+            var self = this;
+            var i18n = s3BrowserConfig.i18n.buckets;
             var content = '<div class="s3-bucket-details-content">';
 
             // Basic bucket information
             content += '<div class="s3-details-section">';
-            content += '<h4>Bucket Information</h4>';
+            content += '<h4>' + i18n.bucketInformation + '</h4>';
             content += '<table class="s3-details-table">';
-            content += '<tr><td><strong>Bucket Name:</strong></td><td><code>' + self.escapeHtml(bucket) + '</code></td></tr>';
+            content += '<tr><td><strong>' + i18n.bucketName + '</strong></td><td><code>' + self.escapeHtml(bucket) + '</code></td></tr>';
 
             if (data.basic) {
                 if (data.basic.region) {
-                    content += '<tr><td><strong>Region:</strong></td><td>' + self.escapeHtml(data.basic.region) + '</td></tr>';
+                    content += '<tr><td><strong>' + i18n.region + '</strong></td><td>' + self.escapeHtml(data.basic.region) + '</td></tr>';
                 }
                 if (data.basic.created) {
-                    content += '<tr><td><strong>Created:</strong></td><td>' + self.escapeHtml(data.basic.created) + '</td></tr>';
+                    content += '<tr><td><strong>' + i18n.created + '</strong></td><td>' + self.escapeHtml(data.basic.created) + '</td></tr>';
                 }
             }
 
-            content += '<tr><td><strong>Provider:</strong></td><td>' + (S3BrowserGlobalConfig.providerName || 'S3 Compatible') + '</td></tr>';
+            content += '<tr><td><strong>' + i18n.provider + '</strong></td><td>' + (S3BrowserGlobalConfig.providerName || i18n.s3Compatible) + '</td></tr>';
             content += '</table>';
             content += '</div>';
 
             // Upload capability section
             if (data.cors) {
                 content += '<div class="s3-details-section">';
-                content += '<h4>Upload Capability</h4>';
+                content += '<h4>' + i18n.uploadCapability + '</h4>';
                 content += '<table class="s3-details-table">';
-                content += '<tr><td><strong>Upload Ready:</strong></td><td>';
+                content += '<tr><td><strong>' + i18n.uploadReady + '</strong></td><td>';
 
                 if (data.cors.upload_ready) {
-                    content += '<span style="color: #00a32a; font-weight: 600;">✓ Yes</span>';
+                    content += '<span class="s3-status-success">✓ ' + i18n.yes + '</span>';
                 } else {
-                    content += '<span style="color: #d63638; font-weight: 600;">✗ No</span>';
+                    content += '<span class="s3-status-error">✗ ' + i18n.no + '</span>';
                 }
 
                 content += '</td></tr>';
-                content += '<tr><td><strong>Current Domain:</strong></td><td>' + self.escapeHtml(data.cors.current_origin || window.location.origin) + '</td></tr>';
+                content += '<tr><td><strong>' + i18n.currentDomain + '</strong></td><td>' + self.escapeHtml(data.cors.current_origin || window.location.origin) + '</td></tr>';
 
                 if (data.cors.details) {
                     content += '<tr><td colspan="2"><small>' + self.escapeHtml(data.cors.details) + '</small></td></tr>';
@@ -200,16 +202,16 @@
             if (data.cors && data.cors.analysis) {
                 var analysis = data.cors.analysis;
                 content += '<div class="s3-details-section">';
-                content += '<h4>CORS Configuration</h4>';
+                content += '<h4>' + i18n.corsConfiguration + '</h4>';
                 content += '<table class="s3-details-table">';
-                content += '<tr><td><strong>Has CORS:</strong></td><td>' + (analysis.has_cors ? 'Yes' : 'No') + '</td></tr>';
+                content += '<tr><td><strong>' + i18n.hasCors + '</strong></td><td>' + (analysis.has_cors ? i18n.yes : i18n.no) + '</td></tr>';
 
                 if (analysis.has_cors) {
-                    content += '<tr><td><strong>Rules Count:</strong></td><td>' + (analysis.rules_count || 0) + '</td></tr>';
+                    content += '<tr><td><strong>' + i18n.rulesCount + '</strong></td><td>' + (analysis.rules_count || 0) + '</td></tr>';
 
                     if (analysis.security_warnings && analysis.security_warnings.length > 0) {
-                        content += '<tr><td><strong>Security Warnings:</strong></td><td>';
-                        content += '<span style="color: #dba617;">' + analysis.security_warnings.length + ' warning(s)</span>';
+                        content += '<tr><td><strong>' + i18n.securityWarnings + '</strong></td><td>';
+                        content += '<span class="s3-status-warning">' + i18n.warningCount.replace('{count}', analysis.security_warnings.length) + '</span>';
                         content += '</td></tr>';
                     }
                 }
@@ -221,11 +223,11 @@
             // Permissions summary (if available)
             if (data.permissions) {
                 content += '<div class="s3-details-section">';
-                content += '<h4>Permissions</h4>';
+                content += '<h4>' + i18n.permissions + '</h4>';
                 content += '<table class="s3-details-table">';
-                content += '<tr><td><strong>Read Access:</strong></td><td>' + (data.permissions.read ? '✓ Yes' : '✗ No') + '</td></tr>';
-                content += '<tr><td><strong>Write Access:</strong></td><td>' + (data.permissions.write ? '✓ Yes' : '✗ No') + '</td></tr>';
-                content += '<tr><td><strong>Delete Access:</strong></td><td>' + (data.permissions.delete ? '✓ Yes' : '✗ No') + '</td></tr>';
+                content += '<tr><td><strong>' + i18n.readAccess + '</strong></td><td>' + (data.permissions.read ? '✓ ' + i18n.yes : '✗ ' + i18n.no) + '</td></tr>';
+                content += '<tr><td><strong>' + i18n.writeAccess + '</strong></td><td>' + (data.permissions.write ? '✓ ' + i18n.yes : '✗ ' + i18n.no) + '</td></tr>';
+                content += '<tr><td><strong>' + i18n.deleteAccess + '</strong></td><td>' + (data.permissions.delete ? '✓ ' + i18n.yes : '✗ ' + i18n.no) + '</td></tr>';
                 content += '</table>';
                 content += '</div>';
             }
@@ -233,10 +235,10 @@
             // Recommendations
             if (data.cors && data.cors.analysis && data.cors.analysis.recommendations) {
                 content += '<div class="s3-details-section">';
-                content += '<h4>Recommendations</h4>';
-                content += '<ul style="margin: 8px 0; padding-left: 20px;">';
+                content += '<h4>' + i18n.recommendations + '</h4>';
+                content += '<ul class="s3-recommendations-list">';
                 data.cors.analysis.recommendations.forEach(function (rec) {
-                    content += '<li style="margin-bottom: 4px; font-size: 13px;">' + self.escapeHtml(rec) + '</li>';
+                    content += '<li>' + self.escapeHtml(rec) + '</li>';
                 });
                 content += '</ul>';
                 content += '</div>';
@@ -252,25 +254,18 @@
          */
         setupCORSDirectly: function(bucket) {
             var self = this;
+            var i18n = s3BrowserConfig.i18n.buckets;
 
-            // Show confirmation dialog
-            var confirmMessage = [
-                'Set up CORS (Cross-Origin Resource Sharing) for bucket "' + bucket + '"?',
-                '',
-                'This will:',
-                '• Enable file uploads from web browsers',
-                '• Allow cross-origin access from this domain: ' + window.location.origin,
-                '• Configure secure upload permissions',
-                '',
-                'This is required for the upload functionality to work properly.'
-            ].join('\n');
+            var confirmMessage = i18n.corsSetupConfirm
+                .replace('{bucket}', bucket)
+                .replace('{origin}', window.location.origin);
 
             if (!confirm(confirmMessage)) {
                 return;
             }
 
             // Show progress
-            this.showProgressOverlay('Setting up CORS configuration...');
+            this.showProgressOverlay(i18n.settingUpCors);
 
             // Make the CORS setup request
             this.makeAjaxRequest('s3_setup_cors_', {
@@ -280,7 +275,7 @@
                 success: function (response) {
                     self.hideProgressOverlay();
                     self.showNotification(
-                        response.data.message || 'CORS successfully configured for bucket "' + bucket + '"',
+                        response.data.message || i18n.corsSetupSuccess.replace('{bucket}', bucket),
                         'success'
                     );
 
@@ -291,7 +286,7 @@
                 },
                 error: function (message) {
                     self.hideProgressOverlay();
-                    self.showNotification('Failed to setup CORS: ' + message, 'error');
+                    self.showNotification(i18n.corsSetupError.replace('{message}', message), 'error');
 
                     // Show manual setup instructions
                     setTimeout(function () {
@@ -305,16 +300,17 @@
          * Show manual CORS setup instructions (S3-provider agnostic)
          */
         showManualCORSInstructions: function(bucket) {
-            var providerName = S3BrowserGlobalConfig.providerName || 'S3 Compatible Provider';
+            var i18n = s3BrowserConfig.i18n.buckets;
+            var providerName = S3BrowserGlobalConfig.providerName || i18n.s3CompatibleProvider;
 
             var content = [
                 '<div class="s3-cors-setup-content">',
-                '<p><strong>Automatic CORS setup failed.</strong> You can set up CORS manually through your ' + providerName + ' console or API.</p>',
+                '<p><strong>' + i18n.autoSetupFailed + '</strong> ' + i18n.manualSetupInstruction.replace('{provider}', providerName) + '</p>',
 
                 '<div class="s3-cors-setup-details">',
-                '<h4>Required CORS Configuration:</h4>',
-                '<p>Add this minimal CORS rule to bucket <code>' + bucket + '</code>:</p>',
-                '<textarea readonly style="width: 100%; height: 140px; font-family: monospace; font-size: 12px;">',
+                '<h4>' + i18n.requiredCorsConfig + '</h4>',
+                '<p>' + i18n.addCorsRule.replace('{bucket}', bucket) + '</p>',
+                '<textarea readonly class="s3-cors-config-textarea">',
                 '{',
                 '  "ID": "UploadFromBrowser",',
                 '  "AllowedOrigins": ["' + window.location.origin + '"],',
@@ -326,24 +322,24 @@
                 '</div>',
 
                 '<div class="s3-cors-setup-details">',
-                '<h4>What This Rule Does:</h4>',
-                '<ul>',
-                '<li><strong>PUT method only:</strong> Enables secure file uploads via presigned URLs</li>',
-                '<li><strong>Minimal headers:</strong> Only Content-Type and Content-Length for security</li>',
-                '<li><strong>Single origin:</strong> Restricts access to your domain only</li>',
-                '<li><strong>1-hour cache:</strong> Reduces preflight requests</li>',
+                '<h4>' + i18n.whatRuleDoes + '</h4>',
+                '<ul class="s3-cors-rule-list">',
+                '<li><strong>' + i18n.putMethodOnly + '</strong> ' + i18n.putMethodDesc + '</li>',
+                '<li><strong>' + i18n.minimalHeaders + '</strong> ' + i18n.minimalHeadersDesc + '</li>',
+                '<li><strong>' + i18n.singleOrigin + '</strong> ' + i18n.singleOriginDesc + '</li>',
+                '<li><strong>' + i18n.oneHourCache + '</strong> ' + i18n.oneHourCacheDesc + '</li>',
                 '</ul>',
                 '</div>',
 
                 '<div class="s3-cors-setup-warning">',
-                '<p><strong>Note:</strong> This configuration is optimized for browser uploads only. All other operations (delete, list, etc.) are handled server-side and don\'t require additional CORS permissions.</p>',
+                '<p><strong>' + i18n.note + '</strong> ' + i18n.configOptimized + '</p>',
                 '</div>',
                 '</div>'
             ].join('');
 
-            this.showModal('s3CORSManualSetupModal', 'Manual CORS Setup Instructions', content, [
+            this.showModal('s3CORSManualSetupModal', i18n.manualCorsSetup, content, [
                 {
-                    text: 'Close',
+                    text: s3BrowserConfig.i18n.ui.close,
                     action: 'close',
                     classes: 'button-secondary',
                     callback: function () {
@@ -351,7 +347,7 @@
                     }
                 },
                 {
-                    text: 'Refresh Page',
+                    text: i18n.refreshPage,
                     action: 'refresh',
                     classes: 'button-primary',
                     callback: function () {
@@ -365,16 +361,8 @@
          * Confirm CORS revocation with detailed warning
          */
         confirmRevokeCORS: function (bucket) {
-            var confirmMessage = [
-                'Are you sure you want to revoke all CORS rules for bucket "' + bucket + '"?',
-                '',
-                'This will:',
-                '• Disable file uploads from web browsers',
-                '• Prevent cross-origin access to bucket resources',
-                '• Require manual CORS reconfiguration to restore upload capability',
-                '',
-                'This action cannot be undone automatically.'
-            ].join('\n');
+            var i18n = s3BrowserConfig.i18n.buckets;
+            var confirmMessage = i18n.revokeConfirm.replace('{bucket}', bucket);
 
             if (confirm(confirmMessage)) {
                 this.revokeCORSRules(bucket);
@@ -386,15 +374,16 @@
          */
         revokeCORSRules: function (bucket) {
             var self = this;
+            var i18n = s3BrowserConfig.i18n.buckets;
 
-            this.showProgressOverlay('Revoking CORS rules...');
+            this.showProgressOverlay(i18n.revokingCors);
 
             this.makeAjaxRequest('s3_delete_cors_configuration_', {
                 bucket: bucket
             }, {
                 success: function (response) {
                     self.hideProgressOverlay();
-                    self.showNotification('CORS rules successfully revoked for bucket "' + bucket + '"', 'success');
+                    self.showNotification(i18n.revokeSuccess.replace('{bucket}', bucket), 'success');
 
                     setTimeout(function () {
                         window.location.reload();
@@ -402,7 +391,7 @@
                 },
                 error: function (message) {
                     self.hideProgressOverlay();
-                    self.showNotification('Failed to revoke CORS rules: ' + message, 'error');
+                    self.showNotification(i18n.revokeError.replace('{message}', message), 'error');
                 }
             });
         },
