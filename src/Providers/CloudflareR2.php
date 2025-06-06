@@ -139,7 +139,7 @@ class CloudflareR2 extends Provider {
 	 */
 	protected function get_alternative_endpoints(): array {
 		$alternatives = [];
-		$account_id = $this->get_param( 'account_id' );
+		$account_id   = $this->get_param( 'account_id' );
 
 		if ( $account_id ) {
 			// R2 public domain pattern
@@ -169,7 +169,8 @@ class CloudflareR2 extends Provider {
 		if ( str_ends_with( $endpoint, '.r2.dev' ) ) {
 			// Pattern: bucket.account-id.r2.dev
 			$pattern = '/^[^.]+\.' . preg_quote( $endpoint, '/' ) . '/';
-			return preg_match( $pattern, $url_without_protocol );
+
+			return (bool) preg_match( $pattern, $url_without_protocol );
 		}
 
 		// Use parent logic for standard endpoints
@@ -190,7 +191,7 @@ class CloudflareR2 extends Provider {
 			// Parse R2 public domains: bucket.account-id.r2.dev/object
 			$r2_public_pattern = '/^([^.]+)\.' . preg_quote( $account_id, '/' ) . '\.r2\.dev(?:\/(.*))?$/';
 
-			if ( preg_match( $r2_public_pattern, $url_without_protocol, $matches ) ) {
+			if ( (bool) preg_match( $r2_public_pattern, $url_without_protocol, $matches ) ) {
 				return [
 					'bucket' => $matches[1],
 					'object' => isset( $matches[2] ) ? $matches[2] : ''

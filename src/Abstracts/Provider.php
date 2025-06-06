@@ -502,11 +502,7 @@ abstract class Provider implements ProviderInterface {
 
 		// Virtual-hosted style: bucket.endpoint
 		$pattern = '/^[^.]+\.' . preg_quote( $endpoint, '/' ) . '/';
-		if ( preg_match( $pattern, $url_without_protocol ) ) {
-			return true;
-		}
-
-		return false;
+		return (bool) preg_match( $pattern, $url_without_protocol );
 	}
 
 	/**
@@ -570,7 +566,7 @@ abstract class Provider implements ProviderInterface {
 		$main_endpoint  = $this->get_endpoint();
 		$bucket_pattern = '/^([^.]+)\.' . preg_quote( $main_endpoint, '/' ) . '$/';
 
-		if ( preg_match( $bucket_pattern, $host, $matches ) ) {
+		if ( (bool) preg_match( $bucket_pattern, $host, $matches ) ) {
 			return [
 				'bucket' => $matches[1],
 				'object' => $path
