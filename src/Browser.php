@@ -154,7 +154,7 @@ class Browser {
 			$secret_key,
 			true, // Use cache
 			HOUR_IN_SECONDS,
-			$debug, // Use the parameter instead of hardcoded false
+			$debug,
 			$this->get_context()
 		);
 

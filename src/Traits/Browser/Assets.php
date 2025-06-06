@@ -168,14 +168,14 @@ trait Assets {
 		wp_enqueue_style_from_composer_file(
 			's3-browser-style',
 			__FILE__,
-			'css/s3-browser.css'
+			'css/browser.css'
 		);
 
 		// Enqueue upload styles
 		wp_enqueue_style_from_composer_file(
 			's3-upload-style',
 			__FILE__,
-			'css/s3-upload.css'
+			'css/upload.css'
 		);
 
 		// Define script loading order and dependencies
