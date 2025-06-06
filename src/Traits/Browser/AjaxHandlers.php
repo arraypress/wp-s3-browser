@@ -720,7 +720,7 @@ trait AjaxHandlers {
 		}
 
 		// Use existing get_bucket_models method to find creation date
-		$buckets_result = $this->client->get_bucket_models( 1000 );
+		$buckets_result = $this->client->get_bucket_models();
 		if ( $buckets_result->is_successful() ) {
 			$buckets_data = $buckets_result->get_data();
 			$buckets      = $buckets_data['buckets'] ?? [];

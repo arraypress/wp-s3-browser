@@ -108,10 +108,8 @@
                         // Fallback to direct AJAX call if showCORSSetupModal doesn't exist
                         setTimeout(function () {
                             if (window.S3Browser && typeof window.S3Browser.showCORSSetupModal === 'function') {
-                                console.log('Using existing CORS setup modal');
                                 window.S3Browser.showCORSSetupModal(bucket);
                             } else {
-                                console.log('Fallback to direct CORS setup');
                                 self.setupCORSDirectly(bucket);
                             }
                         }, 200);
