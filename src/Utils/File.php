@@ -95,23 +95,6 @@ class File {
 	}
 
 	/**
-	 * Get file extension that WordPress recognizes for this filename
-	 *
-	 * @param string $filename Filename
-	 *
-	 * @return string WordPress-recognized extension
-	 */
-	public static function wp_extension( string $filename ): string {
-		if ( empty( $filename ) ) {
-			return '';
-		}
-
-		$filetype = wp_check_filetype( $filename );
-
-		return $filetype['ext'] ?: '';
-	}
-
-	/**
 	 * Check if a file type is allowed by WordPress
 	 *
 	 * @param string $filename Filename

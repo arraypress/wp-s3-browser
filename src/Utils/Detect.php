@@ -176,15 +176,4 @@ class Detect {
 		return File::has_extension( $object );
 	}
 
-	/**
-	 * Check if an object key represents a directory (no extension, ends with /)
-	 *
-	 * @param string $object Object key
-	 *
-	 * @return bool
-	 */
-	public static function is_directory( string $object ): bool {
-		return ! File::has_extension( $object ) || str_ends_with( $object, '/' );
-	}
-
 }
