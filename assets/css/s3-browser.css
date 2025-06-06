@@ -103,6 +103,13 @@
     color: #dc3545;
 }
 
+/* Fix dashicon alignment in all buttons */
+.button .dashicons {
+    vertical-align: middle;
+    margin-top: -2px;
+    margin-right: 5px;
+}
+
 /* =============================================================================
    FAVORITES SYSTEM (unchanged)
    ============================================================================= */
