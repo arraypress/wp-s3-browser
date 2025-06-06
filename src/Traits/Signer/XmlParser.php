@@ -417,7 +417,7 @@ trait XmlParser {
 			'Size'          => $size,
 			'StorageClass'  => $storage_class,
 			'FormattedSize' => size_format( $size ),
-			'Type'          => File::type( $filename ),
+			'Category'      => File::category( $filename ),
 			'MimeType'      => File::mime_type( $filename )
 		];
 	}
