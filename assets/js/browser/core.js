@@ -28,6 +28,41 @@
             this.countInitialItems();
             this.initUploadToggle();
             this.bindBucketEvents();
+            this.initTooltips(); // Add tooltip initialization
+        },
+
+        /**
+         * Initialize tooltip functionality
+         */
+        initTooltips: function () {
+            var self = this;
+
+            // Enhanced tooltip positioning for edge cases
+            $(document).on('mouseenter', '.s3-has-tooltip', function() {
+                var $tooltip = $(this);
+                var rect = this.getBoundingClientRect();
+                var tooltipWidth = 200; // Approximate max tooltip width
+
+                // Reset position classes
+                $tooltip.removeAttr('data-tooltip-position');
+
+                // Check if tooltip would go off the right edge
+                if (rect.left + tooltipWidth/2 > window.innerWidth - 20) {
+                    $tooltip.attr('data-tooltip-position', 'right');
+                }
+                // Check if tooltip would go off the left edge
+                else if (rect.left - tooltipWidth/2 < 20) {
+                    $tooltip.attr('data-tooltip-position', 'left');
+                }
+            });
+        },
+
+        /**
+         * Reinitialize tooltips after content changes
+         */
+        refreshTooltips: function () {
+            // Remove any stuck tooltip positioning
+            $('.s3-has-tooltip').removeAttr('data-tooltip-position');
         },
 
         /**
@@ -237,6 +272,7 @@
                 $tbody.empty().append(this.originalTableData.clone());
                 $stats.text('');
                 $bottomNav.show();
+                this.refreshTooltips(); // Refresh tooltips after content change
                 return;
             }
 
@@ -268,6 +304,8 @@
                     .replace('{total}', totalRows);
                 $stats.text(matchText);
             }
+
+            this.refreshTooltips(); // Refresh tooltips after filtering
         },
 
         /**
@@ -285,6 +323,8 @@
             } else {
                 $('.s3-search-stats').text('');
             }
+
+            this.refreshTooltips(); // Refresh tooltips after search refresh
         },
 
         // ===========================================
@@ -330,6 +370,8 @@
                     if (currentSearch) {
                         self.filterTable(currentSearch);
                     }
+
+                    self.refreshTooltips(); // Refresh tooltips after loading more items
                 },
                 error: function (message) {
                     self.showError(message);

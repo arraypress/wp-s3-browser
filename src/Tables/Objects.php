@@ -208,7 +208,7 @@ class Objects extends WP_List_Table {
 	}
 
 	/**
-	 * Render the type column
+	 * Render the type column with WordPress-style tooltip
 	 *
 	 * @param array $item Item data
 	 *
@@ -219,15 +219,16 @@ class Objects extends WP_List_Table {
 			return '<span class="s3-type-folder">' . esc_html__( 'Folder', 'arraypress' ) . '</span>';
 		}
 
-		// For files, show the category instead of raw MIME type for better UX
+		// For files, show the category with MIME type in tooltip
 		$category = $item['object']->get_category();
+		$mime_type = $item['mime'];
 		$category_display = ucfirst( $category ); // image -> Image, video -> Video, etc.
 
 		return sprintf(
-			'<span class="s3-type-file s3-category-%s" title="%s">%s</span>',
+			'<span class="s3-type-file s3-category-%s s3-has-tooltip" data-tooltip="%s">%s</span>',
 			esc_attr( $category ),
-			esc_attr( $item['mime'] ), // Keep MIME in tooltip
-			esc_html( $category_display )
+			esc_attr( $mime_type ), // MIME type in tooltip
+			esc_html( $category_display ) // Category as main text
 		);
 	}
 

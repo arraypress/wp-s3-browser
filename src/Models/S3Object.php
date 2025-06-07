@@ -380,7 +380,7 @@ class S3Object {
 		$data_attrs = [
 			'data-filename'           => esc_attr( $this->get_filename() ),
 			'data-key'                => esc_attr( $this->get_key() ),
-			'data-size-bytes'         => $this->get_size(), // Raw bytes
+			'data-size-bytes'         => esc_attr( $this->get_size() ), // Raw bytes
 			'data-size-formatted'     => esc_attr( $this->get_size( true ) ), // Formatted
 			'data-modified'           => esc_attr( $this->get_last_modified() ), // Raw
 			'data-modified-formatted' => esc_attr( $this->get_last_modified( true ) ), // Formatted
