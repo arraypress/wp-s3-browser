@@ -20,7 +20,6 @@ use ArrayPress\S3\Tables\Objects;
 use ArrayPress\S3\Utils\Directory;
 use ArrayPress\S3\Utils\Validate;
 use ArrayPress\S3\Utils\Cors;
-use ArrayPress\S3\Utils\Bucket;
 
 /**
  * Trait AjaxHandlers
@@ -608,11 +607,11 @@ trait AjaxHandlers {
 	/**
 	 * Handle AJAX get bucket details request
 	 *
-	 * Uses existing client methods to gather comprehensive bucket information.
+	 * Uses the new client method to gather comprehensive bucket information.
 	 *
 	 * Expected POST parameters:
 	 * - bucket: S3 bucket name
-	 * - provider: Provider ID (optional)
+	 * - current_origin: Origin for CORS checking (optional)
 	 * - nonce: Security nonce
 	 *
 	 * @since 1.0.0
@@ -630,7 +629,8 @@ trait AjaxHandlers {
 			return;
 		}
 
-		$bucket = isset( $_POST['bucket'] ) ? sanitize_text_field( $_POST['bucket'] ) : '';
+		$bucket         = isset( $_POST['bucket'] ) ? sanitize_text_field( $_POST['bucket'] ) : '';
+		$current_origin = isset( $_POST['current_origin'] ) ? sanitize_text_field( $_POST['current_origin'] ) : null;
 
 		if ( empty( $bucket ) ) {
 			wp_send_json_error( [ 'message' => __( 'Bucket name is required', 'arraypress' ) ] );
@@ -638,18 +638,23 @@ trait AjaxHandlers {
 			return;
 		}
 
-		// Use the Bucket utility to get all details
-		$current_origin = Cors::get_current_origin();
-		$details        = Bucket::get_details( $this->client, $bucket, $current_origin );
+		// Use the new client method - much cleaner!
+		$details_result = $this->client->get_bucket_details( $bucket, $current_origin );
 
-		wp_send_json_success( $details );
+		if ( ! $details_result->is_successful() ) {
+			wp_send_json_error( [ 'message' => $details_result->get_error_message() ] );
+
+			return;
+		}
+
+		wp_send_json_success( $details_result->get_data() );
 	}
 
 	/**
 	 * Handle AJAX setup CORS for uploads request
 	 *
 	 * Sets up minimal CORS configuration optimized for browser uploads
-	 * from the current domain. Uses a minimal ruleset focused on upload functionality.
+	 * from the current domain using the client's CORS methods.
 	 *
 	 * Expected POST parameters:
 	 * - bucket: S3 bucket name
@@ -661,11 +666,13 @@ trait AjaxHandlers {
 	public function handle_ajax_setup_cors_upload(): void {
 		if ( ! check_ajax_referer( 's3_browser_nonce_' . $this->provider_id, 'nonce', false ) ) {
 			wp_send_json_error( [ 'message' => __( 'Security check failed', 'arraypress' ) ] );
+
 			return;
 		}
 
 		if ( ! current_user_can( $this->capability ) ) {
 			wp_send_json_error( [ 'message' => __( 'You do not have permission to perform this action', 'arraypress' ) ] );
+
 			return;
 		}
 
@@ -674,22 +681,22 @@ trait AjaxHandlers {
 
 		if ( empty( $bucket ) ) {
 			wp_send_json_error( [ 'message' => __( 'Bucket name is required', 'arraypress' ) ] );
+
 			return;
 		}
 
 		if ( empty( $origin ) ) {
 			wp_send_json_error( [ 'message' => __( 'Origin is required for CORS setup', 'arraypress' ) ] );
+
 			return;
 		}
 
-		// Generate upload-focused CORS rules using utility
-		$cors_rules = Cors::generate_upload_rules( $origin );
-
-		// Set the CORS configuration
-		$set_result = $this->client->set_cors_configuration( $bucket, $cors_rules );
+		// Use the client method to set CORS for uploads
+		$set_result = $this->client->set_cors_scenario( $bucket, 'upload_only', [ $origin ] );
 
 		if ( ! $set_result->is_successful() ) {
 			wp_send_json_error( [ 'message' => $set_result->get_error_message() ] );
+
 			return;
 		}
 
@@ -702,10 +709,12 @@ trait AjaxHandlers {
 			$verification_success = $verification_data['allows_upload'] ?? false;
 		}
 
+		// Clear cache after successful deletion
+		$this->client->clear_all_cache();
+
 		wp_send_json_success( [
 			'bucket'              => $bucket,
 			'origin'              => $origin,
-			'rules_applied'       => count( $cors_rules ),
 			'verification_passed' => $verification_success,
 			'message'             => sprintf(
 				__( 'CORS configured for uploads from %s to bucket "%s"', 'arraypress' ),

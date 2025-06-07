@@ -1,8 +1,9 @@
 <?php
 /**
- * Cors Utility Class
+ * Cors Utility Class - Simplified
  *
- * Handles CORS configuration and origin detection for S3 operations.
+ * Handles only pure utility functions for CORS operations.
+ * Rule generation is handled by the Client CORS trait.
  *
  * @package     ArrayPress\S3\Utils
  * @copyright   Copyright (c) 2025, ArrayPress Limited
@@ -32,63 +33,6 @@ class Cors {
 		$host     = $_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? 'localhost';
 
 		return $protocol . $host;
-	}
-
-	/**
-	 * Generate minimal CORS rules optimized for uploads
-	 *
-	 * @param string $origin Origin to allow
-	 *
-	 * @return array CORS rules array
-	 */
-	public static function generate_upload_rules( string $origin ): array {
-		return [
-			[
-				'ID'             => 'UploadFromBrowser',
-				'AllowedOrigins' => [ $origin ],
-				'AllowedMethods' => [ 'PUT' ], // Only PUT for presigned uploads
-				'AllowedHeaders' => [ 'Content-Type', 'Content-Length' ], // Minimal headers
-				'MaxAgeSeconds'  => 3600 // 1 hour cache
-			]
-		];
-	}
-
-	/**
-	 * Generate comprehensive CORS rules for browser access
-	 *
-	 * @param string $origin Origin to allow
-	 *
-	 * @return array CORS rules array
-	 */
-	public static function generate_browser_rules( string $origin ): array {
-		return [
-			[
-				'ID'             => 'BrowserAccess',
-				'AllowedOrigins' => [ $origin ],
-				'AllowedMethods' => [ 'GET', 'PUT', 'POST', 'DELETE', 'HEAD' ],
-				'AllowedHeaders' => [ 'Content-Type', 'Content-Length', 'Authorization', 'x-amz-*' ],
-				'MaxAgeSeconds'  => 3600
-			]
-		];
-	}
-
-	/**
-	 * Generate restrictive CORS rules (uploads only, specific origin)
-	 *
-	 * @param string $origin Origin to allow
-	 *
-	 * @return array CORS rules array
-	 */
-	public static function generate_restrictive_rules( string $origin ): array {
-		return [
-			[
-				'ID'             => 'RestrictiveUpload',
-				'AllowedOrigins' => [ $origin ],
-				'AllowedMethods' => [ 'PUT' ],
-				'AllowedHeaders' => [ 'Content-Type' ],
-				'MaxAgeSeconds'  => 1800 // 30 minutes
-			]
-		];
 	}
 
 }

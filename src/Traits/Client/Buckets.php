@@ -19,6 +19,8 @@ use ArrayPress\S3\Interfaces\Response as ResponseInterface;
 use ArrayPress\S3\Responses\BucketsResponse;
 use ArrayPress\S3\Responses\SuccessResponse;
 use ArrayPress\S3\Responses\ErrorResponse;
+use ArrayPress\S3\utils\Cors;
+use Exception;
 
 /**
  * Trait Buckets
@@ -616,6 +618,104 @@ trait Buckets {
 			'arraypress_s3_get_bucket_lifecycle_response',
 			$result,
 			$bucket
+		);
+	}
+
+	/**
+	 * Get comprehensive bucket details
+	 *
+	 * Combines basic info, CORS analysis, and permissions into a single response.
+	 * This replaces the old Bucket::get_details() utility method.
+	 *
+	 * @param string      $bucket         Bucket name
+	 * @param string|null $current_origin Current origin for CORS checking (auto-detected if null)
+	 * @param bool        $use_cache      Whether to use cache
+	 *
+	 * @return ResponseInterface Response with complete bucket details
+	 */
+	public function get_bucket_details( string $bucket, ?string $current_origin = null, bool $use_cache = true ): ResponseInterface {
+		if ( empty( $bucket ) ) {
+			return new ErrorResponse(
+				__( 'Bucket name is required', 'arraypress' ),
+				'invalid_parameters',
+				400
+			);
+		}
+
+		$current_origin = $current_origin ?? Cors::get_current_origin();
+
+		$details = [
+			'bucket'      => $bucket,
+			'basic'       => [
+				'name'    => $bucket,
+				'region'  => null,
+				'created' => null,
+			],
+			'cors'        => [
+				'analysis'       => null,
+				'upload_ready'   => false,
+				'current_origin' => $current_origin,
+				'details'        => __( 'CORS not configured', 'arraypress' )
+			],
+			'permissions' => null,
+		];
+
+		// Get bucket location
+		$location_result = $this->get_bucket_location( $bucket, $use_cache );
+		if ( $location_result->is_successful() ) {
+			$location_data              = $location_result->get_data();
+			$details['basic']['region'] = $location_data['location'] ?? null;
+		}
+
+		// Get creation date from bucket list
+		$buckets_result = $this->get_bucket_models( 1000, '', '', $use_cache );
+		if ( $buckets_result->is_successful() ) {
+			$buckets_data = $buckets_result->get_data();
+			$buckets      = $buckets_data['buckets'] ?? [];
+
+			foreach ( $buckets as $bucket_model ) {
+				if ( $bucket_model->get_name() === $bucket ) {
+					$details['basic']['created'] = $bucket_model->get_creation_date( true );
+					break;
+				}
+			}
+		}
+
+		// Get CORS analysis
+		$cors_result = $this->analyze_cors_configuration( $bucket, $use_cache );
+		if ( $cors_result->is_successful() ) {
+			$details['cors']['analysis'] = $cors_result->get_data();
+
+			// Check upload capability
+			$upload_check = $this->cors_allows_upload( $bucket, $current_origin, $use_cache );
+			if ( $upload_check->is_successful() ) {
+				$upload_data                        = $upload_check->get_data();
+				$details['cors']['upload_ready']    = $upload_data['allows_upload'];
+				$details['cors']['allowed_methods'] = $upload_data['allowed_methods'] ?? [];
+				$details['cors']['details']         = $upload_data['allows_upload']
+					? __( 'Upload allowed from current domain', 'arraypress' )
+					: __( 'Upload not allowed from current domain', 'arraypress' );
+			}
+		}
+
+		// Get permissions
+		try {
+			$permissions = $this->check_key_permissions( $bucket );
+			if ( is_array( $permissions ) ) {
+				$details['permissions'] = [
+					'read'   => $permissions['read'] ?? false,
+					'write'  => $permissions['write'] ?? false,
+					'delete' => $permissions['delete'] ?? false,
+				];
+			}
+		} catch ( Exception $e ) {
+			// Permissions check failed, leave as null
+		}
+
+		return new SuccessResponse(
+			sprintf( __( 'Complete details retrieved for bucket "%s"', 'arraypress' ), $bucket ),
+			200,
+			$details
 		);
 	}
 
