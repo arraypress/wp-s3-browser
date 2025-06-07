@@ -1,5 +1,5 @@
 /**
- * S3 Browser Upload Functionality
+ * S3 Browser Upload Functionality - Updated with File Validation
  * Handles direct browser uploads to S3 buckets using presigned URLs
  */
 (function ($) {
@@ -65,6 +65,85 @@
         },
 
         /**
+         * Validate files before upload
+         */
+        validateFiles: function (files) {
+            var self = this;
+            var validFiles = [];
+            var errors = [];
+            var config = S3BrowserGlobalConfig.fileValidation || {};
+
+            Array.from(files).forEach(function (file) {
+                var validation = self.validateSingleFile(file, config);
+
+                if (validation.valid) {
+                    validFiles.push(file);
+                } else {
+                    errors.push({
+                        fileName: file.name,
+                        error: validation.error
+                    });
+                }
+            });
+
+            // Show validation errors
+            if (errors.length > 0) {
+                self.showValidationErrors(errors);
+            }
+
+            return validFiles;
+        },
+
+        /**
+         * Validate a single file
+         */
+        validateSingleFile: function (file, config) {
+            var allowedExtensions = config.allowedExtensions || [];
+
+            // Get file extension
+            var fileName = file.name.toLowerCase();
+            var extension = fileName.split('.').pop();
+
+            // Check file extension
+            if (allowedExtensions.length > 0 && !allowedExtensions.includes(extension)) {
+                return {
+                    valid: false,
+                    error: s3BrowserConfig.i18n.validation.invalidFileType.replace('{extension}', extension)
+                };
+            }
+
+            // Check MIME type if available
+            if (file.type && config.allowedMimeTypes) {
+                var mimeAllowed = Object.values(config.allowedMimeTypes).includes(file.type);
+                if (!mimeAllowed) {
+                    return {
+                        valid: false,
+                        error: s3BrowserConfig.i18n.validation.invalidMimeType.replace('{mimeType}', file.type)
+                    };
+                }
+            }
+
+            return {valid: true};
+        },
+
+        /**
+         * Show validation errors
+         */
+        showValidationErrors: function (errors) {
+            var errorHtml = '<div class="s3-validation-errors">';
+            errorHtml += '<h4>' + s3BrowserConfig.i18n.validation.validationFailed + '</h4>';
+            errorHtml += '<ul>';
+
+            errors.forEach(function (error) {
+                errorHtml += '<li><strong>' + error.fileName + ':</strong> ' + error.error + '</li>';
+            });
+
+            errorHtml += '</ul></div>';
+
+            this.showUploadError(errorHtml);
+        },
+
+        /**
          * Show upload error message
          */
         showUploadError: function (message) {
@@ -80,17 +159,37 @@
         },
 
         /**
-         * Upload multiple files
+         * Upload multiple files (updated with validation)
          */
         uploadFiles: function (files, bucket, prefix) {
             var self = this;
+
+            // Validate files first
+            var validFiles = this.validateFiles(files);
+
+            if (validFiles.length === 0) {
+                // All files failed validation
+                return;
+            }
+
+            // Show info if some files were rejected
+            if (validFiles.length < files.length) {
+                var rejectedCount = files.length - validFiles.length;
+                this.showNotification(
+                    s3BrowserConfig.i18n.validation.someFilesRejected
+                        .replace('{accepted}', validFiles.length)
+                        .replace('{rejected}', rejectedCount),
+                    'info'
+                );
+            }
+
             var $uploadList = $('.s3-upload-list');
             var uploadPromises = [];
 
             $uploadList.show();
             $(document).trigger('s3UploadStarted');
 
-            Array.from(files).forEach(function (file) {
+            Array.from(validFiles).forEach(function (file) {
                 var normalizedPrefix = prefix ? (prefix.endsWith('/') ? prefix : prefix + '/') : '';
                 var objectKey = normalizedPrefix + file.name;
                 var uploadId = 'upload_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);

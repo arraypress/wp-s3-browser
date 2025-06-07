@@ -16,6 +16,8 @@ declare( strict_types=1 );
 
 namespace ArrayPress\S3\Traits\Browser;
 
+use ArrayPress\S3\Utils\Mime;
+
 /**
  * Trait Assets
  */
@@ -70,6 +72,10 @@ trait Assets {
 				'nonce'            => wp_create_nonce( 's3_browser_nonce_' . $this->provider_id ),
 				'context'          => $this->get_context(),
 				'allowedPostTypes' => $this->allowed_post_types,
+				'fileValidation' => [
+					'allowedExtensions' => $this->get_allowed_extensions(),
+					'allowedMimeTypes' => $this->get_allowed_mime_types(),
+				],
 			];
 
 			// Only add favorite and prefix if relevant
@@ -509,11 +515,36 @@ trait Assets {
 				'failedPresignedUrl'  => __( 'Failed to get upload URL', 'arraypress' ),
 				'uploadFailedStatus'  => __( 'Upload failed with status', 'arraypress' ),
 				'uploadCancelled'     => __( 'Upload cancelled', 'arraypress' )
-			]
+			],
+
+			'validation' => [
+				'validationFailed'  => __( 'File Validation Failed', 'arraypress' ),
+				'invalidFileType'   => __( 'File type "{extension}" is not allowed', 'arraypress' ),
+				'invalidMimeType'   => __( 'MIME type "{mimeType}" is not allowed', 'arraypress' ),
+				'someFilesRejected' => __( 'Uploading {accepted} files. {rejected} files were rejected due to validation errors.', 'arraypress' ),
+			],
 		];
 
 		// Apply contextual filters
 		return $this->apply_contextual_filters( 's3_browser_translations', $default_translations, $this->provider_id );
+	}
+
+	/**
+	 * Get allowed MIME types for uploads
+	 *
+	 * @return array Array of allowed MIME types
+	 */
+	public function get_allowed_mime_types(): array {
+		return Mime::get_allowed_types( $this->get_context() );
+	}
+
+	/**
+	 * Get allowed file extensions (derived from MIME types)
+	 *
+	 * @return array Array of allowed file extensions
+	 */
+	public function get_allowed_extensions(): array {
+		return Mime::get_allowed_extensions( $this->get_context() );
 	}
 
 }
