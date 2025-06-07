@@ -28,7 +28,7 @@
             this.countInitialItems();
             this.initUploadToggle();
             this.bindBucketEvents();
-            this.initTooltips(); // Add tooltip initialization
+            this.initTooltips();
         },
 
         /**

@@ -26,6 +26,10 @@ trait Hooks {
 	 * @return void
 	 */
 	private function init_hooks(): void {
+
+		// Register AJAX handlers for core functionality
+		$suffix = $this->get_hook_suffix();
+
 		// Add tab to media uploader
 		add_filter( 'media_upload_tabs', [ $this, 'add_media_tab' ] );
 
@@ -38,27 +42,30 @@ trait Hooks {
 		// Add media view strings for all post types
 		add_filter( 'media_view_strings', [ $this, 'add_media_view_strings' ], 20, 1 );
 
-		// Register AJAX handlers for core functionality
-		add_action( 'wp_ajax_s3_load_more_' . $this->provider_id, [ $this, 'handle_ajax_load_more' ] );
-		add_action( 'wp_ajax_s3_toggle_favorite_' . $this->provider_id, [ $this, 'handle_ajax_toggle_favorite' ] );
-		add_action( 'wp_ajax_s3_clear_cache_' . $this->provider_id, [ $this, 'handle_ajax_clear_cache' ] );
-		add_action( 'wp_ajax_s3_get_upload_url_' . $this->provider_id, [ $this, 'handle_ajax_get_upload_url' ] );
+		// Core operations
+		add_action( 'wp_ajax_s3_load_more_' . $suffix, [ $this, 'handle_ajax_load_more' ] );
+		add_action( 'wp_ajax_s3_toggle_favorite_' . $suffix, [ $this, 'handle_ajax_toggle_favorite' ] );
+		add_action( 'wp_ajax_s3_clear_cache_' . $suffix, [ $this, 'handle_ajax_clear_cache' ] );
+		add_action( 'wp_ajax_s3_get_upload_url_' . $suffix, [ $this, 'handle_ajax_get_upload_url' ] );
 
-		// Register AJAX handlers for object operations
-		add_action( 'wp_ajax_s3_delete_object_' . $this->provider_id, [ $this, 'handle_ajax_delete_object' ] );
-		add_action( 'wp_ajax_s3_rename_object_' . $this->provider_id, [ $this, 'handle_ajax_rename_object' ] );
-		add_action( 'wp_ajax_s3_get_presigned_url_' . $this->provider_id, [ $this, 'handle_ajax_get_presigned_url' ] );
+		// Object operations
+		add_action( 'wp_ajax_s3_delete_object_' . $suffix, [ $this, 'handle_ajax_delete_object' ] );
+		add_action( 'wp_ajax_s3_rename_object_' . $suffix, [ $this, 'handle_ajax_rename_object' ] );
+		add_action( 'wp_ajax_s3_get_presigned_url_' . $suffix, [ $this, 'handle_ajax_get_presigned_url' ] );
 
-		// Register AJAX handlers for folder operations
-		add_action( 'wp_ajax_s3_create_folder_' . $this->provider_id, [ $this, 'handle_ajax_create_folder' ] );
-		add_action( 'wp_ajax_s3_delete_folder_' . $this->provider_id, [ $this, 'handle_ajax_delete_folder' ] );
+		// Folder operations
+		add_action( 'wp_ajax_s3_create_folder_' . $suffix, [ $this, 'handle_ajax_create_folder' ] );
+		add_action( 'wp_ajax_s3_delete_folder_' . $suffix, [ $this, 'handle_ajax_delete_folder' ] );
 
-		// Register AJAX handlers for bucket operations
-		add_action( 'wp_ajax_s3_get_bucket_details_' . $this->provider_id, [ $this, 'handle_ajax_get_bucket_details' ] );
+		// Bucket operations
+		add_action( 'wp_ajax_s3_get_bucket_details_' . $suffix, [ $this, 'handle_ajax_get_bucket_details' ] );
 
-		// Register AJAX handlers for CORS operations
-		add_action( 'wp_ajax_s3_setup_cors_' . $this->provider_id, [ $this, 'handle_ajax_setup_cors_upload' ] );
-		add_action( 'wp_ajax_s3_delete_cors_configuration_' . $this->provider_id, [ $this, 'handle_ajax_delete_cors_configuration' ] );
+		// CORS operations
+		add_action( 'wp_ajax_s3_setup_cors_' . $suffix, [ $this, 'handle_ajax_setup_cors_upload' ] );
+		add_action( 'wp_ajax_s3_delete_cors_configuration_' . $suffix, [
+			$this,
+			'handle_ajax_delete_cors_configuration'
+		] );
 
 		// Add plugin integrations
 		$this->add_edd_integration();

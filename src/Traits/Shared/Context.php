@@ -113,4 +113,18 @@ trait Context {
 		return $value;
 	}
 
+	/**
+	 * Get unique hook suffix based on provider and context
+	 *
+	 * @return string Hook suffix for AJAX actions
+	 */
+	private function get_hook_suffix(): string {
+		if ( $this->has_context() ) {
+			return $this->provider_id . '_' . $this->get_context();
+		}
+
+		// Fallback to just provider ID
+		return $this->provider_id;
+	}
+
 }
