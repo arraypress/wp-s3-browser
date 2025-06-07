@@ -19,7 +19,8 @@ namespace ArrayPress\S3\Traits\Browser;
 use ArrayPress\S3\Tables\Objects;
 use ArrayPress\S3\Utils\Directory;
 use ArrayPress\S3\Utils\Validate;
-use Exception;
+use ArrayPress\S3\Utils\Cors;
+use ArrayPress\S3\Utils\Bucket;
 
 /**
  * Trait AjaxHandlers
@@ -637,103 +638,11 @@ trait AjaxHandlers {
 			return;
 		}
 
-		$details = [
-			'bucket'      => $bucket,
-			'basic'       => [],
-			'cors'        => [],
-			'permissions' => [],
-		];
-
-		// Get basic bucket information using existing methods
-		$details['basic'] = $this->get_basic_bucket_info( $bucket );
-
-		// Get CORS information using existing analyze_cors_configuration method
-		$cors_result = $this->client->analyze_cors_configuration( $bucket );
-		if ( $cors_result->is_successful() ) {
-			$cors_data = $cors_result->get_data();
-
-			// Check upload capability using existing cors_allows_upload method
-			$current_origin = $this->get_current_origin();
-			$upload_check   = $this->client->cors_allows_upload( $bucket, $current_origin );
-
-			$upload_capability = [
-				'upload_ready'   => false,
-				'current_origin' => $current_origin,
-				'details'        => 'CORS not configured'
-			];
-
-			if ( $upload_check->is_successful() ) {
-				$upload_data       = $upload_check->get_data();
-				$upload_capability = [
-					'upload_ready'    => $upload_data['allows_upload'],
-					'current_origin'  => $current_origin,
-					'allowed_methods' => $upload_data['allowed_methods'] ?? [],
-					'details'         => $upload_data['allows_upload']
-						? __( 'Upload allowed from current domain', 'arraypress' )
-						: __( 'Upload not allowed from current domain', 'arraypress' )
-				];
-			}
-
-			$details['cors'] = [
-				'analysis'       => $cors_data,
-				'upload_ready'   => $upload_capability['upload_ready'],
-				'current_origin' => $upload_capability['current_origin'],
-				'details'        => $upload_capability['details']
-			];
-		}
-
-		// Get permissions using existing check_key_permissions method
-		try {
-			$permissions            = $this->client->check_key_permissions( $bucket, true );
-			$details['permissions'] = [
-				'read'   => $permissions['read'] ?? false,
-				'write'  => $permissions['write'] ?? false,
-				'delete' => $permissions['delete'] ?? false,
-			];
-		} catch ( Exception $e ) {
-			// Permissions check failed, skip this section
-			$details['permissions'] = null;
-		}
+		// Use the Bucket utility to get all details
+		$current_origin = Cors::get_current_origin();
+		$details        = Bucket::get_details( $this->client, $bucket, $current_origin );
 
 		wp_send_json_success( $details );
-	}
-
-	/**
-	 * Get basic bucket information using existing client methods
-	 *
-	 * @param string $bucket Bucket name
-	 *
-	 * @return array Basic bucket info
-	 */
-	private function get_basic_bucket_info( string $bucket ): array {
-		$info = [
-			'name'    => $bucket,
-			'region'  => null,
-			'created' => null,
-		];
-
-		// Use existing get_bucket_location method
-		$location_result = $this->client->get_bucket_location( $bucket );
-		if ( $location_result->is_successful() ) {
-			$location_data  = $location_result->get_data();
-			$info['region'] = $location_data['location'] ?? null;
-		}
-
-		// Use existing get_bucket_models method to find creation date
-		$buckets_result = $this->client->get_bucket_models();
-		if ( $buckets_result->is_successful() ) {
-			$buckets_data = $buckets_result->get_data();
-			$buckets      = $buckets_data['buckets'] ?? [];
-
-			foreach ( $buckets as $bucket_model ) {
-				if ( $bucket_model->get_name() === $bucket ) {
-					$info['created'] = $bucket_model->get_creation_date( true );
-					break;
-				}
-			}
-		}
-
-		return $info;
 	}
 
 	/**
@@ -752,44 +661,39 @@ trait AjaxHandlers {
 	public function handle_ajax_setup_cors_upload(): void {
 		if ( ! check_ajax_referer( 's3_browser_nonce_' . $this->provider_id, 'nonce', false ) ) {
 			wp_send_json_error( [ 'message' => __( 'Security check failed', 'arraypress' ) ] );
-
 			return;
 		}
 
 		if ( ! current_user_can( $this->capability ) ) {
 			wp_send_json_error( [ 'message' => __( 'You do not have permission to perform this action', 'arraypress' ) ] );
-
 			return;
 		}
 
 		$bucket = isset( $_POST['bucket'] ) ? sanitize_text_field( $_POST['bucket'] ) : '';
-		$origin = isset( $_POST['origin'] ) ? sanitize_text_field( $_POST['origin'] ) : $this->get_current_origin();
+		$origin = isset( $_POST['origin'] ) ? sanitize_text_field( $_POST['origin'] ) : Cors::get_current_origin();
 
 		if ( empty( $bucket ) ) {
 			wp_send_json_error( [ 'message' => __( 'Bucket name is required', 'arraypress' ) ] );
-
 			return;
 		}
 
 		if ( empty( $origin ) ) {
 			wp_send_json_error( [ 'message' => __( 'Origin is required for CORS setup', 'arraypress' ) ] );
-
 			return;
 		}
 
-		// Generate upload-focused CORS rules
-		$cors_rules = $this->generate_upload_cors_rules( $origin );
+		// Generate upload-focused CORS rules using utility
+		$cors_rules = Cors::generate_upload_rules( $origin );
 
 		// Set the CORS configuration
 		$set_result = $this->client->set_cors_configuration( $bucket, $cors_rules );
 
 		if ( ! $set_result->is_successful() ) {
 			wp_send_json_error( [ 'message' => $set_result->get_error_message() ] );
-
 			return;
 		}
 
-		// Verify the setup worked by checking upload capability
+		// Verify the setup worked
 		$verification_result  = $this->client->cors_allows_upload( $bucket, $origin, false );
 		$verification_success = false;
 
@@ -812,37 +716,6 @@ trait AjaxHandlers {
 	}
 
 	/**
-	 * Get current origin for CORS setup
-	 *
-	 * @return string Current origin (protocol + domain)
-	 */
-	private function get_current_origin(): string {
-		$protocol = is_ssl() ? 'https://' : 'http://';
-		$host     = $_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? 'localhost';
-
-		return $protocol . $host;
-	}
-
-	/**
-	 * Generate minimal CORS rules optimized for uploads
-	 *
-	 * @param string $origin Origin to allow
-	 *
-	 * @return array CORS rules array
-	 */
-	private function generate_upload_cors_rules( string $origin ): array {
-		return [
-			[
-				'ID'             => 'UploadFromBrowser',
-				'AllowedOrigins' => [ $origin ],
-				'AllowedMethods' => [ 'PUT' ], // Only PUT for presigned uploads
-				'AllowedHeaders' => [ 'Content-Type', 'Content-Length' ], // Minimal headers
-				'MaxAgeSeconds'  => 3600 // 1 hour cache
-			]
-		];
-	}
-
-	/**
 	 * Handle AJAX delete CORS configuration request
 	 *
 	 * Removes all CORS rules from a bucket, disabling cross-origin access.
@@ -857,11 +730,13 @@ trait AjaxHandlers {
 	public function handle_ajax_delete_cors_configuration(): void {
 		if ( ! check_ajax_referer( 's3_browser_nonce_' . $this->provider_id, 'nonce', false ) ) {
 			wp_send_json_error( [ 'message' => __( 'Security check failed', 'arraypress' ) ] );
+
 			return;
 		}
 
 		if ( ! current_user_can( $this->capability ) ) {
 			wp_send_json_error( [ 'message' => __( 'You do not have permission to perform this action', 'arraypress' ) ] );
+
 			return;
 		}
 
@@ -869,6 +744,7 @@ trait AjaxHandlers {
 
 		if ( empty( $bucket ) ) {
 			wp_send_json_error( [ 'message' => __( 'Bucket name is required', 'arraypress' ) ] );
+
 			return;
 		}
 
@@ -877,6 +753,7 @@ trait AjaxHandlers {
 
 		if ( ! $result->is_successful() ) {
 			wp_send_json_error( [ 'message' => $result->get_error_message() ] );
+
 			return;
 		}
 
