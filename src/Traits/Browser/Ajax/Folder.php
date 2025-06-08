@@ -38,8 +38,7 @@ trait Folder {
 	 * - prefix: Current folder prefix/path (optional)
 	 * - folder_name: Name of the new folder to create
 	 * - nonce: Security nonce
-	 *
-	 * @since 1.0.0
+
 	 */
 	public function handle_ajax_create_folder(): void {
 		if ( ! $this->verify_ajax_request() ) {
@@ -99,8 +98,7 @@ trait Folder {
 	 * - bucket: S3 bucket name
 	 * - folder_path: Folder path to delete (will be normalized)
 	 * - nonce: Security nonce
-	 *
-	 * @since 1.0.0
+
 	 */
 	public function handle_ajax_delete_folder(): void {
 		if ( ! $this->verify_ajax_request() ) {

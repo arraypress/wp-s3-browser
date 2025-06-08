@@ -1,8 +1,8 @@
 <?php
 /**
- * Directory Utility Class
+ * Directory Utility Class - Enhanced with Rename Operations
  *
- * Handles directory/folder-related operations.
+ * Handles directory/folder-related operations including file renaming logic.
  *
  * @package     ArrayPress\S3\Utils
  * @copyright   Copyright (c) 2025, ArrayPress Limited
@@ -105,6 +105,57 @@ class Directory {
 	}
 
 	/**
+	 * Get directory path from object key, normalized for concatenation
+	 *
+	 * Extracts the directory path from an object key and ensures it's properly
+	 * formatted for concatenating with a new filename.
+	 *
+	 * @param string $object_key The full object key (path + filename)
+	 *
+	 * @return string Directory path with trailing slash, or empty string for root
+	 */
+	public static function get_directory_path( string $object_key ): string {
+		$directory_path = dirname( $object_key );
+
+		// dirname() returns '.' for files in root directory
+		return ( $directory_path === '.' ) ? '' : $directory_path . '/';
+	}
+
+	/**
+	 * Build new object key for file rename operation
+	 *
+	 * Combines the directory path from the current key with a new filename
+	 * to create the new object key for rename operations.
+	 *
+	 * @param string $current_key  Current object key
+	 * @param string $new_filename New filename (without path)
+	 *
+	 * @return string New object key
+	 */
+	public static function build_rename_key( string $current_key, string $new_filename ): string {
+		$directory_path = self::get_directory_path( $current_key );
+
+		return $directory_path . $new_filename;
+	}
+
+	/**
+	 * Check if rename would result in the same key
+	 *
+	 * Utility method to determine if a rename operation would result in
+	 * the same object key (i.e., no actual change).
+	 *
+	 * @param string $current_key  Current object key
+	 * @param string $new_filename New filename
+	 *
+	 * @return bool True if the keys would be the same
+	 */
+	public static function is_rename_same_key( string $current_key, string $new_filename ): bool {
+		$new_key = self::build_rename_key( $current_key, $new_filename );
+
+		return $new_key === $current_key;
+	}
+
+	/**
 	 * Build a full folder key from the current prefix and folder name
 	 *
 	 * @param string $current_prefix Current prefix/path
@@ -132,6 +183,45 @@ class Directory {
 	 */
 	public static function normalize( string $folder_path ): string {
 		return rtrim( $folder_path, '/' ) . '/';
+	}
+
+	/**
+	 * Extract filename from object key
+	 *
+	 * @param string $object_key Object key/path
+	 *
+	 * @return string Filename only
+	 */
+	public static function filename( string $object_key ): string {
+		return basename( $object_key );
+	}
+
+	/**
+	 * Check if object key represents a folder (ends with /)
+	 *
+	 * @param string $object_key Object key to check
+	 *
+	 * @return bool True if it represents a folder
+	 */
+	public static function is_folder( string $object_key ): bool {
+		return str_ends_with( $object_key, '/' );
+	}
+
+	/**
+	 * Get the depth level of a path (number of folder levels)
+	 *
+	 * @param string $path Path to analyze
+	 *
+	 * @return int Depth level (0 for root)
+	 */
+	public static function depth( string $path ): int {
+		$path = trim( $path, '/' );
+
+		if ( empty( $path ) ) {
+			return 0;
+		}
+
+		return substr_count( $path, '/' ) + 1;
 	}
 
 }

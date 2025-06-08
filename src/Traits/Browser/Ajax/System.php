@@ -15,6 +15,7 @@ declare( strict_types=1 );
 
 namespace ArrayPress\S3\Traits\Browser\Ajax;
 
+use ArrayPress\S3\Preferences\User;
 use ArrayPress\S3\Tables\Objects;
 
 /**
@@ -35,8 +36,6 @@ trait System {
 	 * Expected POST parameters:
 	 * - Various pagination parameters handled by Objects::ajax_load_more()
 	 * - nonce: Security nonce
-	 *
-	 * @since 1.0.0
 	 */
 	public function handle_ajax_load_more(): void {
 		if ( ! $this->verify_ajax_request() ) {
@@ -55,8 +54,6 @@ trait System {
 	 *
 	 * Expected POST parameters:
 	 * - nonce: Security nonce
-	 *
-	 * @since 1.0.0
 	 */
 	public function handle_ajax_clear_cache(): void {
 		if ( ! $this->verify_ajax_request() ) {
@@ -82,16 +79,14 @@ trait System {
 	 * Handle AJAX toggle favorite request
 	 *
 	 * Processes requests to set or remove a bucket as the user's default/favorite
-	 * bucket for a specific post type context. This allows users to have different
-	 * default buckets for different contexts (e.g., media library vs. custom post types).
+	 * bucket for a specific post type context. Uses UserPreferences utility for
+	 * clean separation of concerns.
 	 *
 	 * Expected POST parameters:
 	 * - bucket: Bucket name to set as favorite
 	 * - favorite_action: 'add' or 'remove' (optional, toggles if not specified)
 	 * - post_type: Context for the favorite (defaults to 'default')
 	 * - nonce: Security nonce
-	 *
-	 * @since 1.0.0
 	 */
 	public function handle_ajax_toggle_favorite(): void {
 		if ( ! $this->verify_ajax_request() ) {
@@ -101,42 +96,32 @@ trait System {
 		$bucket = $this->get_sanitized_post( 'bucket' );
 		if ( empty( $bucket ) ) {
 			wp_send_json_error( [ 'message' => __( 'Bucket name is required', 'arraypress' ) ] );
+
 			return;
 		}
 
-		$user_id = get_current_user_id();
-		if ( ! $user_id ) {
-			wp_send_json_error( [ 'message' => __( 'User not logged in', 'arraypress' ) ] );
-			return;
-		}
+		$action    = $this->get_sanitized_post( 'favorite_action' );
+		$post_type = $this->get_sanitized_post( 'post_type' ) ?: 'default';
 
-		$action           = $this->get_sanitized_post( 'favorite_action' );
-		$post_type        = $this->get_sanitized_post( 'post_type' ) ?: 'default';
-		$meta_key         = "s3_favorite_{$this->provider_id}_{$post_type}";
-		$current_favorite = get_user_meta( $user_id, $meta_key, true );
+		// Use UserPreferences utility for clean favorite management
+		$result = User::toggle_favorite_bucket(
+			$bucket,
+			$action,
+			0, // Use current user
+			$this->provider_id,
+			$post_type
+		);
 
-		$should_add = $action === 'add' || ( $action !== 'remove' && $current_favorite !== $bucket );
-
-		delete_user_meta( $user_id, $meta_key );
-
-		$result = true;
-		if ( $should_add ) {
-			$result = update_user_meta( $user_id, $meta_key, $bucket );
-			$status = 'added';
-		} else {
-			$status = 'removed';
-		}
-
-		if ( $result ) {
+		if ( $result['success'] ) {
 			wp_send_json_success( [
-				'message' => $status === 'added'
-					? __( 'Bucket set as default', 'arraypress' )
-					: __( 'Default bucket removed', 'arraypress' ),
-				'status'  => $status,
+				'message' => User::get_action_message( $result['action'], $bucket ),
+				'status'  => $result['action'],
 				'bucket'  => $bucket
 			] );
 		} else {
-			wp_send_json_error( [ 'message' => __( 'Failed to update default bucket', 'arraypress' ) ] );
+			wp_send_json_error( [
+				'message' => $result['error'] ?? __( 'Failed to update default bucket', 'arraypress' )
+			] );
 		}
 	}
 

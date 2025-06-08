@@ -23,7 +23,7 @@ use ArrayPress\S3\Utils\Directory;
 /**
  * Trait Folders
  */
-trait Folders {
+trait Folder {
 
 	/**
 	 * Check if a folder (prefix) exists

@@ -15,6 +15,7 @@ declare( strict_types=1 );
 
 namespace ArrayPress\S3\Traits\Browser\Ajax;
 
+use ArrayPress\S3\Utils\Directory;
 use ArrayPress\S3\Utils\Validate;
 use ArrayPress\S3\Utils\Duration;
 
@@ -36,8 +37,6 @@ trait File {
 	 * - bucket: S3 bucket name
 	 * - key: Object key to delete
 	 * - nonce: Security nonce
-	 *
-	 * @since 1.0.0
 	 */
 	public function handle_ajax_delete_object(): void {
 		if ( ! $this->verify_ajax_request() ) {
@@ -82,74 +81,59 @@ trait File {
 	 * - current_key: Current object key
 	 * - new_filename: New filename (without path)
 	 * - nonce: Security nonce
-	 *
-	 * @since 1.0.0
 	 */
 	public function handle_ajax_rename_object(): void {
 		if ( ! $this->verify_ajax_request() ) {
 			return;
 		}
 
-		$bucket       = $this->get_sanitized_post( 'bucket' );
-		$current_key  = $this->get_sanitized_post( 'current_key', true );
-		$new_filename = $this->get_sanitized_post( 'new_filename', true );
-
-		if ( empty( $bucket ) || empty( $current_key ) || empty( $new_filename ) ) {
-			wp_send_json_error( [ 'message' => __( 'Bucket, current key, and new filename are required', 'arraypress' ) ] );
-
+		$params = $this->validate_required_params( ['bucket', 'current_key', 'new_filename'], true );
+		if ( $params === false ) {
 			return;
 		}
 
 		// Validate the new filename
-		$validation_result = Validate::filename( $new_filename );
+		$validation_result = Validate::filename( $params['new_filename'] );
 		if ( ! $validation_result['valid'] ) {
 			wp_send_json_error( [ 'message' => $validation_result['message'] ] );
-
 			return;
 		}
 
-		// Extract directory path from current key
-		$directory_path = dirname( $current_key );
-		$directory_path = ( $directory_path === '.' ) ? '' : $directory_path . '/';
-
-		// Build new object key
-		$new_key = $directory_path . $new_filename;
+		// Build new object key using Directory utility
+		$new_key = Directory::build_rename_key( $params['current_key'], $params['new_filename'] );
 
 		// Check if the new key would be the same as current key
-		if ( $new_key === $current_key ) {
+		if ( Directory::is_rename_same_key( $params['current_key'], $params['new_filename'] ) ) {
 			wp_send_json_error( [ 'message' => __( 'The new filename is the same as the current filename', 'arraypress' ) ] );
-
 			return;
 		}
 
 		// Check if an object with the new key already exists
-		$exists_result = $this->client->object_exists( $bucket, $new_key );
+		$exists_result = $this->client->object_exists( $params['bucket'], $new_key );
 		if ( $exists_result->is_successful() ) {
 			$data = $exists_result->get_data();
 			if ( $data['exists'] ) {
-				wp_send_json_error( [ 'message' => sprintf( __( 'A file named "%s" already exists in this location', 'arraypress' ), $new_filename ) ] );
-
+				wp_send_json_error( [ 'message' => sprintf( __( 'A file named "%s" already exists in this location', 'arraypress' ), $params['new_filename'] ) ] );
 				return;
 			}
 		}
 
 		// Perform the rename operation
-		$rename_result = $this->client->rename_object( $bucket, $current_key, $new_key );
+		$rename_result = $this->client->rename_object( $params['bucket'], $params['current_key'], $new_key );
 
 		if ( ! $rename_result->is_successful() ) {
 			wp_send_json_error( [ 'message' => $rename_result->get_error_message() ] );
-
 			return;
 		}
 
 		$this->client->clear_all_cache();
 
 		wp_send_json_success( [
-			'message'      => sprintf( __( 'File renamed to "%s" successfully', 'arraypress' ), $new_filename ),
-			'bucket'       => $bucket,
-			'old_key'      => $current_key,
+			'message'      => sprintf( __( 'File renamed to "%s" successfully', 'arraypress' ), $params['new_filename'] ),
+			'bucket'       => $params['bucket'],
+			'old_key'      => $params['current_key'],
 			'new_key'      => $new_key,
-			'new_filename' => $new_filename
+			'new_filename' => $params['new_filename']
 		] );
 	}
 
@@ -164,8 +148,6 @@ trait File {
 	 * - object_key: Object key for which to generate URL
 	 * - expires_minutes: Expiration time in minutes (optional, defaults to 60)
 	 * - nonce: Security nonce
-	 *
-	 * @since 1.0.0
 	 */
 	public function handle_ajax_get_presigned_url(): void {
 		if ( ! $this->verify_ajax_request() ) {

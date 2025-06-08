@@ -40,8 +40,7 @@ trait Upload {
 	 * Returns:
 	 * - url: Presigned upload URL
 	 * - expires: URL expiration timestamp
-	 *
-	 * @since 1.0.0
+
 	 */
 	public function handle_ajax_get_upload_url(): void {
 		if ( ! $this->verify_ajax_request() ) {

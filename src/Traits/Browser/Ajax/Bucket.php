@@ -35,8 +35,6 @@ trait Bucket {
 	 * - bucket: S3 bucket name
 	 * - current_origin: Origin for CORS checking (optional)
 	 * - nonce: Security nonce
-	 *
-	 * @since 1.0.0
 	 */
 	public function handle_ajax_get_bucket_details(): void {
 		if ( ! $this->verify_ajax_request() ) {
@@ -74,8 +72,6 @@ trait Bucket {
 	 * - bucket: S3 bucket name
 	 * - origin: Origin to allow (optional, defaults to current)
 	 * - nonce: Security nonce
-	 *
-	 * @since 1.0.0
 	 */
 	public function handle_ajax_setup_cors_upload(): void {
 		if ( ! $this->verify_ajax_request() ) {
@@ -139,8 +135,6 @@ trait Bucket {
 	 * Expected POST parameters:
 	 * - bucket: S3 bucket name
 	 * - nonce: Security nonce
-	 *
-	 * @since 1.0.0
 	 */
 	public function handle_ajax_delete_cors_configuration(): void {
 		if ( ! $this->verify_ajax_request() ) {
