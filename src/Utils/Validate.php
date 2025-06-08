@@ -80,9 +80,28 @@ class Validate {
 
 		// Check for reserved system names
 		$reserved_names = [
-			'CON', 'PRN', 'AUX', 'NUL',
-			'COM1', 'COM2', 'COM3', 'COM4', 'COM5', 'COM6', 'COM7', 'COM8', 'COM9',
-			'LPT1', 'LPT2', 'LPT3', 'LPT4', 'LPT5', 'LPT6', 'LPT7', 'LPT8', 'LPT9'
+			'CON',
+			'PRN',
+			'AUX',
+			'NUL',
+			'COM1',
+			'COM2',
+			'COM3',
+			'COM4',
+			'COM5',
+			'COM6',
+			'COM7',
+			'COM8',
+			'COM9',
+			'LPT1',
+			'LPT2',
+			'LPT3',
+			'LPT4',
+			'LPT5',
+			'LPT6',
+			'LPT7',
+			'LPT8',
+			'LPT9'
 		];
 
 		$base_name = pathinfo( $filename, PATHINFO_FILENAME );
@@ -108,7 +127,7 @@ class Validate {
 	}
 
 	/**
-	 * Validate folder name with comprehensive checks
+	 * Validate folder name with comprehensive checks including space support
 	 *
 	 * @param string $folder_name Folder name to validate
 	 *
@@ -130,19 +149,22 @@ class Validate {
 			];
 		}
 
-		// Check for valid characters
-		if ( ! preg_match( '/^[a-zA-Z0-9._-]+$/', $folder_name ) ) {
+		// Check for valid characters (now includes spaces)
+		if ( ! preg_match( '/^[a-zA-Z0-9._\s-]+$/', $folder_name ) ) {
 			return [
 				'valid'   => false,
-				'message' => __( 'Folder name can only contain letters, numbers, dots, hyphens, and underscores', 'arraypress' )
+				'message' => __( 'Folder name can only contain letters, numbers, spaces, dots, hyphens, and underscores', 'arraypress' )
 			];
 		}
 
-		// Cannot start or end with dot or hyphen
-		if ( in_array( $folder_name[0], [ '.', '-' ] ) || in_array( $folder_name[ strlen( $folder_name ) - 1 ], [ '.', '-' ] ) ) {
+		// Cannot start or end with dot, hyphen, or space
+		$first_char = $folder_name[0];
+		$last_char  = $folder_name[ strlen( $folder_name ) - 1 ];
+
+		if ( in_array( $first_char, [ '.', '-', ' ' ] ) || in_array( $last_char, [ '.', '-', ' ' ] ) ) {
 			return [
 				'valid'   => false,
-				'message' => __( 'Folder name cannot start or end with dots or hyphens', 'arraypress' )
+				'message' => __( 'Folder name cannot start or end with dots, hyphens, or spaces', 'arraypress' )
 			];
 		}
 
@@ -154,11 +176,38 @@ class Validate {
 			];
 		}
 
+		// Cannot contain multiple consecutive spaces
+		if ( preg_match( '/\s{2,}/', $folder_name ) ) {
+			return [
+				'valid'   => false,
+				'message' => __( 'Folder name cannot contain multiple consecutive spaces', 'arraypress' )
+			];
+		}
+
 		// Check for reserved system names
 		$reserved = [
-			'CON', 'PRN', 'AUX', 'NUL',
-			'COM1', 'COM2', 'COM3', 'COM4', 'COM5', 'COM6', 'COM7', 'COM8', 'COM9',
-			'LPT1', 'LPT2', 'LPT3', 'LPT4', 'LPT5', 'LPT6', 'LPT7', 'LPT8', 'LPT9'
+			'CON',
+			'PRN',
+			'AUX',
+			'NUL',
+			'COM1',
+			'COM2',
+			'COM3',
+			'COM4',
+			'COM5',
+			'COM6',
+			'COM7',
+			'COM8',
+			'COM9',
+			'LPT1',
+			'LPT2',
+			'LPT3',
+			'LPT4',
+			'LPT5',
+			'LPT6',
+			'LPT7',
+			'LPT8',
+			'LPT9'
 		];
 
 		if ( in_array( strtoupper( $folder_name ), $reserved, true ) ) {
