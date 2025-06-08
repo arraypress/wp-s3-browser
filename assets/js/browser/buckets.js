@@ -81,7 +81,7 @@
         },
 
         /**
-         * Display bucket details modal
+         * Display bucket details modal with fixed button logic
          */
         displayBucketDetailsModal: function (bucket, data) {
             var self = this;
@@ -98,28 +98,13 @@
                 }
             ];
 
-            // Add CORS setup button if CORS is not properly configured
-            if (data.cors && !data.cors.upload_ready) {
-                buttons.unshift({
-                    text: s3BrowserConfig.i18n.cors.corsSetup,
-                    action: 'setup_cors',
-                    classes: 'button-primary',
-                    callback: function () {
-                        self.hideModal('s3BucketDetailsModal');
-                        // Fallback to direct AJAX call if showCORSSetupModal doesn't exist
-                        setTimeout(function () {
-                            if (window.S3Browser && typeof window.S3Browser.showCORSSetupModal === 'function') {
-                                window.S3Browser.showCORSSetupModal(bucket);
-                            } else {
-                                self.setupCORSDirectly(bucket);
-                            }
-                        }, 200);
-                    }
-                });
-            }
+            // Determine CORS status for button logic
+            var hasCORS = data.cors && data.cors.analysis && data.cors.analysis.has_cors;
+            var uploadReady = data.cors && data.cors.upload_ready;
 
-            // Add CORS revoke button if CORS exists
-            if (data.cors && data.cors.analysis && data.cors.analysis.has_cors) {
+            // Logic for CORS buttons - only show ONE action button
+            if (hasCORS) {
+                // CORS exists - show revoke button
                 buttons.splice(-1, 0, {
                     text: s3BrowserConfig.i18n.buckets.revokeCorsRules,
                     action: 'revoke_cors',
@@ -131,9 +116,45 @@
                         }, 200);
                     }
                 });
+
+                // If CORS exists but upload not ready, show setup button too (to reconfigure)
+                if (!uploadReady) {
+                    buttons.splice(-1, 0, {
+                        text: s3BrowserConfig.i18n.cors.corsSetup + ' (Reconfigure)',
+                        action: 'setup_cors',
+                        classes: 'button-primary',
+                        callback: function () {
+                            self.hideModal('s3BucketDetailsModal');
+                            setTimeout(function () {
+                                if (window.S3Browser && typeof window.S3Browser.showCORSSetupModal === 'function') {
+                                    window.S3Browser.showCORSSetupModal(bucket);
+                                } else {
+                                    self.setupCORSDirectly(bucket);
+                                }
+                            }, 200);
+                        }
+                    });
+                }
+            } else {
+                // No CORS - show setup button only
+                buttons.unshift({
+                    text: s3BrowserConfig.i18n.cors.corsSetup,
+                    action: 'setup_cors',
+                    classes: 'button-primary',
+                    callback: function () {
+                        self.hideModal('s3BucketDetailsModal');
+                        setTimeout(function () {
+                            if (window.S3Browser && typeof window.S3Browser.showCORSSetupModal === 'function') {
+                                window.S3Browser.showCORSSetupModal(bucket);
+                            } else {
+                                self.setupCORSDirectly(bucket);
+                            }
+                        }, 200);
+                    }
+                });
             }
 
-            // Add browse button
+            // Always add browse button at the beginning
             buttons.unshift({
                 text: s3BrowserConfig.i18n.buckets.browseBucket,
                 action: 'browse',
@@ -252,7 +273,7 @@
         /**
          * Direct CORS setup fallback method
          */
-        setupCORSDirectly: function(bucket) {
+        setupCORSDirectly: function (bucket) {
             var self = this;
             var i18n = s3BrowserConfig.i18n.buckets;
 
@@ -299,7 +320,7 @@
         /**
          * Show manual CORS setup instructions (S3-provider agnostic)
          */
-        showManualCORSInstructions: function(bucket) {
+        showManualCORSInstructions: function (bucket) {
             var i18n = s3BrowserConfig.i18n.buckets;
             var providerName = S3BrowserGlobalConfig.providerName || i18n.s3CompatibleProvider;
 
