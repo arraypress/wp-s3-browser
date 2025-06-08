@@ -17,6 +17,7 @@ namespace ArrayPress\S3;
 
 use ArrayPress\S3\Abstracts\Provider;
 use ArrayPress\S3\Traits\Client\Buckets;
+use ArrayPress\S3\Traits\Client\Bucket;
 use ArrayPress\S3\Traits\Client\Caching;
 use ArrayPress\S3\Traits\Client\Folders;
 use ArrayPress\S3\Traits\Client\Objects;
@@ -33,6 +34,7 @@ use ArrayPress\S3\Traits\Shared\Context;
 class Client {
 	use Caching;
 	use Buckets;
+	use Bucket;
 	use Folders;
 	use Objects;
 	use Permissions;
