@@ -1,6 +1,9 @@
 <?php
 /**
- * Enhanced Client Batch Trait with Timeout Fixes
+ * Enhanced Client Batch Trait with Reduced Duplication
+ *
+ * Improved batch operations with better separation of concerns and
+ * reduced code duplication between batch and folder operations.
  */
 
 declare( strict_types=1 );
@@ -19,14 +22,14 @@ trait Batch {
 	 *
 	 * @param string $bucket      Bucket name
 	 * @param array  $object_keys Array of object keys to delete
-	 * @param int    $batch_size  Objects per batch (max 1000)
+	 * @param int    $batch_size  Objects per batch (max 100 for S3 compatibility)
 	 *
 	 * @return ResponseInterface Response with batch delete results
 	 */
 	public function batch_delete_objects(
 		string $bucket,
 		array $object_keys,
-		int $batch_size = 50  // Reduced default batch size for R2
+		int $batch_size = 50
 	): ResponseInterface {
 
 		// Apply contextual filter to modify parameters
@@ -68,14 +71,172 @@ trait Batch {
 			'provider'      => get_class( $this->provider )
 		] );
 
-		// For small numbers of objects, use individual delete to avoid batch complexity
-		if ( count( $object_keys ) <= 3 ) {
-			$this->debug( 'Using individual deletes for small batch', count( $object_keys ) );
+		// Use smart deletion strategy based on object count
+		return $this->execute_smart_deletion_strategy( $bucket, $object_keys, $batch_size );
+	}
+
+	/**
+	 * Enhanced delete folder using batch delete with better integration
+	 *
+	 * @param string $bucket      Bucket name
+	 * @param string $folder_path Folder path (will be normalized)
+	 * @param bool   $recursive   Whether to delete all contents recursively
+	 * @param bool   $use_batch   Whether to use batch delete for efficiency
+	 *
+	 * @return ResponseInterface Response
+	 */
+	public function delete_folder_batch(
+		string $bucket,
+		string $folder_path,
+		bool $recursive = true,
+		bool $use_batch = true
+	): ResponseInterface {
+
+		// Apply contextual filter to modify parameters and allow preventing deletion
+		$delete_params = $this->apply_contextual_filters(
+			'arraypress_s3_delete_folder_batch_params',
+			[
+				'bucket'      => $bucket,
+				'folder_path' => $folder_path,
+				'recursive'   => $recursive,
+				'use_batch'   => $use_batch,
+				'proceed'     => true
+			],
+			$bucket,
+			$folder_path
+		);
+
+		// Check if deletion should proceed
+		if ( ! $delete_params['proceed'] ) {
+			return new ErrorResponse(
+				__( 'Folder deletion was prevented by filter', 'arraypress' ),
+				'deletion_prevented',
+				403,
+				[
+					'bucket'      => $bucket,
+					'folder_path' => $folder_path
+				]
+			);
+		}
+
+		$bucket      = $delete_params['bucket'];
+		$folder_path = $delete_params['folder_path'];
+		$recursive   = $delete_params['recursive'];
+		$use_batch   = $delete_params['use_batch'];
+
+		// Normalize folder path - THIS IS NOW HANDLED HERE
+		$normalized_path = Directory::normalize( $folder_path );
+
+		// Get all objects in this folder first
+		$objects_result = $this->get_object_models( $bucket, 10000, $normalized_path, $recursive ? '' : '/' );
+
+		if ( ! $objects_result->is_successful() ) {
+			return new ErrorResponse(
+				__( 'Failed to list folder contents', 'arraypress' ),
+				'folder_list_error',
+				400,
+				[ 'error' => $objects_result->get_error_message() ]
+			);
+		}
+
+		$data        = $objects_result->get_data();
+		$objects     = $data['objects'];
+		$object_keys = array_map( function ( $object ) {
+			return $object->get_key();
+		}, $objects );
+
+		// CRITICAL: Always include the folder placeholder object itself
+		$object_keys = $this->ensure_folder_placeholder_included( $bucket, $normalized_path, $object_keys );
+
+		if ( empty( $object_keys ) ) {
+			return new SuccessResponse(
+				sprintf( __( 'Folder "%s" is already empty or does not exist', 'arraypress' ), $normalized_path ),
+				200,
+				[ 'folder_path' => $normalized_path, 'success_count' => 0, 'error_count' => 0 ]
+			);
+		}
+
+		$this->debug( 'Delete Folder Batch - Final object list', [
+			'folder_path' => $normalized_path,
+			'object_keys' => $object_keys,
+			'total_count' => count( $object_keys )
+		] );
+
+		// Use the same smart deletion strategy as batch_delete_objects
+		$delete_result = $use_batch
+			? $this->execute_smart_deletion_strategy( $bucket, $object_keys, 20 ) // Small batches for folders
+			: $this->delete_folder( $bucket, $folder_path, $recursive );
+
+		$data          = $delete_result->get_data();
+		$response_data = array_merge( $data, [ 'folder_path' => $normalized_path ] );
+
+		$message = sprintf(
+			__( 'Folder "%s" deleted: %d objects removed, %d failed', 'arraypress' ),
+			$normalized_path,
+			$data['success_count'] ?? 0,
+			$data['error_count'] ?? 0
+		);
+
+		$response = $delete_result->is_successful()
+			? new SuccessResponse( $message, 200, $response_data )
+			: new ErrorResponse( $message, 'folder_batch_delete_partial_failure', 207, $response_data );
+
+		// FINAL CLEANUP: Ensure folder placeholder is removed
+		$this->cleanup_folder_placeholder( $bucket, $normalized_path );
+
+		// Apply contextual filter to final response
+		return $this->apply_contextual_filters(
+			'arraypress_s3_delete_folder_batch_response',
+			$response,
+			$bucket,
+			$normalized_path,
+			( $data['success_count'] ?? 0 ) > 0
+		);
+	}
+
+	/**
+	 * Execute smart deletion strategy based on object count
+	 *
+	 * @param string $bucket      Bucket name
+	 * @param array  $object_keys Array of object keys to delete
+	 * @param int    $batch_size  Preferred batch size
+	 *
+	 * @return ResponseInterface
+	 */
+	private function execute_smart_deletion_strategy( string $bucket, array $object_keys, int $batch_size ): ResponseInterface {
+		$object_count = count( $object_keys );
+
+		if ( $object_count <= 3 ) {
+			// Small number of objects - use individual deletes (most reliable)
+			$this->debug( 'Using individual deletes for small batch', $object_count );
 
 			return $this->individual_delete_objects( $bucket, $object_keys );
 		}
 
-		// Split into smaller batches for R2 compatibility
+		if ( $object_count <= 10 ) {
+			// Medium number - try batch but with very small batch size
+			$this->debug( 'Using small batch delete', $object_count );
+
+			return $this->process_batch_deletion( $bucket, $object_keys, min( $batch_size, 5 ) );
+		}
+
+		// Large number - use batch deletion with specified batch size
+		$this->debug( 'Using batch delete with batch size', $batch_size );
+
+		return $this->process_batch_deletion( $bucket, $object_keys, $batch_size );
+	}
+
+	/**
+	 * Process batch deletion with automatic fallback
+	 *
+	 * @param string $bucket      Bucket name
+	 * @param array  $object_keys Array of object keys to delete
+	 * @param int    $batch_size  Batch size
+	 *
+	 * @return ResponseInterface
+	 */
+	private function process_batch_deletion( string $bucket, array $object_keys, int $batch_size ): ResponseInterface {
+		// Split into smaller batches
 		$batches       = array_chunk( $object_keys, $batch_size );
 		$total_success = 0;
 		$total_errors  = 0;
@@ -83,7 +244,7 @@ trait Batch {
 		$all_errors    = [];
 
 		foreach ( $batches as $batch_index => $batch ) {
-			$this->debug( "Processing batch", $batch_index + 1 . '/' . count( $batches ) );
+			$this->debug( "Processing batch", ( $batch_index + 1 ) . '/' . count( $batches ) );
 
 			// Try batch delete first
 			$result = $this->signer->batch_delete_objects( $bucket, $batch );
@@ -123,39 +284,13 @@ trait Batch {
 			}
 		}
 
-		// Determine response status
-		$status_code = 200;
-		if ( $total_errors > 0 && $total_success === 0 ) {
-			$status_code = 400; // All failed
-		} elseif ( $total_errors > 0 ) {
-			$status_code = 207; // Partial success
-		}
-
-		$message = sprintf(
-			__( 'Batch delete completed: %d objects deleted, %d failed', 'arraypress' ),
+		return $this->create_batch_deletion_response(
+			$object_keys,
+			$batches,
 			$total_success,
-			$total_errors
-		);
-
-		$response_data = [
-			'total_requested' => count( $object_keys ),
-			'total_batches'   => count( $batches ),
-			'success_count'   => $total_success,
-			'error_count'     => $total_errors,
-			'deleted_objects' => $all_deleted,
-			'failed_objects'  => $all_errors
-		];
-
-		$response = $total_errors === 0
-			? new SuccessResponse( $message, $status_code, $response_data )
-			: new ErrorResponse( $message, 'partial_batch_delete_failure', $status_code, $response_data );
-
-		// Apply contextual filter to final response
-		return $this->apply_contextual_filters(
-			'arraypress_s3_batch_delete_objects_response',
-			$response,
-			$bucket,
-			$object_keys
+			$total_errors,
+			$all_deleted,
+			$all_errors
 		);
 	}
 
@@ -202,75 +337,15 @@ trait Batch {
 	}
 
 	/**
-	 * Enhanced delete folder using batch delete with better R2 compatibility
+	 * Ensure folder placeholder is included in deletion list
 	 *
-	 * @param string $bucket      Bucket name
-	 * @param string $folder_path Folder path
-	 * @param bool   $recursive   Whether to delete all contents recursively
-	 * @param bool   $use_batch   Whether to use batch delete for efficiency
+	 * @param string $bucket          Bucket name
+	 * @param string $normalized_path Normalized folder path
+	 * @param array  $object_keys     Current object keys
 	 *
-	 * @return ResponseInterface Response
+	 * @return array Updated object keys
 	 */
-	public function delete_folder_batch(
-		string $bucket,
-		string $folder_path,
-		bool $recursive = true,
-		bool $use_batch = true
-	): ResponseInterface {
-
-		// Apply contextual filter to modify parameters and allow preventing deletion
-		$delete_params = $this->apply_contextual_filters(
-			'arraypress_s3_delete_folder_batch_params',
-			[
-				'bucket'      => $bucket,
-				'folder_path' => $folder_path,
-				'recursive'   => $recursive,
-				'use_batch'   => $use_batch,
-				'proceed'     => true
-			],
-			$bucket,
-			$folder_path
-		);
-
-		// Check if deletion should proceed
-		if ( ! $delete_params['proceed'] ) {
-			return new ErrorResponse(
-				__( 'Folder deletion was prevented by filter', 'arraypress' ),
-				'deletion_prevented',
-				403,
-				[
-					'bucket'      => $bucket,
-					'folder_path' => $folder_path
-				]
-			);
-		}
-
-		$bucket      = $delete_params['bucket'];
-		$folder_path = $delete_params['folder_path'];
-		$recursive   = $delete_params['recursive'];
-		$use_batch   = $delete_params['use_batch'];
-
-		// Get all objects in this folder first
-		$normalized_path = Directory::normalize( $folder_path );
-		$objects_result  = $this->get_object_models( $bucket, 10000, $normalized_path, $recursive ? '' : '/' );
-
-		if ( ! $objects_result->is_successful() ) {
-			return new ErrorResponse(
-				__( 'Failed to list folder contents', 'arraypress' ),
-				'folder_list_error',
-				400,
-				[ 'error' => $objects_result->get_error_message() ]
-			);
-		}
-
-		$data        = $objects_result->get_data();
-		$objects     = $data['objects'];
-		$object_keys = array_map( function ( $object ) {
-			return $object->get_key();
-		}, $objects );
-
-		// CRITICAL: Always include the folder placeholder object itself
-		// This ensures the folder disappears after all contents are deleted
+	private function ensure_folder_placeholder_included( string $bucket, string $normalized_path, array $object_keys ): array {
 		if ( ! in_array( $normalized_path, $object_keys, true ) ) {
 			// Check if folder placeholder exists as a separate call
 			$folder_exists = $this->object_exists( $bucket, $normalized_path, false );
@@ -283,60 +358,62 @@ trait Batch {
 			}
 		}
 
-		if ( empty( $object_keys ) ) {
-			return new SuccessResponse(
-				sprintf( __( 'Folder "%s" is already empty or does not exist', 'arraypress' ), $normalized_path ),
-				200,
-				[ 'folder_path' => $normalized_path, 'success_count' => 0, 'error_count' => 0 ]
-			);
+		return $object_keys;
+	}
+
+	/**
+	 * Create standardized batch deletion response
+	 *
+	 * @param array $object_keys   Original object keys requested
+	 * @param array $batches       Batch array used for processing
+	 * @param int   $total_success Total successful deletions
+	 * @param int   $total_errors  Total failed deletions
+	 * @param array $all_deleted   Array of successfully deleted objects
+	 * @param array $all_errors    Array of deletion errors
+	 *
+	 * @return ResponseInterface
+	 */
+	private function create_batch_deletion_response(
+		array $object_keys,
+		array $batches,
+		int $total_success,
+		int $total_errors,
+		array $all_deleted,
+		array $all_errors
+	): ResponseInterface {
+		// Determine response status
+		$status_code = 200;
+		if ( $total_errors > 0 && $total_success === 0 ) {
+			$status_code = 400; // All failed
+		} elseif ( $total_errors > 0 ) {
+			$status_code = 207; // Partial success
 		}
-
-		$this->debug( 'Delete Folder Batch - Final object list', [
-			'folder_path' => $normalized_path,
-			'object_keys' => $object_keys,
-			'total_count' => count( $object_keys )
-		] );
-
-		// ENHANCED LOGIC: Use different strategies based on object count
-		if ( count( $object_keys ) <= 5 ) {
-			// Small number of objects - use individual deletes (more reliable)
-			$this->debug( 'Using individual deletes for small folder', count( $object_keys ) );
-			$delete_result = $this->individual_delete_objects( $bucket, $object_keys );
-		} elseif ( $use_batch ) {
-			// Larger number - try batch with smaller batch sizes for R2
-			$this->debug( 'Using batch delete with reduced batch size', count( $object_keys ) );
-			$delete_result = $this->batch_delete_objects( $bucket, $object_keys, 20 ); // Small batches for R2
-		} else {
-			// Fallback to regular folder deletion
-			$this->debug( 'Using regular folder deletion fallback', count( $object_keys ) );
-
-			return $this->delete_folder( $bucket, $folder_path, $recursive );
-		}
-
-		$data          = $delete_result->get_data();
-		$response_data = array_merge( $data, [ 'folder_path' => $normalized_path ] );
 
 		$message = sprintf(
-			__( 'Folder "%s" deleted: %d objects removed, %d failed', 'arraypress' ),
-			$normalized_path,
-			$data['success_count'],
-			$data['error_count']
+			__( 'Batch delete completed: %d objects deleted, %d failed', 'arraypress' ),
+			$total_success,
+			$total_errors
 		);
 
-		$response = $delete_result->is_successful()
-			? new SuccessResponse( $message, 200, $response_data )
-			: new ErrorResponse( $message, 'folder_batch_delete_partial_failure', 207, $response_data );
+		$response_data = [
+			'total_requested' => count( $object_keys ),
+			'total_batches'   => count( $batches ),
+			'success_count'   => $total_success,
+			'error_count'     => $total_errors,
+			'deleted_objects' => $all_deleted,
+			'failed_objects'  => $all_errors
+		];
 
-		// FINAL CLEANUP: Ensure folder placeholder is removed
-		$this->cleanup_folder_placeholder( $bucket, $normalized_path );
+		$response = $total_errors === 0
+			? new SuccessResponse( $message, $status_code, $response_data )
+			: new ErrorResponse( $message, 'partial_batch_delete_failure', $status_code, $response_data );
 
 		// Apply contextual filter to final response
 		return $this->apply_contextual_filters(
-			'arraypress_s3_delete_folder_batch_response',
+			'arraypress_s3_batch_delete_objects_response',
 			$response,
-			$bucket,
-			$normalized_path,
-			$data['success_count'] > 0
+			$object_keys[0] ?? '', // Use first key as context
+			$object_keys
 		);
 	}
 
