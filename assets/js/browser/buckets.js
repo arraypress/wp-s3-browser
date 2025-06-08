@@ -59,6 +59,9 @@
         /**
          * Show comprehensive bucket details modal
          */
+        /**
+         * Debug version - Show comprehensive bucket details modal
+         */
         showBucketDetails: function (bucket, provider) {
             var self = this;
 
@@ -67,14 +70,36 @@
             // Load bucket details including CORS info
             this.makeAjaxRequest('s3_get_bucket_details_', {
                 bucket: bucket,
-                provider: provider || S3BrowserGlobalConfig.providerId
+                provider: provider || S3BrowserGlobalConfig.providerId,
+                current_origin: window.location.origin // Explicitly pass origin
             }, {
                 success: function (response) {
                     self.hideProgressOverlay();
+
+                    // DEBUG: Log the full response
+                    console.log('=== BUCKET DETAILS DEBUG ===');
+                    console.log('Bucket:', bucket);
+                    console.log('Full Response:', response);
+                    console.log('Response Data:', response.data);
+
+                    if (response.data && response.data.cors) {
+                        console.log('CORS Data:', response.data.cors);
+                        console.log('CORS Analysis:', response.data.cors.analysis);
+                        console.log('Upload Ready:', response.data.cors.upload_ready);
+                        console.log('Current Origin:', response.data.cors.current_origin);
+                        console.log('Window Origin:', window.location.origin);
+                    }
+
+                    if (response.data && response.data.debug) {
+                        console.log('Debug Info:', response.data.debug);
+                    }
+                    console.log('=== END DEBUG ===');
+
                     self.displayBucketDetailsModal(bucket, response.data);
                 },
                 error: function (message) {
                     self.hideProgressOverlay();
+                    console.error('Bucket details error:', message);
                     self.showNotification(s3BrowserConfig.i18n.buckets.loadDetailsError.replace('{message}', message), 'error');
                 }
             });
@@ -83,8 +108,28 @@
         /**
          * Display bucket details modal with fixed button logic
          */
+        /**
+         * Debug version - Display bucket details modal
+         */
         displayBucketDetailsModal: function (bucket, data) {
             var self = this;
+
+            // DEBUG: Log button decision logic
+            console.log('=== BUTTON LOGIC DEBUG ===');
+            console.log('Data:', data);
+
+            var hasCORS = data.cors && data.cors.analysis && data.cors.analysis.has_cors;
+            var uploadReady = data.cors && data.cors.upload_ready;
+
+            console.log('Has CORS:', hasCORS);
+            console.log('Upload Ready:', uploadReady);
+
+            if (data.cors && data.cors.analysis) {
+                console.log('CORS Analysis has_cors:', data.cors.analysis.has_cors);
+            }
+
+            console.log('=== END BUTTON DEBUG ===');
+
             var content = this.buildBucketDetailsContent(bucket, data);
 
             var buttons = [
@@ -98,13 +143,9 @@
                 }
             ];
 
-            // Determine CORS status for button logic
-            var hasCORS = data.cors && data.cors.analysis && data.cors.analysis.has_cors;
-            var uploadReady = data.cors && data.cors.upload_ready;
-
-            // Logic for CORS buttons - only show ONE action button
+            // Simplified button logic for debugging
             if (hasCORS) {
-                // CORS exists - show revoke button
+                console.log('Adding REVOKE button because hasCORS =', hasCORS);
                 buttons.splice(-1, 0, {
                     text: s3BrowserConfig.i18n.buckets.revokeCorsRules,
                     action: 'revoke_cors',
@@ -116,28 +157,11 @@
                         }, 200);
                     }
                 });
+            }
 
-                // If CORS exists but upload not ready, show setup button too (to reconfigure)
-                if (!uploadReady) {
-                    buttons.splice(-1, 0, {
-                        text: s3BrowserConfig.i18n.cors.corsSetup + ' (Reconfigure)',
-                        action: 'setup_cors',
-                        classes: 'button-primary',
-                        callback: function () {
-                            self.hideModal('s3BucketDetailsModal');
-                            setTimeout(function () {
-                                if (window.S3Browser && typeof window.S3Browser.showCORSSetupModal === 'function') {
-                                    window.S3Browser.showCORSSetupModal(bucket);
-                                } else {
-                                    self.setupCORSDirectly(bucket);
-                                }
-                            }, 200);
-                        }
-                    });
-                }
-            } else {
-                // No CORS - show setup button only
-                buttons.unshift({
+            if (!uploadReady) {
+                console.log('Adding SETUP button because uploadReady =', uploadReady);
+                buttons.splice(-1, 0, {
                     text: s3BrowserConfig.i18n.cors.corsSetup,
                     action: 'setup_cors',
                     classes: 'button-primary',
@@ -164,6 +188,8 @@
                     self.browseBucket(bucket);
                 }
             });
+
+            console.log('Final buttons array:', buttons.map(function(b) { return b.text; }));
 
             this.showModal('s3BucketDetailsModal', s3BrowserConfig.i18n.buckets.detailsTitle.replace('{bucket}', bucket), content, buttons);
         },

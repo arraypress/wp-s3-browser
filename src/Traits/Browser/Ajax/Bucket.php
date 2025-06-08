@@ -36,30 +36,51 @@ trait Bucket {
 	 * - current_origin: Origin for CORS checking (optional)
 	 * - nonce: Security nonce
 	 */
+	/**
+	 * Debug version - Handle AJAX get bucket details request
+	 */
 	public function handle_ajax_get_bucket_details(): void {
 		if ( ! $this->verify_ajax_request() ) {
 			return;
 		}
 
-		$bucket         = $this->get_sanitized_post( 'bucket' );
+		$bucket = $this->get_sanitized_post( 'bucket' );
 		$current_origin = $this->get_sanitized_post( 'current_origin' );
+
+		// Debug logging
+		error_log( "=== BUCKET DETAILS AJAX DEBUG ===" );
+		error_log( "Bucket: " . $bucket );
+		error_log( "Current Origin: " . $current_origin );
+		error_log( "POST data: " . print_r( $_POST, true ) );
 
 		if ( empty( $bucket ) ) {
 			wp_send_json_error( [ 'message' => __( 'Bucket name is required', 'arraypress' ) ] );
-
 			return;
 		}
 
-		// Use the client's comprehensive bucket details method
-		$details_result = $this->client->get_bucket_details( $bucket, $current_origin );
+		// Force fresh data by bypassing cache
+		$details_result = $this->client->get_bucket_details( $bucket, $current_origin, false );
+
+		error_log( "Details result successful: " . ( $details_result->is_successful() ? 'YES' : 'NO' ) );
 
 		if ( ! $details_result->is_successful() ) {
+			error_log( "Details error: " . $details_result->get_error_message() );
 			wp_send_json_error( [ 'message' => $details_result->get_error_message() ] );
-
 			return;
 		}
 
-		wp_send_json_success( $details_result->get_data() );
+		$data = $details_result->get_data();
+
+		// Debug the response data
+		error_log( "Response data structure:" );
+		error_log( "- bucket: " . ( $data['bucket'] ?? 'NULL' ) );
+		error_log( "- cors.upload_ready: " . ( $data['cors']['upload_ready'] ?? 'NULL' ) );
+		error_log( "- cors.analysis.has_cors: " . ( $data['cors']['analysis']['has_cors'] ?? 'NULL' ) );
+		error_log( "- cors.current_origin: " . ( $data['cors']['current_origin'] ?? 'NULL' ) );
+		error_log( "Full CORS data: " . print_r( $data['cors'] ?? [], true ) );
+		error_log( "=== END BUCKET DEBUG ===" );
+
+		wp_send_json_success( $data );
 	}
 
 	/**
@@ -81,38 +102,58 @@ trait Bucket {
 		$bucket = $this->get_sanitized_post( 'bucket' );
 		$origin = $this->get_sanitized_post( 'origin' ) ?: Cors::get_current_origin();
 
+		error_log( "=== CORS SETUP DEBUG ===" );
+		error_log( "Bucket: " . $bucket );
+		error_log( "Origin: " . $origin );
+
 		if ( empty( $bucket ) ) {
 			wp_send_json_error( [ 'message' => __( 'Bucket name is required', 'arraypress' ) ] );
-
 			return;
 		}
 
 		if ( empty( $origin ) ) {
 			wp_send_json_error( [ 'message' => __( 'Origin is required for CORS setup', 'arraypress' ) ] );
-
 			return;
 		}
+
+		// Clear ALL cache before setup
+		$this->client->clear_all_cache();
+		error_log( "Cache cleared before CORS setup" );
 
 		// Use the client method to set CORS for uploads
 		$set_result = $this->client->set_cors_scenario( $bucket, 'upload_only', [ $origin ] );
 
-		if ( ! $set_result->is_successful() ) {
-			wp_send_json_error( [ 'message' => $set_result->get_error_message() ] );
+		error_log( "CORS setup result: " . ( $set_result->is_successful() ? 'SUCCESS' : 'FAILED' ) );
 
+		if ( ! $set_result->is_successful() ) {
+			error_log( "CORS setup error: " . $set_result->get_error_message() );
+			wp_send_json_error( [ 'message' => $set_result->get_error_message() ] );
 			return;
 		}
 
-		// Verify the setup worked
-		$verification_result  = $this->client->cors_allows_upload( $bucket, $origin, false );
+		// Clear cache again after setup
+		$this->client->clear_all_cache();
+		error_log( "Cache cleared after CORS setup" );
+
+		// Wait a moment for eventual consistency
+		sleep( 1 );
+
+		// Verify the setup worked (without cache)
+		$verification_result = $this->client->cors_allows_upload( $bucket, $origin, false );
 		$verification_success = false;
 
+		error_log( "Verification result: " . ( $verification_result->is_successful() ? 'SUCCESS' : 'FAILED' ) );
+
 		if ( $verification_result->is_successful() ) {
-			$verification_data    = $verification_result->get_data();
+			$verification_data = $verification_result->get_data();
 			$verification_success = $verification_data['allows_upload'] ?? false;
+			error_log( "Verification data: " . print_r( $verification_data, true ) );
+			error_log( "Upload allowed: " . ( $verification_success ? 'YES' : 'NO' ) );
+		} else {
+			error_log( "Verification error: " . $verification_result->get_error_message() );
 		}
 
-		// Clear cache after successful setup
-		$this->client->clear_all_cache();
+		error_log( "=== END CORS SETUP DEBUG ===" );
 
 		wp_send_json_success( [
 			'bucket'              => $bucket,
