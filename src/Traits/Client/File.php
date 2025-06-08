@@ -29,6 +29,157 @@ use Generator;
 trait File {
 
 	/**
+	 * Check if an object exists in a bucket
+	 *
+	 * @param string $bucket     Bucket name
+	 * @param string $object_key Object key
+	 * @param bool   $use_cache  Whether to use cache
+	 *
+	 * @return ResponseInterface Response with existence info
+	 */
+	public function object_exists( string $bucket, string $object_key, bool $use_cache = true ): ResponseInterface {
+		// Apply contextual filter to modify parameters
+		$params = $this->apply_contextual_filters(
+			'arraypress_s3_object_exists_params',
+			[
+				'bucket'     => $bucket,
+				'object_key' => $object_key,
+				'use_cache'  => $use_cache
+			],
+			$bucket,
+			$object_key
+		);
+
+		$bucket     = $params['bucket'];
+		$object_key = $params['object_key'];
+		$use_cache  = $params['use_cache'];
+
+		if ( empty( $bucket ) || empty( $object_key ) ) {
+			return new ErrorResponse(
+				__( 'Bucket and object key are required', 'arraypress' ),
+				'invalid_parameters',
+				400
+			);
+		}
+
+		// Check cache if enabled
+		if ( $use_cache && $this->is_cache_enabled() ) {
+			$cache_key = $this->get_cache_key( 'object_exists', [
+				'bucket' => $bucket,
+				'key'    => $object_key
+			] );
+			$cached    = $this->get_from_cache( $cache_key );
+			if ( $cached !== false ) {
+				return $cached;
+			}
+		}
+
+		// Use HEAD request to check object existence
+		$head_result = $this->signer->head_object( $bucket, $object_key );
+
+		if ( $head_result->is_successful() ) {
+			// Object exists - get metadata from the response
+			$metadata = $head_result->get_metadata();
+
+			$response = new SuccessResponse(
+				sprintf( __( 'Object "%s" exists in bucket "%s"', 'arraypress' ), $object_key, $bucket ),
+				200,
+				[
+					'bucket'     => $bucket,
+					'object_key' => $object_key,
+					'exists'     => true,
+					'metadata'   => $metadata,
+					'method'     => 'head_object'
+				]
+			);
+
+			// Cache the positive result
+			if ( $use_cache && $this->is_cache_enabled() ) {
+				$this->save_to_cache( $cache_key, $response );
+			}
+
+			// Apply contextual filter to final response
+			return $this->apply_contextual_filters(
+				'arraypress_s3_object_exists_response',
+				$response,
+				$bucket,
+				$object_key
+			);
+		}
+
+		// Handle error response
+		if ( $head_result instanceof ErrorResponse ) {
+			$error_code    = $head_result->get_error_code();
+			$error_message = $head_result->get_error_message();
+			$status_code   = $head_result->get_status_code();
+
+			// Common error codes that indicate object doesn't exist
+			$not_found_codes = [ 'NoSuchKey', 'object_not_found', 'not_found', '404' ];
+
+			if ( $status_code === 404 ||
+			     in_array( $error_code, $not_found_codes, true ) ||
+			     strpos( $error_message, 'does not exist' ) !== false ||
+			     strpos( $error_message, 'not found' ) !== false ||
+			     strpos( $error_message, 'NoSuchKey' ) !== false ) {
+
+				$response = new SuccessResponse(
+					sprintf( __( 'Object "%s" does not exist in bucket "%s"', 'arraypress' ), $object_key, $bucket ),
+					404,
+					[
+						'bucket'     => $bucket,
+						'object_key' => $object_key,
+						'exists'     => false,
+						'error_code' => $error_code,
+						'method'     => 'head_object'
+					]
+				);
+
+				// Cache the negative result
+				if ( $use_cache && $this->is_cache_enabled() ) {
+					$this->save_to_cache( $cache_key, $response );
+				}
+
+				// Apply contextual filter to final response
+				return $this->apply_contextual_filters(
+					'arraypress_s3_object_exists_response',
+					$response,
+					$bucket,
+					$object_key
+				);
+			}
+
+			// For other errors, we can't determine existence
+			return new ErrorResponse(
+				sprintf(
+					__( 'Unable to determine if object "%s" exists in bucket "%s": %s', 'arraypress' ),
+					$object_key,
+					$bucket,
+					$error_message
+				),
+				'object_check_failed',
+				400,
+				[
+					'bucket'           => $bucket,
+					'object_key'       => $object_key,
+					'original_error'   => $error_code,
+					'original_message' => $error_message
+				]
+			);
+		}
+
+		// Fallback - unable to determine
+		return new ErrorResponse(
+			sprintf( __( 'Unable to determine if object "%s" exists in bucket "%s"', 'arraypress' ), $object_key, $bucket ),
+			'object_check_failed',
+			400,
+			[
+				'bucket'     => $bucket,
+				'object_key' => $object_key
+			]
+		);
+	}
+
+	/**
 	 * Delete an object from a bucket
 	 *
 	 * @param string $bucket     Bucket name
