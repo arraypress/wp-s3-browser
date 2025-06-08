@@ -20,6 +20,7 @@ use ArrayPress\S3\Interfaces\Signer as SignerInterface;
 use ArrayPress\S3\Traits\Signer\XmlParser;
 use ArrayPress\S3\Traits\Signer\Authentication;
 use ArrayPress\S3\Traits\Signer\Buckets;
+use ArrayPress\S3\Traits\Signer\Bucket;
 use ArrayPress\S3\Traits\Signer\Objects;
 use ArrayPress\S3\Traits\Signer\PresignedUrls;
 use ArrayPress\S3\Traits\Signer\ErrorHandling;
@@ -38,6 +39,7 @@ class Signer implements SignerInterface {
 	use XmlParser;
 	use Authentication;
 	use Buckets;
+	use Bucket;
 	use ErrorHandling;
 	use Objects;
 	use PresignedUrls;

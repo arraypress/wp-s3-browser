@@ -45,17 +45,6 @@ class File {
 	}
 
 	/**
-	 * Check if an object key has a file extension
-	 *
-	 * @param string $object_key Object key to check
-	 *
-	 * @return bool True if object has a file extension
-	 */
-	public static function has_extension( string $object_key ): bool {
-		return ! empty( self::extension( $object_key ) );
-	}
-
-	/**
 	 * Get MIME type from filename (e.g., "image/jpeg", "application/pdf")
 	 *
 	 * @param string $filename Filename

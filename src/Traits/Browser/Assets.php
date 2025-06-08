@@ -72,9 +72,9 @@ trait Assets {
 				'nonce'            => wp_create_nonce( 's3_browser_nonce_' . $this->provider_id ),
 				'context'          => $this->get_context(),
 				'allowedPostTypes' => $this->allowed_post_types,
-				'fileValidation' => [
+				'fileValidation'   => [
 					'allowedExtensions' => $this->get_allowed_extensions(),
-					'allowedMimeTypes' => $this->get_allowed_mime_types(),
+					'allowedMimeTypes'  => $this->get_allowed_mime_types(),
 				],
 			];
 
