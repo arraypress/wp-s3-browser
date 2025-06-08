@@ -421,7 +421,37 @@ trait Bucket {
 				'details'        => __( 'CORS not configured', 'arraypress' )
 			],
 			'permissions' => null,
+			'debug'       => [] // Add debug info
 		];
+
+		// Get CORS analysis first (without cache to ensure fresh data)
+		$cors_result                               = $this->analyze_cors_configuration( $bucket, false ); // Force fresh check
+		$details['debug']['cors_analysis_success'] = $cors_result->is_successful();
+
+		if ( $cors_result->is_successful() ) {
+			$cors_data                              = $cors_result->get_data();
+			$details['cors']['analysis']            = $cors_data;
+			$details['debug']['cors_analysis_data'] = $cors_data;
+
+			// Check upload capability (also without cache)
+			$upload_check                             = $this->cors_allows_upload( $bucket, $current_origin, false ); // Force fresh check
+			$details['debug']['upload_check_success'] = $upload_check->is_successful();
+
+			if ( $upload_check->is_successful() ) {
+				$upload_data                           = $upload_check->get_data();
+				$details['debug']['upload_check_data'] = $upload_data;
+
+				$details['cors']['upload_ready']    = $upload_data['allows_upload'] ?? false;
+				$details['cors']['allowed_methods'] = $upload_data['allowed_methods'] ?? [];
+				$details['cors']['details']         = ( $upload_data['allows_upload'] ?? false )
+					? __( 'Upload allowed from current domain', 'arraypress' )
+					: __( 'Upload not allowed from current domain', 'arraypress' );
+			} else {
+				$details['debug']['upload_check_error'] = $upload_check->get_error_message();
+			}
+		} else {
+			$details['debug']['cors_analysis_error'] = $cors_result->get_error_message();
+		}
 
 		// Get bucket location
 		$location_result = $this->get_bucket_location( $bucket, $use_cache );
@@ -444,23 +474,6 @@ trait Bucket {
 			}
 		}
 
-		// Get CORS analysis
-		$cors_result = $this->analyze_cors_configuration( $bucket, $use_cache );
-		if ( $cors_result->is_successful() ) {
-			$details['cors']['analysis'] = $cors_result->get_data();
-
-			// Check upload capability
-			$upload_check = $this->cors_allows_upload( $bucket, $current_origin, $use_cache );
-			if ( $upload_check->is_successful() ) {
-				$upload_data                        = $upload_check->get_data();
-				$details['cors']['upload_ready']    = $upload_data['allows_upload'];
-				$details['cors']['allowed_methods'] = $upload_data['allowed_methods'] ?? [];
-				$details['cors']['details']         = $upload_data['allows_upload']
-					? __( 'Upload allowed from current domain', 'arraypress' )
-					: __( 'Upload not allowed from current domain', 'arraypress' );
-			}
-		}
-
 		// Get permissions
 		try {
 			$permissions = $this->check_key_permissions( $bucket );
@@ -472,7 +485,7 @@ trait Bucket {
 				];
 			}
 		} catch ( Exception $e ) {
-			// Permissions check failed, leave as null
+			$details['debug']['permissions_error'] = $e->getMessage();
 		}
 
 		return new SuccessResponse(
