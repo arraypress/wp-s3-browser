@@ -17,10 +17,11 @@ namespace ArrayPress\S3\Traits\Browser\Ajax;
 
 use ArrayPress\S3\Utils\Directory;
 use ArrayPress\S3\Utils\Validate;
-use ArrayPress\S3\Utils\Duration;
+use ArrayPress\S3\Utils\Sanitize;
+use ArrayPress\S3\Utils\Timestamp;
 
 /**
- * Trait FileOperations
+ * Trait File
  *
  * Provides AJAX endpoint handlers for file-specific operations including
  * delete, rename, and presigned URL generation.
@@ -48,7 +49,6 @@ trait File {
 
 		if ( empty( $bucket ) || empty( $object_key ) ) {
 			wp_send_json_error( [ 'message' => __( 'Bucket and object key are required', 'arraypress' ) ] );
-
 			return;
 		}
 
@@ -56,7 +56,6 @@ trait File {
 
 		if ( ! $result->is_successful() ) {
 			wp_send_json_error( [ 'message' => $result->get_error_message() ] );
-
 			return;
 		}
 
@@ -160,25 +159,22 @@ trait File {
 
 		if ( empty( $bucket ) || empty( $object_key ) ) {
 			wp_send_json_error( [ 'message' => __( 'Bucket and object key are required', 'arraypress' ) ] );
-
 			return;
 		}
 
-		// Validate and normalize expiration time
-		$expires_minutes = Duration::validate_minutes( $expires_minutes );
+		// Sanitize expiration time to S3 limits
+		$expires_minutes = Sanitize::minutes( $expires_minutes );
 
 		// First check if the object exists
 		$exists_result = $this->client->object_exists( $bucket, $object_key );
 		if ( ! $exists_result->is_successful() ) {
 			wp_send_json_error( [ 'message' => __( 'Error checking if file exists', 'arraypress' ) ] );
-
 			return;
 		}
 
 		$data = $exists_result->get_data();
 		if ( ! $data['exists'] ) {
 			wp_send_json_error( [ 'message' => __( 'File does not exist', 'arraypress' ) ] );
-
 			return;
 		}
 
@@ -187,11 +183,10 @@ trait File {
 
 		if ( ! $presigned_result->is_successful() ) {
 			wp_send_json_error( [ 'message' => $presigned_result->get_error_message() ] );
-
 			return;
 		}
 
-		$expires_at = Duration::add_minutes_to_timestamp( time(), $expires_minutes );
+		$expires_at = Timestamp::in_minutes( $expires_minutes );
 
 		wp_send_json_success( [
 			'url'        => $presigned_result->get_url(),

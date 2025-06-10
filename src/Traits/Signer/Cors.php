@@ -19,6 +19,8 @@ namespace ArrayPress\S3\Traits\Signer;
 use ArrayPress\S3\Interfaces\Response as ResponseInterface;
 use ArrayPress\S3\Responses\SuccessResponse;
 use ArrayPress\S3\Responses\ErrorResponse;
+use ArrayPress\S3\Utils\Cors as CorsUtil;
+use ArrayPress\S3\Utils\Validate;
 
 /**
  * Trait Cors
@@ -127,13 +129,13 @@ trait Cors {
 			return $xml;
 		}
 
-		// Parse CORS configuration
-		$cors_rules = $this->parse_cors_configuration( $xml );
+		// Parse CORS configuration using XmlParser trait
+		$cors_rules = $this->parse_cors_configuration_xml( $xml );
 
-		// Analyze the configuration
-		$supports_upload = $this->check_cors_supports_upload( $cors_rules );
-		$allowed_origins = $this->extract_allowed_origins( $cors_rules );
-		$allowed_methods = $this->extract_allowed_methods( $cors_rules );
+		// Analyze the configuration using Cors utility
+		$supports_upload = CorsUtil::supports_upload( $cors_rules );
+		$allowed_origins = CorsUtil::extract_allowed_origins( $cors_rules );
+		$allowed_methods = CorsUtil::extract_allowed_methods( $cors_rules );
 
 		return new SuccessResponse(
 			sprintf( __( 'CORS configuration retrieved for bucket "%s"', 'arraypress' ), $bucket ),
@@ -230,14 +232,18 @@ trait Cors {
 			);
 		}
 
-		// Validate CORS rules
-		$validation_result = $this->validate_cors_rules( $cors_rules );
-		if ( $validation_result instanceof ErrorResponse ) {
-			return $validation_result;
+		// Validate CORS rules using Cors utility
+		$validation_result = Validate::cors_rules( $cors_rules );
+		if ( ! $validation_result['valid'] ) {
+			return new ErrorResponse(
+				$validation_result['message'],
+				$validation_result['code'] ?? 'validation_error',
+				400
+			);
 		}
 
-		// Build CORS XML
-		$cors_xml = $this->build_cors_xml( $cors_rules );
+		// Build CORS XML using XmlParser trait
+		$cors_xml = $this->build_cors_configuration_xml( $cors_rules );
 
 		// Generate authorization headers for CORS PUT operation
 		$headers = $this->generate_auth_headers( 'PUT', $bucket, '', [ 'cors' => '' ], $cors_xml );
@@ -373,153 +379,6 @@ trait Cors {
 				'was_present' => true
 			]
 		);
-	}
-
-	/**
-	 * Validate CORS rules array
-	 *
-	 * @param array $cors_rules CORS rules to validate
-	 *
-	 * @return ResponseInterface|null ErrorResponse if validation fails, null if valid
-	 */
-	private function validate_cors_rules( array $cors_rules ) {
-		if ( count( $cors_rules ) > 100 ) {
-			return new ErrorResponse(
-				__( 'Maximum 100 CORS rules allowed per bucket', 'arraypress' ),
-				'too_many_rules',
-				400
-			);
-		}
-
-		foreach ( $cors_rules as $index => $rule ) {
-			if ( ! is_array( $rule ) ) {
-				return new ErrorResponse(
-					sprintf( __( 'CORS rule at index %d must be an array', 'arraypress' ), $index ),
-					'invalid_rule_format',
-					400
-				);
-			}
-
-			// Required fields
-			if ( empty( $rule['AllowedMethods'] ) ) {
-				return new ErrorResponse(
-					sprintf( __( 'CORS rule at index %d must have AllowedMethods', 'arraypress' ), $index ),
-					'missing_allowed_methods',
-					400
-				);
-			}
-
-			if ( empty( $rule['AllowedOrigins'] ) ) {
-				return new ErrorResponse(
-					sprintf( __( 'CORS rule at index %d must have AllowedOrigins', 'arraypress' ), $index ),
-					'missing_allowed_origins',
-					400
-				);
-			}
-
-			// Validate methods
-			$valid_methods = [ 'GET', 'PUT', 'POST', 'DELETE', 'HEAD' ];
-			foreach ( $rule['AllowedMethods'] as $method ) {
-				if ( ! in_array( $method, $valid_methods, true ) ) {
-					return new ErrorResponse(
-						sprintf( __( 'Invalid HTTP method "%s" in CORS rule at index %d', 'arraypress' ), $method, $index ),
-						'invalid_http_method',
-						400
-					);
-				}
-			}
-
-			// Validate ID length if present
-			if ( ! empty( $rule['ID'] ) && strlen( $rule['ID'] ) > 255 ) {
-				return new ErrorResponse(
-					sprintf( __( 'CORS rule ID at index %d exceeds 255 characters', 'arraypress' ), $index ),
-					'rule_id_too_long',
-					400
-				);
-			}
-		}
-
-		return null; // Valid
-	}
-
-	/**
-	 * Build CORS XML from rules array
-	 *
-	 * Uses the centralized XML building approach in XmlParser trait.
-	 *
-	 * @param array $cors_rules CORS rules
-	 *
-	 * @return string XML string
-	 */
-	private function build_cors_xml( array $cors_rules ): string {
-		return $this->build_cors_configuration_xml( $cors_rules );
-	}
-
-	/**
-	 * Parse CORS configuration from XML
-	 *
-	 * Uses the centralized XML parsing approach in XmlParser trait.
-	 *
-	 * @param array $xml Parsed XML array
-	 *
-	 * @return array CORS rules
-	 */
-	private function parse_cors_configuration( array $xml ): array {
-		return $this->parse_cors_configuration_xml( $xml );
-	}
-
-	/**
-	 * Check if CORS configuration supports file uploads
-	 *
-	 * @param array $cors_rules CORS rules array
-	 *
-	 * @return bool
-	 */
-	private function check_cors_supports_upload( array $cors_rules ): bool {
-		foreach ( $cors_rules as $rule ) {
-			$methods = $rule['AllowedMethods'] ?? [];
-			if ( in_array( 'PUT', $methods, true ) || in_array( 'POST', $methods, true ) ) {
-				return true;
-			}
-		}
-
-		return false;
-	}
-
-	/**
-	 * Extract all allowed origins from CORS rules
-	 *
-	 * @param array $cors_rules CORS rules array
-	 *
-	 * @return array Unique allowed origins
-	 */
-	private function extract_allowed_origins( array $cors_rules ): array {
-		$origins = [];
-		foreach ( $cors_rules as $rule ) {
-			if ( ! empty( $rule['AllowedOrigins'] ) ) {
-				$origins = array_merge( $origins, $rule['AllowedOrigins'] );
-			}
-		}
-
-		return array_unique( $origins );
-	}
-
-	/**
-	 * Extract all allowed methods from CORS rules
-	 *
-	 * @param array $cors_rules CORS rules array
-	 *
-	 * @return array Unique allowed methods
-	 */
-	private function extract_allowed_methods( array $cors_rules ): array {
-		$methods = [];
-		foreach ( $cors_rules as $rule ) {
-			if ( ! empty( $rule['AllowedMethods'] ) ) {
-				$methods = array_merge( $methods, $rule['AllowedMethods'] );
-			}
-		}
-
-		return array_unique( $methods );
 	}
 
 }

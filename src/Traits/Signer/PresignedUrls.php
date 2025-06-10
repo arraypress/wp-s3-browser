@@ -19,6 +19,7 @@ use ArrayPress\S3\Interfaces\Response as ResponseInterface;
 use ArrayPress\S3\Responses\PresignedUrlResponse;
 use ArrayPress\S3\Responses\ErrorResponse;
 use ArrayPress\S3\Utils\Encode;
+use ArrayPress\S3\Utils\Timestamp;
 
 /**
  * Trait PresignedUrls
@@ -43,8 +44,9 @@ trait PresignedUrls {
 			);
 		}
 
-		// Convert minutes to seconds
+		// Convert minutes to seconds and get expiration timestamp
 		$expires_seconds = $expires * 60;
+		$expires_at      = Timestamp::in_minutes( $expires );
 
 		$time      = time();
 		$amz_date  = gmdate( 'Ymd\THis\Z', $time );
@@ -110,10 +112,7 @@ trait PresignedUrls {
 
 		$presigned_url = $url . '?' . $canonical_querystring . '&X-Amz-Signature=' . $signature;
 
-		return new PresignedUrlResponse(
-			$presigned_url,
-			time() + $expires_seconds
-		);
+		return new PresignedUrlResponse( $presigned_url, $expires_at );
 	}
 
 	/**
@@ -134,8 +133,9 @@ trait PresignedUrls {
 			);
 		}
 
-		// Convert minutes to seconds
+		// Convert minutes to seconds and get expiration timestamp
 		$expires_seconds = $expires * 60;
+		$expires_at      = Timestamp::in_minutes( $expires );
 
 		$time      = time();
 		$amz_date  = gmdate( 'Ymd\THis\Z', $time );
@@ -200,10 +200,7 @@ trait PresignedUrls {
 		$presigned_url = $url . '?' . $canonical_querystring . '&X-Amz-Signature=' . $signature;
 
 		// Return PresignedUrlResponse
-		return new PresignedUrlResponse(
-			$presigned_url,
-			time() + $expires_seconds
-		);
+		return new PresignedUrlResponse( $presigned_url, $expires_at );
 	}
 
 }

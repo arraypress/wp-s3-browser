@@ -223,4 +223,74 @@ class Validate {
 		];
 	}
 
+	/**
+	 * Validate CORS rules array
+	 *
+	 * @param array $cors_rules CORS rules to validate
+	 *
+	 * @return array Validation result with 'valid' boolean and 'message' string
+	 */
+	public static function cors_rules( array $cors_rules ): array {
+		if ( count( $cors_rules ) > 100 ) {
+			return [
+				'valid'   => false,
+				'message' => __( 'Maximum 100 CORS rules allowed per bucket', 'arraypress' ),
+				'code'    => 'too_many_rules'
+			];
+		}
+
+		foreach ( $cors_rules as $index => $rule ) {
+			if ( ! is_array( $rule ) ) {
+				return [
+					'valid'   => false,
+					'message' => sprintf( __( 'CORS rule at index %d must be an array', 'arraypress' ), $index ),
+					'code'    => 'invalid_rule_format'
+				];
+			}
+
+			// Required fields
+			if ( empty( $rule['AllowedMethods'] ) ) {
+				return [
+					'valid'   => false,
+					'message' => sprintf( __( 'CORS rule at index %d must have AllowedMethods', 'arraypress' ), $index ),
+					'code'    => 'missing_allowed_methods'
+				];
+			}
+
+			if ( empty( $rule['AllowedOrigins'] ) ) {
+				return [
+					'valid'   => false,
+					'message' => sprintf( __( 'CORS rule at index %d must have AllowedOrigins', 'arraypress' ), $index ),
+					'code'    => 'missing_allowed_origins'
+				];
+			}
+
+			// Validate methods
+			$valid_methods = [ 'GET', 'PUT', 'POST', 'DELETE', 'HEAD' ];
+			foreach ( $rule['AllowedMethods'] as $method ) {
+				if ( ! in_array( $method, $valid_methods, true ) ) {
+					return [
+						'valid'   => false,
+						'message' => sprintf( __( 'Invalid HTTP method "%s" in CORS rule at index %d', 'arraypress' ), $method, $index ),
+						'code'    => 'invalid_http_method'
+					];
+				}
+			}
+
+			// Validate ID length if present
+			if ( ! empty( $rule['ID'] ) && strlen( $rule['ID'] ) > 255 ) {
+				return [
+					'valid'   => false,
+					'message' => sprintf( __( 'CORS rule ID at index %d exceeds 255 characters', 'arraypress' ), $index ),
+					'code'    => 'rule_id_too_long'
+				];
+			}
+		}
+
+		return [
+			'valid'   => true,
+			'message' => ''
+		];
+	}
+
 }

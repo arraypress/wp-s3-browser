@@ -24,7 +24,7 @@ use Exception;
 /**
  * Trait ContentRendering
  */
-trait ContentRendering {
+trait Content {
 
 	/**
 	 * Render the main tab content

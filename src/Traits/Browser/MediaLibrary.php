@@ -4,7 +4,7 @@
  *
  * Handles WordPress media uploader integration for the S3 Browser.
  *
- * @package     ArrayPress\S3\Traits
+ * @package     ArrayPress\S3\Traits\Browser
  * @copyright   Copyright (c) 2025, ArrayPress Limited
  * @license     GPL2+
  * @version     1.0.0
@@ -49,22 +49,9 @@ trait MediaLibrary {
 			return false;
 		}
 
-		// Get post-ID from request
-		$post_id = $this->get_current_post_id();
-
-		// If we have post-type restrictions and no post ID, don't add the tab
-		if ( ! $post_id && ! empty( $this->allowed_post_types ) ) {
+		// Check context and post type restrictions
+		if ( ! $this->is_context_allowed( $this->allowed_post_types ) ) {
 			return false;
-		}
-
-		// Check post type restrictions
-		if ( $post_id ) {
-			$post_type = get_post_type( $post_id );
-
-			// If allowed post-types are set, only show on those types
-			if ( ! empty( $this->allowed_post_types ) && ! in_array( $post_type, $this->allowed_post_types, true ) ) {
-				return false;
-			}
 		}
 
 		// Don't add in specific contexts
@@ -73,28 +60,6 @@ trait MediaLibrary {
 		}
 
 		return true;
-	}
-
-	/**
-	 * Get the current post ID from various sources
-	 *
-	 * @return int Post ID or 0 if not found
-	 */
-	private function get_current_post_id(): int {
-		// Check request parameters first
-		if ( isset( $_REQUEST['post_id'] ) ) {
-			return intval( $_REQUEST['post_id'] );
-		}
-
-		// Try to get from global post object
-		if ( is_admin() ) {
-			global $post;
-			if ( $post && is_object( $post ) ) {
-				return $post->ID;
-			}
-		}
-
-		return 0;
 	}
 
 	/**

@@ -15,6 +15,7 @@ declare( strict_types=1 );
 
 namespace ArrayPress\S3\Traits\Browser\Ajax;
 
+use ArrayPress\S3\Interfaces\Response;
 use ArrayPress\S3\Utils\Directory;
 use ArrayPress\S3\Utils\Validate;
 
@@ -148,7 +149,7 @@ trait Folder {
 	 * @param string $bucket      Bucket name
 	 * @param string $folder_path Raw folder path (will be normalized by batch method)
 	 *
-	 * @return \ArrayPress\S3\Interfaces\Response
+	 * @return Response
 	 */
 	private function delete_folder_with_fallback( string $bucket, string $folder_path ) {
 		// Try batch deletion first (more efficient for larger folders)

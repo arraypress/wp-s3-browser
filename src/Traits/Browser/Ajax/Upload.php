@@ -15,7 +15,7 @@ declare( strict_types=1 );
 
 namespace ArrayPress\S3\Traits\Browser\Ajax;
 
-use ArrayPress\S3\Utils\Duration;
+use ArrayPress\S3\Utils\Timestamp;
 
 /**
  * Trait Upload
@@ -40,7 +40,6 @@ trait Upload {
 	 * Returns:
 	 * - url: Presigned upload URL
 	 * - expires: URL expiration timestamp
-
 	 */
 	public function handle_ajax_get_upload_url(): void {
 		if ( ! $this->verify_ajax_request() ) {
@@ -64,8 +63,8 @@ trait Upload {
 
 		$this->client->clear_all_cache();
 
-		// Use Duration utility for consistent expiration handling
-		$expires_at = Duration::add_minutes_to_timestamp( time(), 15 );
+		// Upload URLs typically expire in 15 minutes
+		$expires_at = Timestamp::in_minutes( 15 );
 
 		wp_send_json_success( [
 			'url'     => $response->get_url(),

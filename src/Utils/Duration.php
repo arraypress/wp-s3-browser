@@ -2,8 +2,7 @@
 /**
  * Duration Utility Class
  *
- * Enhanced duration management for S3 presigned URL expiration times and other
- * time-based operations with improved validation and timestamp handling.
+ * Simple duration management for S3 presigned URL expiration times.
  *
  * @package     ArrayPress\S3\Utils
  * @copyright   Copyright (c) 2025, ArrayPress Limited
@@ -19,27 +18,17 @@ namespace ArrayPress\S3\Utils;
 /**
  * Class Duration
  *
- * Enhanced duration management for S3 operations with timestamp utilities
+ * Simple duration management for S3 operations
  */
 class Duration {
 
 	/**
-	 * Maximum allowed duration in minutes (7 days - AWS S3 limit)
-	 */
-	const MAX_MINUTES = 10080;
-
-	/**
-	 * Minimum allowed duration in minutes
-	 */
-	const MIN_MINUTES = 1;
-
-	/**
 	 * Convert duration to minutes
 	 *
-	 * @param int    $number Duration number
-	 * @param string $unit   Duration unit (minutes, hours, days)
+	 * @param int $number  Duration number
+	 * @param string $unit Duration unit (minutes, hours, days)
 	 *
-	 * @return int Duration in minutes, capped at 7 days (10080 minutes)
+	 * @return int Duration in minutes
 	 */
 	public static function to_minutes( int $number, string $unit ): int {
 		$multipliers = [
@@ -49,85 +38,22 @@ class Duration {
 		];
 
 		$multiplier = $multipliers[ $unit ] ?? 1;
-		$minutes    = $number * $multiplier;
 
-		// Cap at 7 days (AWS S3 limit)
-		return min( $minutes, self::MAX_MINUTES );
+		return $number * $multiplier;
 	}
 
 	/**
-	 * Validate and normalize minutes value
+	 * Convert duration array to minutes
 	 *
-	 * Ensures the value is within acceptable bounds for S3 presigned URLs.
+	 * @param array $duration Array with 'number' and 'unit' keys
 	 *
-	 * @param int $minutes Minutes to validate
-	 *
-	 * @return int Validated minutes value
+	 * @return int Duration in minutes
 	 */
-	public static function validate_minutes( int $minutes ): int {
-		if ( $minutes < self::MIN_MINUTES ) {
-			return self::MIN_MINUTES;
-		}
+	public static function array_to_minutes( array $duration ): int {
+		$number = (int) ( $duration['number'] ?? 1 );
+		$unit   = $duration['unit'] ?? 'minutes';
 
-		if ( $minutes > self::MAX_MINUTES ) {
-			return self::MAX_MINUTES;
-		}
-
-		return $minutes;
-	}
-
-	/**
-	 * Add minutes to a timestamp
-	 *
-	 * Clean utility method for calculating expiration times.
-	 *
-	 * @param int $timestamp Base timestamp
-	 * @param int $minutes   Minutes to add
-	 *
-	 * @return int New timestamp
-	 */
-	public static function add_minutes_to_timestamp( int $timestamp, int $minutes ): int {
-		return $timestamp + ( $minutes * 60 );
-	}
-
-	/**
-	 * Add seconds to a timestamp
-	 *
-	 * Clean utility method for calculating short-term expiration times.
-	 *
-	 * @param int $timestamp Base timestamp
-	 * @param int $seconds   Seconds to add
-	 *
-	 * @return int New timestamp
-	 */
-	public static function add_seconds_to_timestamp( int $timestamp, int $seconds ): int {
-		return $timestamp + $seconds;
-	}
-
-	/**
-	 * Get expiration timestamp for upload URLs (15 minutes from now)
-	 *
-	 * @param int|null $base_timestamp Base timestamp (defaults to current time)
-	 *
-	 * @return int Expiration timestamp
-	 */
-	public static function get_upload_expiration( ?int $base_timestamp = null ): int {
-		$base_timestamp = $base_timestamp ?? time();
-
-		return self::add_minutes_to_timestamp( $base_timestamp, 15 );
-	}
-
-	/**
-	 * Get expiration timestamp for download URLs (60 minutes from now)
-	 *
-	 * @param int|null $base_timestamp Base timestamp (defaults to current time)
-	 *
-	 * @return int Expiration timestamp
-	 */
-	public static function get_download_expiration( ?int $base_timestamp = null ): int {
-		$base_timestamp = $base_timestamp ?? time();
-
-		return self::add_minutes_to_timestamp( $base_timestamp, 60 );
+		return self::to_minutes( $number, $unit );
 	}
 
 	/**
@@ -162,23 +88,6 @@ class Duration {
 		}
 
 		return [ 'number' => $minutes, 'unit' => 'minutes' ];
-	}
-
-	/**
-	 * Get maximum allowed value for a unit
-	 *
-	 * @param string $unit Duration unit
-	 *
-	 * @return int Maximum allowed value
-	 */
-	public static function get_max_for_unit( string $unit ): int {
-		$max_values = [
-			'minutes' => self::MAX_MINUTES, // 7 days
-			'hours'   => 168,              // 7 days
-			'days'    => 7,                // 7 days
-		];
-
-		return $max_values[ $unit ] ?? self::MAX_MINUTES;
 	}
 
 }

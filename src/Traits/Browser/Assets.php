@@ -73,8 +73,8 @@ trait Assets {
 				'context'          => $this->get_context(),
 				'allowedPostTypes' => $this->allowed_post_types,
 				'fileValidation'   => [
-					'allowedExtensions' => $this->get_allowed_extensions(),
-					'allowedMimeTypes'  => $this->get_allowed_mime_types(),
+					'allowedExtensions' => Mime::get_allowed_extensions( $this->get_context() ),
+					'allowedMimeTypes'  => Mime::get_allowed_types( $this->get_context() ),
 				],
 			];
 
@@ -527,24 +527,6 @@ trait Assets {
 
 		// Apply contextual filters
 		return $this->apply_contextual_filters( 's3_browser_translations', $default_translations, $this->provider_id );
-	}
-
-	/**
-	 * Get allowed MIME types for uploads
-	 *
-	 * @return array Array of allowed MIME types
-	 */
-	public function get_allowed_mime_types(): array {
-		return Mime::get_allowed_types( $this->get_context() );
-	}
-
-	/**
-	 * Get allowed file extensions (derived from MIME types)
-	 *
-	 * @return array Array of allowed file extensions
-	 */
-	public function get_allowed_extensions(): array {
-		return Mime::get_allowed_extensions( $this->get_context() );
 	}
 
 }

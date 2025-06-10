@@ -57,4 +57,14 @@ class Sanitize {
 		return sanitize_text_field( trim( $account_id ) );
 	}
 
+	/**
+	 * Validate and normalize minutes value for S3 URLs
+	 *
+	 * @param int $minutes Minutes to validate
+	 * @return int Validated minutes value (1-10080)
+	 */
+	public static function minutes( int $minutes ): int {
+		return max( 1, min( $minutes, 10080 ) );
+	}
+
 }
