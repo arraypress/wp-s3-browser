@@ -40,7 +40,7 @@ trait Hooks {
 		add_action( 'admin_enqueue_scripts', [ $this, 'admin_enqueue_scripts' ] );
 
 		// Add media view strings for all post types
-		add_filter( 'media_view_strings', [ $this, 'add_media_view_strings' ], 20, 1 );
+		add_filter( 'media_view_strings', [ $this, 'add_media_view_strings' ], 20 );
 
 		// Core operations
 		add_action( 'wp_ajax_s3_load_more_' . $suffix, [ $this, 'handle_ajax_load_more' ] );

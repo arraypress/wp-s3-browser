@@ -15,6 +15,7 @@ declare( strict_types=1 );
 
 namespace ArrayPress\S3\Traits\Browser\Ajax;
 
+use ArrayPress\S3\Responses\ErrorResponse;
 use ArrayPress\S3\Utils\Directory;
 use ArrayPress\S3\Utils\Validate;
 use ArrayPress\S3\Utils\Sanitize;
@@ -49,6 +50,7 @@ trait File {
 
 		if ( empty( $bucket ) || empty( $object_key ) ) {
 			wp_send_json_error( [ 'message' => __( 'Bucket and object key are required', 'arraypress' ) ] );
+
 			return;
 		}
 
@@ -56,6 +58,7 @@ trait File {
 
 		if ( ! $result->is_successful() ) {
 			wp_send_json_error( [ 'message' => $result->get_error_message() ] );
+
 			return;
 		}
 
@@ -86,7 +89,7 @@ trait File {
 			return;
 		}
 
-		$params = $this->validate_required_params( ['bucket', 'current_key', 'new_filename'], true );
+		$params = $this->validate_required_params( [ 'bucket', 'current_key', 'new_filename' ], true );
 		if ( $params === false ) {
 			return;
 		}
@@ -95,6 +98,7 @@ trait File {
 		$validation_result = Validate::filename( $params['new_filename'] );
 		if ( ! $validation_result['valid'] ) {
 			wp_send_json_error( [ 'message' => $validation_result['message'] ] );
+
 			return;
 		}
 
@@ -104,6 +108,7 @@ trait File {
 		// Check if the new key would be the same as current key
 		if ( Directory::is_rename_same_key( $params['current_key'], $params['new_filename'] ) ) {
 			wp_send_json_error( [ 'message' => __( 'The new filename is the same as the current filename', 'arraypress' ) ] );
+
 			return;
 		}
 
@@ -113,6 +118,7 @@ trait File {
 			$data = $exists_result->get_data();
 			if ( $data['exists'] ) {
 				wp_send_json_error( [ 'message' => sprintf( __( 'A file named "%s" already exists in this location', 'arraypress' ), $params['new_filename'] ) ] );
+
 				return;
 			}
 		}
@@ -122,6 +128,7 @@ trait File {
 
 		if ( ! $rename_result->is_successful() ) {
 			wp_send_json_error( [ 'message' => $rename_result->get_error_message() ] );
+
 			return;
 		}
 
@@ -159,6 +166,7 @@ trait File {
 
 		if ( empty( $bucket ) || empty( $object_key ) ) {
 			wp_send_json_error( [ 'message' => __( 'Bucket and object key are required', 'arraypress' ) ] );
+
 			return;
 		}
 
@@ -169,12 +177,14 @@ trait File {
 		$exists_result = $this->client->object_exists( $bucket, $object_key );
 		if ( ! $exists_result->is_successful() ) {
 			wp_send_json_error( [ 'message' => __( 'Error checking if file exists', 'arraypress' ) ] );
+
 			return;
 		}
 
 		$data = $exists_result->get_data();
 		if ( ! $data['exists'] ) {
 			wp_send_json_error( [ 'message' => __( 'File does not exist', 'arraypress' ) ] );
+
 			return;
 		}
 
@@ -183,6 +193,7 @@ trait File {
 
 		if ( ! $presigned_result->is_successful() ) {
 			wp_send_json_error( [ 'message' => $presigned_result->get_error_message() ] );
+
 			return;
 		}
 

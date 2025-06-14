@@ -46,6 +46,7 @@ trait Bucket {
 
 		if ( empty( $bucket ) ) {
 			wp_send_json_error( [ 'message' => __( 'Bucket name is required', 'arraypress' ) ] );
+
 			return;
 		}
 
@@ -54,6 +55,7 @@ trait Bucket {
 
 		if ( ! $details_result->is_successful() ) {
 			wp_send_json_error( [ 'message' => $details_result->get_error_message() ] );
+
 			return;
 		}
 
@@ -81,11 +83,13 @@ trait Bucket {
 
 		if ( empty( $bucket ) ) {
 			wp_send_json_error( [ 'message' => __( 'Bucket name is required', 'arraypress' ) ] );
+
 			return;
 		}
 
 		if ( empty( $origin ) ) {
 			wp_send_json_error( [ 'message' => __( 'Origin is required for CORS setup', 'arraypress' ) ] );
+
 			return;
 		}
 
@@ -97,21 +101,22 @@ trait Bucket {
 
 		if ( ! $set_result->is_successful() ) {
 			wp_send_json_error( [ 'message' => $set_result->get_error_message() ] );
+
 			return;
 		}
 
 		// Clear cache after setup
 		$this->client->clear_all_cache();
 
-		// Wait a moment for eventual consistency
+		// Wait a moment for eventual consistency (ghetto, i know...)
 		sleep( 1 );
 
 		// Verify the setup worked (without cache)
-		$verification_result = $this->client->cors_allows_upload( $bucket, $origin, false );
+		$verification_result  = $this->client->cors_allows_upload( $bucket, $origin, false );
 		$verification_success = false;
 
 		if ( $verification_result->is_successful() ) {
-			$verification_data = $verification_result->get_data();
+			$verification_data    = $verification_result->get_data();
 			$verification_success = $verification_data['allows_upload'] ?? false;
 		}
 
@@ -146,6 +151,7 @@ trait Bucket {
 
 		if ( empty( $bucket ) ) {
 			wp_send_json_error( [ 'message' => __( 'Bucket name is required', 'arraypress' ) ] );
+
 			return;
 		}
 
@@ -154,6 +160,7 @@ trait Bucket {
 
 		if ( ! $result->is_successful() ) {
 			wp_send_json_error( [ 'message' => $result->get_error_message() ] );
+
 			return;
 		}
 

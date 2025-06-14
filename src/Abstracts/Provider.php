@@ -656,24 +656,4 @@ abstract class Provider implements ProviderInterface {
 		return $url;
 	}
 
-	/**
-	 * Get base bucket URL (for batch operations)
-	 *
-	 * Returns just the bucket URL without an object, useful for operations
-	 * like batch delete that append custom query strings.
-	 *
-	 * @param string $bucket Bucket name
-	 *
-	 * @return string Base bucket URL
-	 */
-	public function get_bucket_base_url( string $bucket ): string {
-		$endpoint = $this->get_endpoint();
-
-		if ( $this->uses_path_style() ) {
-			return 'https://' . $endpoint . '/' . $bucket;
-		} else {
-			return 'https://' . $bucket . '.' . $endpoint;
-		}
-	}
-
 }

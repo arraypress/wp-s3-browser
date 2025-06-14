@@ -64,6 +64,34 @@ class Parse {
 	}
 
 	/**
+	 * Parse any S3-compatible path/URL into bucket and object components
+	 *
+	 * Handles both S3 paths and provider URLs in one method
+	 *
+	 * @param string        $path     Path or URL to parse
+	 * @param Provider|null $provider Optional provider instance for URL parsing
+	 *
+	 * @return array|false Array with 'bucket' and 'object' keys or false on failure
+	 */
+	public static function s3_compatible( string $path, ?Provider $provider = null ) {
+		// Try parsing as S3 path first
+		$parsed = self::path( $path );
+		if ( $parsed ) {
+			return $parsed;
+		}
+
+		// Try parsing as provider URL if provider available
+		if ( $provider ) {
+			$parsed = self::provider_url( $path, $provider );
+			if ( $parsed ) {
+				return $parsed;
+			}
+		}
+
+		return false;
+	}
+
+	/**
 	 * Parse provider URL into bucket and object components
 	 *
 	 * @param string   $url      URL to parse
