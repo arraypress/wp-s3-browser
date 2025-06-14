@@ -216,10 +216,15 @@ trait Permissions {
 			if ( $upload_url_response->is_successful() ) {
 				$upload_url = $upload_url_response->get_url();
 
+				// Build headers with user agent using signer's method
+				$headers = $this->signer->get_base_request_headers( [
+					'Content-Type' => 'text/plain'
+				] );
+
 				$response = wp_remote_request( $upload_url, [
 					'method'  => 'PUT',
 					'body'    => $test_content,
-					'headers' => [ 'Content-Type' => 'text/plain' ]
+					'headers' => $headers
 				] );
 
 				$permissions['write'] = ! is_wp_error( $response ) &&
@@ -354,10 +359,15 @@ trait Permissions {
 
 		$upload_url = $upload_url_response->get_url();
 
+		// Build headers with user agent using signer's method
+		$headers = $this->signer->get_base_request_headers( [
+			'Content-Type' => 'text/plain'
+		] );
+
 		$response = wp_remote_request( $upload_url, [
 			'method'  => 'PUT',
 			'body'    => $content,
-			'headers' => [ 'Content-Type' => 'text/plain' ]
+			'headers' => $headers
 		] );
 
 		return ! is_wp_error( $response ) &&

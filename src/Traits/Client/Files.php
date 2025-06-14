@@ -364,4 +364,143 @@ trait Files {
 		);
 	}
 
+	/**
+	 * Get count of accessible objects in a bucket
+	 *
+	 * @param string $bucket          Bucket name
+	 * @param string $prefix          Optional prefix to filter objects
+	 * @param bool   $exclude_folders Whether to exclude folder placeholders from count
+	 * @param bool   $use_cache       Whether to use cache (default false for real-time results)
+	 *
+	 * @return ResponseInterface Response with object count
+	 */
+	public function get_object_count(
+		string $bucket,
+		string $prefix = '',
+		bool $exclude_folders = true,
+		bool $use_cache = false
+	): ResponseInterface {
+		// Apply contextual filter to modify request parameters
+		$params = $this->apply_contextual_filters(
+			'arraypress_s3_get_object_count_params',
+			[
+				'bucket'          => $bucket,
+				'prefix'          => $prefix,
+				'exclude_folders' => $exclude_folders,
+				'use_cache'       => $use_cache
+			],
+			$bucket,
+			$prefix
+		);
+
+		$bucket          = $params['bucket'];
+		$prefix          = $params['prefix'];
+		$exclude_folders = $params['exclude_folders'];
+		$use_cache       = $params['use_cache'];
+
+		// Check cache if enabled
+		if ( $use_cache && $this->is_cache_enabled() ) {
+			$cache_key = $this->get_cache_key( 'object_count', [
+				'bucket'          => $bucket,
+				'prefix'          => $prefix,
+				'exclude_folders' => $exclude_folders
+			] );
+			$cached    = $this->get_from_cache( $cache_key );
+			if ( $cached !== false ) {
+				return $cached;
+			}
+		}
+
+		// Get object models (limit high enough to get all objects in reasonable buckets)
+		// Use empty delimiter to get all objects without folder separation
+		$result = $this->get_object_models( $bucket, 10000, $prefix, '', '', $use_cache );
+
+		if ( ! $result->is_successful() ) {
+			return new ErrorResponse(
+				sprintf( __( 'Unable to retrieve object count for bucket "%s"', 'arraypress' ), $bucket ),
+				'object_count_failed',
+				400,
+				[ 'original_error' => $result->get_error_message() ]
+			);
+		}
+
+		$data          = $result->get_data();
+		$objects       = $data['objects'] ?? [];
+		$total_objects = count( $objects );
+		$object_count  = $total_objects;
+
+		// Filter out folder placeholders if requested
+		$filtered_objects = [];
+		if ( $exclude_folders ) {
+			foreach ( $objects as $object ) {
+				// Skip folder placeholders and hidden files using the same logic as ObjectsResponse
+				if ( $object->should_be_excluded() ) {
+					continue;
+				}
+
+				$filtered_objects[] = $object;
+			}
+			$object_count = count( $filtered_objects );
+		} else {
+			$filtered_objects = $objects;
+		}
+
+		// Build response data
+		$response_data = [
+			'bucket'           => $bucket,
+			'prefix'           => $prefix,
+			'count'            => $object_count,
+			'total_count'      => $total_objects,
+			'exclude_folders'  => $exclude_folders,
+			'folders_excluded' => $exclude_folders ? ( $total_objects - $object_count ) : 0,
+			'truncated'        => $data['truncated'] ?? false
+		];
+
+		// Add object keys if the count is reasonable
+		if ( $object_count <= 1000 ) {
+			$response_data['object_keys'] = array_map( function ( $object ) {
+				return $object->get_key();
+			}, $filtered_objects );
+		}
+
+		// Create appropriate message
+		$message_parts = [];
+		if ( ! empty( $prefix ) ) {
+			$message_parts[] = sprintf( __( 'prefix "%s"', 'arraypress' ), $prefix );
+		}
+		if ( $exclude_folders && ( $total_objects - $object_count ) > 0 ) {
+			$message_parts[] = __( 'excluding folders', 'arraypress' );
+		}
+
+		$message_suffix = ! empty( $message_parts ) ? ' (' . implode( ', ', $message_parts ) . ')' : '';
+
+		$message = sprintf(
+			_n(
+				'Found %d object in bucket "%s"%s',
+				'Found %d objects in bucket "%s"%s',
+				$object_count,
+				'arraypress'
+			),
+			$object_count,
+			$bucket,
+			$message_suffix
+		);
+
+		$response = new SuccessResponse( $message, 200, $response_data );
+
+		// Cache the result if successful
+		if ( $use_cache && $this->is_cache_enabled() ) {
+			$this->save_to_cache( $cache_key, $response );
+		}
+
+		// Apply contextual filter to final response
+		return $this->apply_contextual_filters(
+			'arraypress_s3_get_object_count_response',
+			$response,
+			$bucket,
+			$prefix
+		);
+	}
+
+
 }

@@ -264,4 +264,78 @@ trait Buckets {
 		);
 	}
 
+	/**
+	 * Get count of accessible buckets
+	 *
+	 * @param bool $use_cache Whether to use cache (default false for real-time results)
+	 *
+	 * @return ResponseInterface Response with bucket count
+	 */
+	public function get_bucket_count( bool $use_cache = false ): ResponseInterface {
+		// Apply contextual filter to modify request parameters
+		$params = $this->apply_contextual_filters(
+			'arraypress_s3_get_bucket_count_params',
+			[
+				'use_cache' => $use_cache
+			]
+		);
+
+		$use_cache = $params['use_cache'];
+
+		// Check cache if enabled
+		if ( $use_cache && $this->is_cache_enabled() ) {
+			$cache_key = $this->get_cache_key( 'bucket_count', [] );
+			$cached    = $this->get_from_cache( $cache_key );
+			if ( $cached !== false ) {
+				return $cached;
+			}
+		}
+
+		// Get bucket models (limit high enough to get all buckets)
+		$result = $this->get_bucket_models( 1000, '', '', $use_cache );
+
+		if ( ! $result->is_successful() ) {
+			return new ErrorResponse(
+				__( 'Unable to retrieve bucket count', 'arraypress' ),
+				'bucket_count_failed',
+				400,
+				[ 'original_error' => $result->get_error_message() ]
+			);
+		}
+
+		$data         = $result->get_data();
+		$buckets      = $data['buckets'] ?? [];
+		$bucket_count = count( $buckets );
+
+		$response = new SuccessResponse(
+			sprintf(
+				_n(
+					'Found %d bucket',
+					'Found %d buckets',
+					$bucket_count,
+					'arraypress'
+				),
+				$bucket_count
+			),
+			200,
+			[
+				'count'   => $bucket_count,
+				'buckets' => array_map( function ( $bucket ) {
+					return $bucket->get_name();
+				}, $buckets )
+			]
+		);
+
+		// Cache the result if successful
+		if ( $use_cache && $this->is_cache_enabled() ) {
+			$this->save_to_cache( $cache_key, $response );
+		}
+
+		// Apply contextual filter to final response
+		return $this->apply_contextual_filters(
+			'arraypress_s3_get_bucket_count_response',
+			$response
+		);
+	}
+
 }

@@ -47,6 +47,9 @@ trait Bucket {
 		// Generate authorization headers
 		$headers = $this->generate_auth_headers( 'GET', $bucket, '', [ 'location' => '' ] );
 
+		// Add base request headers (including user agent)
+		$headers = $this->get_base_request_headers( $headers );
+
 		// Debug request
 		$this->debug_request_details( 'get_bucket_location', $url, $headers );
 
@@ -106,6 +109,9 @@ trait Bucket {
 
 		// Generate authorization headers
 		$headers = $this->generate_auth_headers( 'GET', $bucket, '', [ 'versioning' => '' ] );
+
+		// Add base request headers (including user agent)
+		$headers = $this->get_base_request_headers( $headers );
 
 		// Debug request
 		$this->debug_request_details( 'get_bucket_versioning', $url, $headers );
@@ -167,6 +173,9 @@ trait Bucket {
 
 		// Generate authorization headers
 		$headers = $this->generate_auth_headers( 'GET', $bucket, '', [ 'policy' => '' ] );
+
+		// Add base request headers (including user agent)
+		$headers = $this->get_base_request_headers( $headers );
 
 		// Debug request
 		$this->debug_request_details( 'get_bucket_policy', $url, $headers );
@@ -239,6 +248,9 @@ trait Bucket {
 
 		// Generate authorization headers
 		$headers = $this->generate_auth_headers( 'GET', $bucket, '', [ 'lifecycle' => '' ] );
+
+		// Add base request headers (including user agent)
+		$headers = $this->get_base_request_headers( $headers );
 
 		// Debug request
 		$this->debug_request_details( 'get_bucket_lifecycle', $url, $headers );

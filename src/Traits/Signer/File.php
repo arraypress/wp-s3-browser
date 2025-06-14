@@ -74,6 +74,9 @@ trait File {
 		// Generate authorization headers using provider method
 		$headers = $this->generate_auth_headers( 'GET', $bucket, $object_key );
 
+		// Add base request headers (including user agent)
+		$headers = $this->get_base_request_headers( $headers );
+
 		// Use provider method for standard URL building
 		$url = $this->provider->format_url( $bucket, $object_key );
 
@@ -167,6 +170,9 @@ trait File {
 		// Use headers trait method
 		$headers = $this->build_head_headers( $bucket, $object_key );
 
+		// Add base request headers (including user agent)
+		$headers = $this->get_base_request_headers( $headers );
+
 		// Use provider method for standard URL building
 		$url = $this->provider->format_url( $bucket, $object_key );
 
@@ -252,6 +258,9 @@ trait File {
 
 		// Use headers trait method for delete headers
 		$headers = $this->build_delete_headers( $bucket, $object_key );
+
+		// Add base request headers (including user agent)
+		$headers = $this->get_base_request_headers( $headers );
 
 		// Use provider method for URL building with encoded key
 		$encoded_key = Encode::object_key( $object_key );
@@ -355,6 +364,9 @@ trait File {
 
 		// Use headers trait method for copy headers
 		$headers = $this->build_copy_headers( $source_bucket, $source_key, $target_bucket, $target_key );
+
+		// Add base request headers (including user agent)
+		$headers = $this->get_base_request_headers( $headers );
 
 		// Use provider method for standard URL building
 		$url = $this->provider->format_url( $target_bucket, $target_key );

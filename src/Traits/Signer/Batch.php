@@ -53,19 +53,21 @@ trait Batch {
 		// Use headers trait method for batch delete headers
 		$headers = $this->build_batch_delete_headers( $bucket, $delete_xml );
 
+		// Add base request headers (including user agent)
+		$headers = $this->get_base_request_headers( $headers );
+
 		// Build the URL using provider method
 		$url = $this->provider->format_url( $bucket ) . '?delete';
 
 		// Debug and make request
 		$this->debug_request_details( 'batch_delete', $url, $headers );
 		$response = wp_remote_request( $url, [
-			'method'     => 'POST',
-			'headers'    => $headers,
-			'body'       => $delete_xml,
-			'timeout'    => $this->get_operation_timeout( 'batch_delete' ),
-			'blocking'   => true,
-			'sslverify'  => true,
-			'user-agent' => 'ArrayPress-S3-Client/1.0'
+			'method'    => 'POST',
+			'headers'   => $headers,
+			'body'      => $delete_xml,
+			'timeout'   => $this->get_operation_timeout( 'batch_delete' ),
+			'blocking'  => true,
+			'sslverify' => true,
 		] );
 
 		// Enhanced error handling

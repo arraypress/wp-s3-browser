@@ -79,6 +79,9 @@ trait Cors {
 		// Generate authorization headers for CORS GET operation
 		$headers = $this->generate_auth_headers( 'GET', $bucket, '', [ 'cors' => '' ] );
 
+		// Add base request headers (including user agent)
+		$headers = $this->get_base_request_headers( $headers );
+
 		// Build URL with CORS query parameter
 		$url = $this->provider->build_url_with_query( $bucket, '', [ 'cors' => '' ] );
 
@@ -251,6 +254,9 @@ trait Cors {
 		$headers['Content-Type']   = 'application/xml';
 		$headers['Content-Length'] = (string) strlen( $cors_xml );
 
+		// Add base request headers (including user agent)
+		$headers = $this->get_base_request_headers( $headers );
+
 		// Build URL with CORS query parameter
 		$url = $this->provider->build_url_with_query( $bucket, '', [ 'cors' => '' ] );
 
@@ -329,6 +335,9 @@ trait Cors {
 
 		// Generate authorization headers for CORS DELETE operation
 		$headers = $this->generate_auth_headers( 'DELETE', $bucket, '', [ 'cors' => '' ] );
+
+		// Add base request headers (including user agent)
+		$headers = $this->get_base_request_headers( $headers );
 
 		// Build URL with CORS query parameter
 		$url = $this->provider->build_url_with_query( $bucket, '', [ 'cors' => '' ] );

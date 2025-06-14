@@ -47,4 +47,36 @@ trait Config {
 		return $this->user_agent;
 	}
 
+	/**
+	 * Get user agent with WordPress info (for better compatibility)
+	 *
+	 * @return string Enhanced user agent
+	 */
+	public function get_enhanced_user_agent(): string {
+		$wp_version  = get_bloginfo( 'version' );
+		$php_version = PHP_VERSION;
+
+		return sprintf(
+			'%s WordPress/%s PHP/%s',
+			$this->user_agent,
+			$wp_version,
+			$php_version
+		);
+	}
+
+	/**
+	 * Get common request headers with user agent
+	 *
+	 * @param array $additional_headers Additional headers to merge
+	 *
+	 * @return array Complete headers array
+	 */
+	protected function get_base_request_headers( array $additional_headers = [] ): array {
+		$base_headers = [
+			'User-Agent' => $this->get_enhanced_user_agent(),
+		];
+
+		return array_merge( $base_headers, $additional_headers );
+	}
+
 }

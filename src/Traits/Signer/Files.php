@@ -117,6 +117,9 @@ trait Files {
 			$query_params
 		);
 
+		// Add base request headers (including user agent)
+		$headers = $this->get_base_request_headers( $headers );
+
 		// Use provider method for URL building with query parameters
 		$url = $this->provider->build_url_with_query( $bucket, '', $query_params );
 

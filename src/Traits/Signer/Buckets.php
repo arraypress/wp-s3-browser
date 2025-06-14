@@ -124,6 +124,9 @@ trait Buckets {
 		// Generate authorization headers
 		$headers = $this->generate_auth_headers( 'GET', '', '', $query_params );
 
+		// Add base request headers (including user agent)
+		$headers = $this->get_base_request_headers( $headers );
+
 		// Use provider method for service-level URL building
 		$url = $this->provider->build_url_with_query( '', '', $query_params );
 
