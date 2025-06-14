@@ -71,7 +71,7 @@ trait Config {
 	 *
 	 * @return array Complete headers array
 	 */
-	protected function get_base_request_headers( array $additional_headers = [] ): array {
+	public function get_base_request_headers( array $additional_headers = [] ): array {
 		$base_headers = [
 			'User-Agent' => $this->get_enhanced_user_agent(),
 		];
