@@ -81,7 +81,7 @@ class Save {
 
 		// If the field is empty after trimming, delete the option
 		if ( empty( $trimmed_value ) ) {
-			$encryption->delete_option( $option_key );
+			$encryption->delete_option( $option_key, true );
 		} else {
 			// Otherwise sanitize and save the trimmed value
 			$sanitized_value = call_user_func( $sanitizer, $trimmed_value );
