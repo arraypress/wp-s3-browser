@@ -133,7 +133,7 @@ trait Cors {
 		}
 
 		// Parse CORS configuration using XmlParser trait
-		$cors_rules = $this->parse_cors_configuration_xml( $xml );
+		$cors_rules = $this->parse_cors_configuration( $xml );
 
 		// Analyze the configuration using Cors utility
 		$supports_upload = CorsUtil::supports_upload( $cors_rules );
@@ -246,7 +246,7 @@ trait Cors {
 		}
 
 		// Build CORS XML using XmlParser trait
-		$cors_xml = $this->build_cors_configuration_xml( $cors_rules );
+		$cors_xml = $this->build_cors_configuration( $cors_rules );
 
 		// Generate authorization headers for CORS PUT operation
 		$headers = $this->generate_auth_headers( 'PUT', $bucket, '', [ 'cors' => '' ], $cors_xml );

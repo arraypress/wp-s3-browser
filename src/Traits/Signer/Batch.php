@@ -48,7 +48,7 @@ trait Batch {
 		}
 
 		// Build the XML for batch delete using XML trait method
-		$delete_xml = $this->build_batch_delete_xml( $object_keys );
+		$delete_xml = $this->build_batch_delete( $object_keys );
 
 		// Use headers trait method for batch delete headers
 		$headers = $this->build_batch_delete_headers( $bucket, $delete_xml );
