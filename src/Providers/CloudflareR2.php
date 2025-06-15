@@ -194,7 +194,7 @@ class CloudflareR2 extends Provider {
 			if ( preg_match( $r2_public_pattern, $url_without_protocol, $matches ) ) {
 				return [
 					'bucket' => $matches[1],
-					'object' => isset( $matches[2] ) ? $matches[2] : ''
+					'object' => $matches[2] ?? ''
 				];
 			}
 		}

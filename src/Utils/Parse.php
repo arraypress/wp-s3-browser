@@ -38,6 +38,11 @@ class Parse {
 			return false;
 		}
 
+		// If it's a full URL, it's not a simple S3 path
+		if ( filter_var( $path, FILTER_VALIDATE_URL ) !== false ) {
+			return false;
+		}
+
 		// Strip s3:// protocol if present
 		if ( str_starts_with( $path, 's3://' ) ) {
 			$path = substr( $path, 5 );
@@ -54,55 +59,10 @@ class Parse {
 			return false;
 		}
 
-		$bucket = $parts[0];
-		$object = $parts[1];
-
 		return [
-			'bucket' => $bucket,
-			'object' => $object
+			'bucket' => $parts[0],
+			'object' => $parts[1]
 		];
-	}
-
-	/**
-	 * Parse any S3-compatible path/URL into bucket and object components
-	 *
-	 * Handles both S3 paths and provider URLs in one method
-	 *
-	 * @param string        $path     Path or URL to parse
-	 * @param Provider|null $provider Optional provider instance for URL parsing
-	 *
-	 * @return array|false Array with 'bucket' and 'object' keys or false on failure
-	 */
-	public static function s3_compatible( string $path, ?Provider $provider = null ) {
-		// Try parsing as S3 path first
-		$parsed = self::path( $path );
-		if ( $parsed ) {
-			return $parsed;
-		}
-
-		// Try parsing as provider URL if provider available
-		if ( $provider ) {
-			$parsed = self::provider_url( $path, $provider );
-			if ( $parsed ) {
-				return $parsed;
-			}
-		}
-
-		return false;
-	}
-
-	/**
-	 * Parse provider URL into bucket and object components
-	 *
-	 * @param string   $url      URL to parse
-	 * @param Provider $provider Provider instance
-	 *
-	 * @return array|false Array with 'bucket' and 'object' keys or false on failure
-	 */
-	public static function provider_url( string $url, Provider $provider ) {
-		$result = $provider->parse_provider_url( $url );
-
-		return $result ?: false;
 	}
 
 }
