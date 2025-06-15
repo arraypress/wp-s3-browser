@@ -224,4 +224,22 @@ class Directory {
 		return substr_count( $path, '/' ) + 1;
 	}
 
+	/**
+	 * Build S3 object key from WordPress file path
+	 *
+	 * Converts a WordPress file path to an S3 object key by extracting
+	 * the relative path from the uploads directory and adding a prefix.
+	 *
+	 * @param string $file_path WordPress file path
+	 * @param string $prefix    Optional S3 prefix (e.g., 'uploads/')
+	 *
+	 * @return string S3 object key
+	 */
+	public static function build_wp_object_key( string $file_path, string $prefix = '' ): string {
+		$upload_dir    = wp_upload_dir();
+		$relative_path = str_replace( $upload_dir['basedir'] . '/', '', $file_path );
+
+		return ltrim( $prefix . $relative_path, '/' );
+	}
+
 }
