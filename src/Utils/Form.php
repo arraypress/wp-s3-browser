@@ -1,0 +1,87 @@
+<?php
+/**
+ * Form Utility Class
+ *
+ * Handles form processing and sanitization for S3 settings.
+ *
+ * @package     ArrayPress\S3\Utils
+ * @copyright   Copyright (c) 2025, ArrayPress Limited
+ * @license     GPL2+
+ * @version     1.0.0
+ * @author      David Sherlock
+ */
+
+declare( strict_types=1 );
+
+namespace ArrayPress\S3\Utils;
+
+/**
+ * Class Form
+ *
+ * Simple form processing utilities
+ */
+class Form {
+
+	/**
+	 * Process and save a POST field to an option with sanitization
+	 *
+	 * @param string   $post_key     POST field key
+	 * @param string   $option_name  WordPress option name
+	 * @param callable $sanitizer    Sanitization function (e.g., 'sanitize_text_field')
+	 * @param bool     $unset_post   Whether to unset the POST field after processing
+	 *
+	 * @return bool True if field was processed and saved
+	 */
+	public static function process_post_field(
+		string $post_key,
+		string $option_name,
+		callable $sanitizer,
+		bool $unset_post = true
+	): bool {
+		if ( ! isset( $_POST[ $post_key ] ) ) {
+			return false;
+		}
+
+		$value = call_user_func( $sanitizer, $_POST[ $post_key ] );
+		update_option( $option_name, $value );
+
+		if ( $unset_post ) {
+			unset( $_POST[ $post_key ] );
+		}
+
+		return true;
+	}
+
+	/**
+	 * Process and save minutes field with validation
+	 *
+	 * @param string $post_key    POST field key
+	 * @param string $option_name WordPress option name
+	 * @param int    $min_minutes Minimum allowed minutes (default: 1)
+	 * @param int    $max_minutes Maximum allowed minutes (default: 1440 = 24 hours)
+	 * @param bool   $unset_post  Whether to unset the POST field after processing
+	 *
+	 * @return bool True if field was processed and saved
+	 */
+	public static function process_minutes_field(
+		string $post_key,
+		string $option_name,
+		int $min_minutes = 1,
+		int $max_minutes = 1440,
+		bool $unset_post = true
+	): bool {
+		if ( ! isset( $_POST[ $post_key ] ) ) {
+			return false;
+		}
+
+		$minutes = max( $min_minutes, min( $max_minutes, (int) $_POST[ $post_key ] ) );
+		update_option( $option_name, $minutes );
+
+		if ( $unset_post ) {
+			unset( $_POST[ $post_key ] );
+		}
+
+		return true;
+	}
+
+}

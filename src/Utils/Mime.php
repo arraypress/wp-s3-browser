@@ -23,6 +23,33 @@ namespace ArrayPress\S3\Utils;
 class Mime {
 
 	/**
+	 * Get additional MIME types commonly used in S3 uploads
+	 *
+	 * @return array Array of extension => mime_type pairs
+	 */
+	public static function get_additional_types(): array {
+		return [
+			// Archives
+			'zip' => 'application/zip',
+			'rar' => 'application/x-rar-compressed',
+			'7z'  => 'application/x-7z-compressed',
+
+			// Executables
+			'exe' => 'application/x-msdownload',
+			'dmg' => 'application/x-apple-diskimage',
+
+			// eBooks
+			'epub' => 'application/epub+zip',
+			'mobi' => 'application/x-mobipocket-ebook',
+
+			// Modern formats
+			'webp' => 'image/webp',
+			'webm' => 'video/webm',
+			'flac' => 'audio/flac'
+		];
+	}
+
+	/**
 	 * Get WordPress allowed MIME types
 	 *
 	 * @param string|null $context Optional context for filtering (e.g., 'woocommerce', 'edd')
