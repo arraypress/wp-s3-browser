@@ -34,7 +34,7 @@ trait ErrorHandling {
 	private function handle_error_response( int $status_code, string $body, string $default_msg ): ErrorResponse {
 		// Try to parse an error message from XML if available
 		if ( strpos( $body, '<?xml' ) !== false ) {
-			$error_xml = $this->parse_xml_response( $body, false );
+			$error_xml = $this->parse_response( $body, false );
 			if ( ! is_wp_error( $error_xml ) && isset( $error_xml['Error'] ) ) {
 				$error_info    = $error_xml['Error'];
 				$error_message = $this->extract_text_value( $error_info['Message'] ?? '' );

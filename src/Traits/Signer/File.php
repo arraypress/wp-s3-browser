@@ -408,7 +408,7 @@ trait File {
 		}
 
 		// Parse XML response for metadata using XML trait method
-		$xml_data = $this->parse_xml_response( $body );
+		$xml_data = $this->parse_response( $body );
 		if ( $xml_data instanceof ErrorResponse ) {
 			// Even if we can't parse the XML, the operation was successful
 			return new SuccessResponse(

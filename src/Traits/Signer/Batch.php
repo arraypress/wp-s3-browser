@@ -104,7 +104,7 @@ trait Batch {
 		}
 
 		// Parse XML response using XML trait method
-		$xml = $this->parse_xml_response( $body );
+		$xml = $this->parse_response( $body );
 		if ( $xml instanceof ErrorResponse ) {
 			return $xml;
 		}
