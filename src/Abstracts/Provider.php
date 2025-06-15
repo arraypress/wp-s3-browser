@@ -566,7 +566,7 @@ abstract class Provider implements ProviderInterface {
 		$main_endpoint  = $this->get_endpoint();
 		$bucket_pattern = '/^([^.]+)\.' . preg_quote( $main_endpoint, '/' ) . '$/';
 
-		if ( (bool) preg_match( $bucket_pattern, $host, $matches ) ) {
+		if ( preg_match( $bucket_pattern, $host, $matches ) ) {
 			return [
 				'bucket' => $matches[1],
 				'object' => $path
@@ -654,6 +654,42 @@ abstract class Provider implements ProviderInterface {
 		}
 
 		return $url;
+	}
+
+	/**
+	 * Check if provider supports presigned POST uploads
+	 *
+	 * @return bool Default is true, providers can override
+	 */
+	public function supports_presigned_post(): bool {
+		return true;
+	}
+
+	/**
+	 * Check if provider supports uploads
+	 *
+	 * @return bool Default is true, providers can override
+	 */
+	public function supports_uploads(): bool {
+		return true;
+	}
+
+	/**
+	 * Check if provider supports multipart uploads
+	 *
+	 * @return bool Default is true, providers can override
+	 */
+	public function supports_multipart_uploads(): bool {
+		return true;
+	}
+
+	/**
+	 * Check if provider supports bucket policies
+	 *
+	 * @return bool Default is true, providers can override
+	 */
+	public function supports_bucket_policies(): bool {
+		return true;
 	}
 
 }
