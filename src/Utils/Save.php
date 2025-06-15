@@ -16,41 +16,11 @@ declare( strict_types=1 );
 namespace ArrayPress\S3\Utils;
 
 /**
- * Class Form
+ * Class Save
  *
  * Simple form processing utilities
  */
-class Form {
-
-	/**
-	 * Process and save a POST field to an option with sanitization
-	 *
-	 * @param string   $post_key    POST field key
-	 * @param string   $option_name WordPress option name
-	 * @param callable $sanitizer   Sanitization function (e.g., 'sanitize_text_field')
-	 * @param bool     $unset_post  Whether to unset the POST field after processing
-	 *
-	 * @return bool True if field was processed and saved
-	 */
-	public static function process_post_field(
-		string $post_key,
-		string $option_name,
-		callable $sanitizer,
-		bool $unset_post = true
-	): bool {
-		if ( ! isset( $_POST[ $post_key ] ) ) {
-			return false;
-		}
-
-		$value = call_user_func( $sanitizer, $_POST[ $post_key ] );
-		update_option( $option_name, $value );
-
-		if ( $unset_post ) {
-			unset( $_POST[ $post_key ] );
-		}
-
-		return true;
-	}
+class Save {
 
 	/**
 	 * Process and save minutes field with validation
@@ -63,7 +33,7 @@ class Form {
 	 *
 	 * @return bool True if field was processed and saved
 	 */
-	public static function process_minutes_field(
+	public static function minutes_option(
 		string $post_key,
 		string $option_name,
 		int $min_minutes = 1,
@@ -95,23 +65,28 @@ class Form {
 	 *
 	 * @return bool True if field was processed and saved
 	 */
-	public static function process_encrypted_field(
+	public static function encrypted_option(
 		string $post_key,
 		string $option_key,
 		object $encryption,
 		callable $sanitizer,
 		bool $unset_post = true
 	): bool {
-		if ( empty( $_POST[ $post_key ] ) ) {
-			if ( $unset_post ) {
-				unset( $_POST[ $post_key ] );
-			}
-
+		if ( ! isset( $_POST[ $post_key ] ) ) {
 			return false;
 		}
 
-		$sanitized_value = call_user_func( $sanitizer, $_POST[ $post_key ] );
-		$encryption->update_option( $option_key, $sanitized_value );
+		// Trim the value first
+		$trimmed_value = trim( $_POST[ $post_key ] );
+
+		// If the field is empty after trimming, delete the option
+		if ( empty( $trimmed_value ) ) {
+			$encryption->delete_option( $option_key );
+		} else {
+			// Otherwise sanitize and save the trimmed value
+			$sanitized_value = call_user_func( $sanitizer, $trimmed_value );
+			$encryption->update_option( $option_key, $sanitized_value );
+		}
 
 		if ( $unset_post ) {
 			unset( $_POST[ $post_key ] );
