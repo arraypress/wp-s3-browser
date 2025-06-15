@@ -30,13 +30,13 @@ class Mime {
 	public static function get_additional_types(): array {
 		return [
 			// Archives
-			'zip' => 'application/zip',
-			'rar' => 'application/x-rar-compressed',
-			'7z'  => 'application/x-7z-compressed',
+			'zip'  => 'application/zip',
+			'rar'  => 'application/x-rar-compressed',
+			'7z'   => 'application/x-7z-compressed',
 
 			// Executables
-			'exe' => 'application/x-msdownload',
-			'dmg' => 'application/x-apple-diskimage',
+			'exe'  => 'application/x-msdownload',
+			'dmg'  => 'application/x-apple-diskimage',
 
 			// eBooks
 			'epub' => 'application/epub+zip',
@@ -47,6 +47,17 @@ class Mime {
 			'webm' => 'video/webm',
 			'flac' => 'audio/flac'
 		];
+	}
+
+	/**
+	 * Merge additional MIME types with existing ones
+	 *
+	 * @param array $existing_mime_types Existing mime types array
+	 *
+	 * @return array Merged mime types
+	 */
+	public static function merge_additional_types( array $existing_mime_types ): array {
+		return array_merge( $existing_mime_types, self::get_additional_types() );
 	}
 
 	/**
