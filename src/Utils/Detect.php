@@ -32,43 +32,14 @@ class Detect {
 	 * @return bool
 	 */
 	public static function is_s3_path( string $path ): bool {
-		$path = trim( $path );
+		$parsed = Parse::path( $path );
 
-		if ( empty( $path ) ) {
+		if ( ! $parsed ) {
 			return false;
 		}
 
-		// If it's a full URL, it's not a simple S3 path
-		if ( filter_var( $path, FILTER_VALIDATE_URL ) !== false ) {
-			return false;
-		}
-
-		// Skip shortcodes - let WooCommerce handle them
-		if ( self::has_shortcodes( $path ) ) {
-			return false;
-		}
-
-		// Strip s3:// protocol if present
-		if ( str_starts_with( $path, 's3://' ) ) {
-			$path = substr( $path, 5 );
-		}
-
-		// Strip leading/trailing slashes
-		$path = trim( $path, '/' );
-
-		// Must contain slash for bucket/object format
-		if ( strpos( $path, '/' ) === false ) {
-			return false;
-		}
-
-		// Split and validate we have bucket and object
-		$parts = explode( '/', $path, 2 );
-		if ( count( $parts ) !== 2 || empty( $parts[0] ) || empty( $parts[1] ) ) {
-			return false;
-		}
-
-		// Must have file extension
-		return ! empty( pathinfo( basename( $parts[1] ), PATHINFO_EXTENSION ) );
+		// Additional check: Must have file extension
+		return ! empty( pathinfo( basename( $parsed['object'] ), PATHINFO_EXTENSION ) );
 	}
 
 	/**

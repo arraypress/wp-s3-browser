@@ -2,7 +2,7 @@
 /**
  * Parse Utility Class
  *
- * Handles ONLY parsing S3 paths into components.
+ * Simplified parsing logic for S3 paths.
  *
  * @package     ArrayPress\S3\Utils
  * @copyright   Copyright (c) 2025, ArrayPress Limited
@@ -15,12 +15,8 @@ declare( strict_types=1 );
 
 namespace ArrayPress\S3\Utils;
 
-use ArrayPress\S3\Abstracts\Provider;
-
 /**
  * Class Parse
- *
- * Handles parsing S3 paths into components
  */
 class Parse {
 
@@ -43,13 +39,23 @@ class Parse {
 			return false;
 		}
 
+		// Skip shortcodes - let WooCommerce handle them
+		if ( Detect::has_shortcodes( $path ) ) {
+			return false;
+		}
+
 		// Strip s3:// protocol if present
 		if ( str_starts_with( $path, 's3://' ) ) {
 			$path = substr( $path, 5 );
 		}
 
-		// Strip leading slash if present
-		$path = ltrim( $path, '/' );
+		// Strip leading/trailing slashes
+		$path = trim( $path, '/' );
+
+		// Must contain slash for bucket/object format
+		if ( strpos( $path, '/' ) === false ) {
+			return false;
+		}
 
 		// Split on first slash only
 		$parts = explode( '/', $path, 2 );
