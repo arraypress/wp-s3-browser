@@ -51,7 +51,7 @@ class Admin {
 		$formats = array_merge( self::get_default_path_formats(), $additional_formats );
 		?>
         <div class="s3-path-guide">
-            <h4><?php esc_html_e( 'Supported Path Formats:', 'arraypress' ); ?></h4>
+            <h4><?php esc_html_e( 'Supported Path Formats', 'arraypress' ); ?></h4>
             <ul class="s3-path-formats">
 				<?php foreach ( $formats as $format_data ) : ?>
                     <li>

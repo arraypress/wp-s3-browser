@@ -1,296 +1,176 @@
 /**
- * S3 Admin Components - Styles
+ * S3 Admin Components - Minimal WooCommerce-style
  *
- * Generic styles for S3 admin components that work across different providers
+ * Clean, minimal styles that match WooCommerce's design
  *
  * @package   ArrayPress\S3
  * @version   1.0.0
  */
 
 /* ==========================================================================
-   Main Container & Layout
-   ========================================================================== */
-
-.s3-validation-field {
-    background: #fff;
-    border: 1px solid #c3c4c7;
-    border-radius: 4px;
-    margin-top: 10px;
-    overflow: hidden;
-}
-
-/* ==========================================================================
-   Path Format Guide
+   Path Format Guide - Minimal Style
    ========================================================================== */
 
 .s3-path-guide {
-    background: #f6f7f7;
-    border-bottom: 1px solid #e0e0e0;
-    padding: 20px;
+    background: #f8f9fa;
+    border: 1px solid #ddd;
+    padding: 15px;
+    border-radius: 3px;
+    margin-bottom: 15px;
 }
 
 .s3-path-guide h4 {
-    margin: 0 0 15px 0;
-    color: #1d2327;
-    font-size: 14px;
+    margin: 0 0 10px 0;
+    color: #555;
+    font-size: 13px;
     font-weight: 600;
-    display: flex;
-    align-items: center;
-}
-
-.s3-path-guide h4:before {
-    content: "📁";
-    margin-right: 8px;
-    font-size: 16px;
 }
 
 .s3-path-formats {
     margin: 0;
     padding: 0;
     list-style: none;
-    display: grid;
-    gap: 12px;
 }
 
 .s3-path-formats li {
-    background: #fff;
-    border: 1px solid #dcdcde;
-    border-radius: 6px;
-    padding: 12px 16px;
-    transition: all 0.2s ease;
-    position: relative;
+    margin-bottom: 8px;
+    padding: 0;
+    line-height: 1.4;
 }
 
-.s3-path-formats li:hover {
-    border-color: #2271b1;
-    box-shadow: 0 0 0 1px #2271b1;
+.s3-path-formats li:last-child {
+    margin-bottom: 0;
 }
 
 .s3-path-formats code {
-    background: #2271b1;
-    color: #fff;
-    border: none;
-    padding: 4px 8px;
-    border-radius: 4px;
+    background: #f1f1f1;
+    border: 1px solid #ddd;
+    padding: 2px 6px;
+    border-radius: 2px;
     font-family: Consolas, Monaco, 'Courier New', monospace;
-    font-size: 13px;
-    font-weight: 500;
-    margin-right: 12px;
+    font-size: 11px;
+    color: #333;
+    margin-right: 8px;
     display: inline-block;
 }
 
 .s3-path-formats .path-description {
-    color: #50575e;
-    font-size: 13px;
-    margin-left: 4px;
+    color: #666;
+    font-size: 12px;
 }
 
 /* ==========================================================================
-   Connection Test
+   Connection Test - Minimal Style
    ========================================================================== */
 
 .s3-connection-test {
-    background: #f0f6fc;
-    border-top: 1px solid #e0e0e0;
-    padding: 20px;
+    background: #f8f9fa;
+    border: 1px solid #ddd;
+    padding: 15px;
+    border-radius: 3px;
 }
 
 .s3-connection-test h4 {
-    margin: 0 0 15px 0;
-    color: #2271b1;
-    font-size: 14px;
+    margin: 0 0 10px 0;
+    color: #555;
+    font-size: 13px;
     font-weight: 600;
-    display: flex;
-    align-items: center;
-}
-
-.s3-connection-test h4:before {
-    content: "🔗";
-    margin-right: 8px;
-    font-size: 16px;
 }
 
 .s3-connection-test p {
     margin: 0;
-    display: flex;
-    align-items: center;
-    gap: 12px;
+    line-height: 1.4;
 }
 
 .s3-test-connection {
-    background: #2271b1;
-    border: 1px solid #2271b1;
+    background: #0073aa;
+    border: 1px solid #0073aa;
     color: #fff;
-    padding: 8px 16px;
-    font-size: 13px;
-    font-weight: 500;
-    border-radius: 4px;
+    padding: 6px 12px;
+    font-size: 12px;
+    border-radius: 3px;
     cursor: pointer;
-    transition: all 0.2s ease;
-    position: relative;
+    text-decoration: none;
+    display: inline-block;
+    margin-right: 10px;
 }
 
 .s3-test-connection:hover:not(:disabled) {
-    background: #135e96;
-    border-color: #135e96;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(19, 94, 150, 0.3);
+    background: #005a87;
+    border-color: #005a87;
+    color: #fff;
 }
 
 .s3-test-connection:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
-    transform: none;
-    box-shadow: none;
-}
-
-.s3-test-connection:focus {
-    outline: 2px solid #2271b1;
-    outline-offset: 2px;
+    opacity: 0.6;
+    cursor: default;
 }
 
 /* ==========================================================================
-   Connection Test Results
+   Connection Test Results - Clean
    ========================================================================== */
 
 .s3-test-result {
-    font-weight: 500;
+    font-size: 12px;
     line-height: 1.4;
-    min-height: 20px;
-    display: flex;
-    align-items: center;
-    font-size: 14px;
+    display: inline-block;
+    vertical-align: middle;
 }
 
 .s3-test-result.success {
-    color: #00a32a;
-}
-
-.s3-test-result.success:before {
-    content: "✅";
-    margin-right: 6px;
+    color: #46b450;
 }
 
 .s3-test-result.error {
-    color: #d63638;
-}
-
-.s3-test-result.error:before {
-    content: "❌";
-    margin-right: 6px;
+    color: #dc3232;
 }
 
 .s3-test-result.loading {
-    color: #646970;
+    color: #666;
     font-style: italic;
-}
-
-.s3-test-result.loading:before {
-    content: "⏳";
-    margin-right: 6px;
 }
 
 .s3-test-details {
     display: block;
-    font-size: 12px;
+    font-size: 11px;
+    color: #666;
+    margin-top: 4px;
     font-style: italic;
-    margin-top: 6px;
-    opacity: 0.8;
-    background: rgba(255, 255, 255, 0.5);
-    padding: 4px 8px;
-    border-radius: 3px;
-    border-left: 3px solid currentColor;
 }
 
 .s3-bucket-list {
     display: block;
-    font-size: 12px;
-    color: #50575e;
+    font-size: 11px;
+    color: #666;
+    margin-top: 4px;
     font-style: italic;
-    margin-top: 6px;
-    font-weight: normal;
-    background: rgba(255, 255, 255, 0.7);
-    padding: 6px 10px;
-    border-radius: 4px;
-    border-left: 3px solid #00a32a;
 }
 
 /* ==========================================================================
-   Form Field Integration
+   Form Integration
    ========================================================================== */
-
-.woocommerce table.form-table .s3-validation-field {
-    max-width: none;
-}
 
 .forminp .s3-validation-field {
     margin-top: 5px;
 }
 
-/* Remove default form styling conflicts */
-.s3-validation-field .s3-path-guide,
-.s3-validation-field .s3-connection-test {
-    border: none;
-    border-radius: 0;
-    margin: 0;
-}
-
-.s3-validation-field .s3-path-guide {
-    border-bottom: 1px solid #e0e0e0;
+.s3-validation-field .s3-path-guide:last-child {
+    margin-bottom: 0;
 }
 
 /* ==========================================================================
-   Responsive Design
+   Responsive
    ========================================================================== */
 
 @media screen and (max-width: 782px) {
     .s3-path-guide,
     .s3-connection-test {
-        padding: 15px;
-    }
-
-    .s3-path-formats li {
-        padding: 10px 12px;
-    }
-
-    .s3-path-formats code {
-        display: block;
-        margin-bottom: 6px;
-        margin-right: 0;
-        text-align: center;
-    }
-
-    .s3-connection-test p {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 10px;
+        padding: 12px;
     }
 
     .s3-test-result {
-        width: 100%;
+        display: block;
+        margin-top: 8px;
+        margin-right: 0;
     }
-}
-
-/* ==========================================================================
-   WordPress Admin Color Scheme Compatibility
-   ========================================================================== */
-
-.admin-color-fresh .s3-test-connection {
-    background: #2271b1;
-    border-color: #2271b1;
-}
-
-.admin-color-fresh .s3-test-connection:hover:not(:disabled) {
-    background: #135e96;
-    border-color: #135e96;
-}
-
-.admin-color-light .s3-test-connection {
-    background: #04a4cc;
-    border-color: #04a4cc;
-}
-
-.admin-color-light .s3-test-connection:hover:not(:disabled) {
-    background: #037c9a;
-    border-color: #037c9a;
 }
