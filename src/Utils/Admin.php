@@ -13,10 +13,10 @@
 
 declare( strict_types=1 );
 
-namespace ArrayPress\S3\Utils;
+namespace ArrayPress\S3\Traits;
 
 /**
- * Trait AdminUtility
+ * Class Admin
  */
 class Admin {
 
@@ -55,8 +55,8 @@ class Admin {
             <ul class="s3-path-formats">
 				<?php foreach ( $formats as $format_data ) : ?>
                     <li>
-                        <code><?php echo esc_html( $format_data['example'] ); ?></code> -
-						<?php echo esc_html( $format_data['description'] ); ?>
+                        <code><?php echo esc_html( $format_data['example'] ); ?></code>
+                        <span class="path-description"><?php echo esc_html( $format_data['description'] ); ?></span>
                     </li>
 				<?php endforeach; ?>
             </ul>
@@ -87,10 +87,10 @@ class Admin {
 	/**
 	 * Render complete validation field (path guide + connection test)
 	 *
-	 * @param string $title     Field title
+	 * @param string $title Field title
 	 * @param string $button_id Connection test button ID
 	 * @param string $result_id Connection test result ID
-	 * @param bool   $show_test Whether to show connection test
+	 * @param bool $show_test Whether to show connection test
 	 */
 	public static function render_validation_field( string $title, string $button_id, string $result_id, bool $show_test = true ): void {
 		?>

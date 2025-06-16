@@ -165,7 +165,6 @@ trait Assets {
 		if ( $hook_suffix === 'media-upload-popup' ) {
 			$this->enqueue_media_upload_assets();
 		} elseif ( in_array( $hook_suffix, [ 'post.php', 'post-new.php' ] ) ) {
-			// For post edit pages (WooCommerce products, etc.)
 			$this->enqueue_integration_assets();
 		}
 	}
