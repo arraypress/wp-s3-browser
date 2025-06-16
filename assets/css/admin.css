@@ -113,8 +113,9 @@
 .s3-test-result {
     font-size: 12px;
     line-height: 1.4;
-    display: inline-block;
+    display: block;
     vertical-align: middle;
+    margin-top: 6px;
 }
 
 .s3-test-result.success {
