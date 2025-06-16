@@ -38,6 +38,7 @@ trait Hooks {
 
 		// Enqueue admin scripts and styles
 		add_action( 'admin_enqueue_scripts', [ $this, 'admin_enqueue_scripts' ] );
+		add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_admin_assets' ] );
 
 		// Add media view strings for all post types
 		add_filter( 'media_view_strings', [ $this, 'add_media_view_strings' ], 20 );
@@ -66,6 +67,9 @@ trait Hooks {
 			$this,
 			'handle_ajax_delete_cors_configuration'
 		] );
+
+		// Connection test
+		add_action( 'wp_ajax_s3_connection_test_' . $suffix, [ $this, 'handle_ajax_connection_test' ] );
 
 		// Add plugin integrations
 		$this->add_edd_integration();

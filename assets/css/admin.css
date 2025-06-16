@@ -1,0 +1,212 @@
+/**
+ * S3 Admin Components - Styles
+ *
+ * Generic styles for S3 admin components that work across different providers
+ *
+ * @package   ArrayPress\S3
+ * @version   1.0.0
+ */
+
+/* ==========================================================================
+   Path Format Guide
+   ========================================================================== */
+
+.s3-path-guide {
+    background: #f9f9f9;
+    border: 1px solid #ddd;
+    padding: 15px;
+    border-radius: 4px;
+    margin-top: 10px;
+}
+
+.s3-path-guide h4 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    color: #23282d;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.s3-path-formats {
+    margin: 10px 0;
+    padding-left: 20px;
+}
+
+.s3-path-formats li {
+    margin-bottom: 8px;
+    line-height: 1.5;
+}
+
+.s3-path-formats code {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: Consolas, Monaco, monospace;
+    font-size: 12px;
+    color: #d63638;
+    margin-right: 8px;
+}
+
+/* ==========================================================================
+   Connection Test
+   ========================================================================== */
+
+.s3-connection-test {
+    background: #f0f6fc;
+    border: 1px solid #8bb8e8;
+    padding: 10px;
+    margin-top: 15px;
+    border-radius: 3px;
+}
+
+.s3-connection-test h4 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    color: #2271b1;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.s3-connection-test p {
+    margin-bottom: 5px;
+}
+
+.s3-connection-test p:last-child {
+    margin-bottom: 0;
+}
+
+.s3-test-connection {
+    background: #2271b1;
+    border-color: #2271b1;
+    color: #fff;
+    padding: 4px 12px;
+    font-size: 13px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.s3-test-connection:hover:not(:disabled) {
+    background: #135e96;
+    border-color: #135e96;
+}
+
+.s3-test-connection:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+
+/* ==========================================================================
+   Connection Test Results
+   ========================================================================== */
+
+.s3-test-result {
+    margin-left: 10px;
+    font-weight: 500;
+    line-height: 1.4;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.s3-test-result.success {
+    color: #00a32a;
+}
+
+.s3-test-result.error {
+    color: #d63638;
+}
+
+.s3-test-result.loading {
+    color: #646970;
+    font-style: italic;
+}
+
+.s3-test-details {
+    display: block;
+    font-size: 12px;
+    font-style: italic;
+    margin-top: 4px;
+    opacity: 0.8;
+}
+
+.s3-bucket-list {
+    display: block;
+    font-size: 12px;
+    color: #666;
+    font-style: italic;
+    margin-top: 4px;
+    font-weight: normal;
+}
+
+/* ==========================================================================
+   Constants Notice (for when values are defined as constants)
+   ========================================================================== */
+
+.s3-constants-notice {
+    background: #e7f3ff;
+    border: 1px solid #0073aa;
+    padding: 10px;
+    margin-top: 15px;
+    border-radius: 3px;
+}
+
+.s3-constants-notice h4 {
+    margin-top: 0;
+    margin-bottom: 8px;
+    color: #0073aa;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.s3-constants-notice p {
+    margin-bottom: 0;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.s3-constants-notice code {
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(0, 115, 170, 0.3);
+    padding: 1px 4px;
+    border-radius: 2px;
+    font-family: Consolas, Monaco, monospace;
+    font-size: 12px;
+}
+
+/* ==========================================================================
+   Form Field Enhancements
+   ========================================================================== */
+
+.forminp .s3-path-guide {
+    margin-top: 5px;
+}
+
+/* ==========================================================================
+   Responsive Design
+   ========================================================================== */
+
+@media screen and (max-width: 782px) {
+    .s3-path-guide {
+        padding: 10px;
+    }
+
+    .s3-connection-test {
+        padding: 8px;
+    }
+
+    .s3-path-formats {
+        padding-left: 15px;
+    }
+
+    .s3-path-formats code {
+        display: inline-block;
+        margin-bottom: 4px;
+    }
+
+    .s3-test-result {
+        margin-left: 0;
+        margin-top: 8px;
+        display: block;
+    }
+}

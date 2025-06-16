@@ -30,4 +30,5 @@ trait AjaxHandlers {
 	use Ajax\Upload;
 	use Ajax\Bucket;
 	use Ajax\System;
+	use Ajax\Connection;
 }

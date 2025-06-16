@@ -124,6 +124,7 @@ class Browser {
 	 * @param string      $capability         Optional. Capability required to use this browser. Default 'upload_files'.
 	 * @param string|null $context            Optional. Context identifier for filtering and customization. Default null.
 	 * @param bool        $debug              Optional. Whether to enable debug mode. Default false.
+	 * @param string|null $admin_hook         Optional. Admin hook for enqueuing admin assets. Default null.
 	 */
 	public function __construct(
 		Provider $provider,
@@ -134,7 +135,8 @@ class Browser {
 		string $default_prefix = '',
 		string $capability = 'upload_files',
 		?string $context = null,
-		bool $debug = false
+		bool $debug = false,
+		?string $admin_hook = null
 	) {
 		$this->provider           = $provider;
 		$this->provider_id        = $provider->get_id();
@@ -147,6 +149,11 @@ class Browser {
 		// Set context if provided
 		if ( $context !== null ) {
 			$this->set_context( $context );
+		}
+
+		// Set admin hook if provided
+		if ( $admin_hook !== null ) {
+			$this->set_admin_hook( $admin_hook );
 		}
 
 		// Initialize S3 client with debug setting

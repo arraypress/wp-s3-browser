@@ -31,6 +31,22 @@ trait Assets {
 	private array $browser_script_handles = [];
 
 	/**
+	 * Admin hook for enqueuing assets on specific admin pages
+	 *
+	 * @var string|null
+	 */
+	private ?string $admin_hook = null;
+
+	/**
+	 * Set the admin hook for this browser instance
+	 *
+	 * @param string $hook Admin hook suffix
+	 */
+	public function set_admin_hook( string $hook ): void {
+		$this->admin_hook = $hook;
+	}
+
+	/**
 	 * Enqueue global configuration script
 	 *
 	 * @return string Script handle
@@ -95,6 +111,41 @@ trait Assets {
 		}
 
 		return $handle;
+	}
+
+	/**
+	 * Enqueue admin assets for connection testing and admin screens
+	 *
+	 * @param string $current_hook Current admin page hook suffix
+	 */
+	public function enqueue_admin_assets( string $current_hook ): void {
+		// Only load on the specified admin hook
+		if ( ! $this->admin_hook || $current_hook !== $this->admin_hook ) {
+			return;
+		}
+
+		// Check user capability
+		if ( ! current_user_can( $this->capability ) ) {
+			return;
+		}
+
+		// Enqueue global config first
+		$config_handle = $this->enqueue_global_config();
+
+		// Enqueue admin styles
+		wp_enqueue_style_from_composer_file(
+			's3-admin-components',
+			__FILE__,
+			'css/admin.css'
+		);
+
+		// Enqueue connection test script
+		wp_enqueue_script_from_composer_file(
+			's3-connection-test',
+			__FILE__,
+			'js/admin/connection.js',
+			[ 'jquery', $config_handle ]
+		);
 	}
 
 	/**
@@ -479,10 +530,12 @@ trait Assets {
 
 			// Loading and errors
 			'loading'    => [
-				'loadingText'   => __( 'Loading...', 'arraypress' ),
-				'loadMoreItems' => __( 'Load More Items', 'arraypress' ),
-				'loadMoreError' => __( 'Failed to load more items. Please try again.', 'arraypress' ),
-				'networkError'  => __( 'Network error. Please try again.', 'arraypress' ),
+				'loadingText'    => __( 'Loading...', 'arraypress' ),
+				'loadMoreItems'  => __( 'Load More Items', 'arraypress' ),
+				'loadMoreError'  => __( 'Failed to load more items. Please try again.', 'arraypress' ),
+				'networkError'   => __( 'Network error. Please try again.', 'arraypress' ),
+				'testing'        => __( 'Testing...', 'arraypress' ),
+				'testConnection' => __( 'Test Connection', 'arraypress' ),
 			],
 
 			// Search functionality
@@ -517,11 +570,17 @@ trait Assets {
 				'uploadCancelled'     => __( 'Upload cancelled', 'arraypress' )
 			],
 
+			// Validation and connection testing
 			'validation' => [
-				'validationFailed'  => __( 'File Validation Failed', 'arraypress' ),
-				'invalidFileType'   => __( 'File type "{extension}" is not allowed', 'arraypress' ),
-				'invalidMimeType'   => __( 'MIME type "{mimeType}" is not allowed', 'arraypress' ),
-				'someFilesRejected' => __( 'Uploading {accepted} files. {rejected} files were rejected due to validation errors.', 'arraypress' ),
+				'validationFailed'    => __( 'File Validation Failed', 'arraypress' ),
+				'invalidFileType'     => __( 'File type "{extension}" is not allowed', 'arraypress' ),
+				'invalidMimeType'     => __( 'MIME type "{mimeType}" is not allowed', 'arraypress' ),
+				'someFilesRejected'   => __( 'Uploading {accepted} files. {rejected} files were rejected due to validation errors.', 'arraypress' ),
+				'connectionSuccess'   => __( 'Connection successful!', 'arraypress' ),
+				'connectionFailed'    => __( 'Connection test failed', 'arraypress' ),
+				'securityCheckFailed' => __( 'Security check failed', 'arraypress' ),
+				'noCredentials'       => __( 'No credentials configured', 'arraypress' ),
+				'insufficientPerms'   => __( 'Insufficient permissions', 'arraypress' ),
 			],
 		];
 

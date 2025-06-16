@@ -57,11 +57,11 @@ class Save {
 	/**
 	 * Process and save encrypted POST field
 	 *
-	 * @param string   $post_key   POST field key
-	 * @param string   $option_key Encryption option key
-	 * @param object   $encryption Encryption instance
-	 * @param callable $sanitizer  Sanitization function
-	 * @param bool     $unset_post Whether to unset the POST field after processing
+	 * @param string        $post_key   POST field key
+	 * @param string        $option_key Encryption option key
+	 * @param object        $encryption Encryption instance
+	 * @param callable|null $sanitizer  Sanitization function (default: sanitize_text_field)
+	 * @param bool          $unset_post Whether to unset the POST field after processing
 	 *
 	 * @return bool True if field was processed and saved
 	 */
@@ -69,12 +69,15 @@ class Save {
 		string $post_key,
 		string $option_key,
 		object $encryption,
-		callable $sanitizer,
+		?callable $sanitizer = null,
 		bool $unset_post = true
 	): bool {
 		if ( ! isset( $_POST[ $post_key ] ) ) {
 			return false;
 		}
+
+		// Set default sanitizer if none provided
+		$sanitizer = $sanitizer ?? 'sanitize_text_field';
 
 		// Trim the value first
 		$trimmed_value = trim( $_POST[ $post_key ] );
