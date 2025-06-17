@@ -1,15 +1,4 @@
-/**
- * S3 Admin Components - Minimal WooCommerce-style
- *
- * Clean, minimal styles that match WooCommerce's design
- *
- * @package   ArrayPress\S3
- * @version   1.0.0
- */
-
-/* ==========================================================================
-   Path Format Guide - Minimal Style
-   ========================================================================== */
+/* Path Format Guide - Minimal Style */
 
 .s3-path-guide {
     background: #f8f9fa;
@@ -59,9 +48,7 @@
     font-size: 12px;
 }
 
-/* ==========================================================================
-   Connection Test - Minimal Style
-   ========================================================================== */
+/* Connection Test - Minimal Style */
 
 .s3-connection-test {
     background: #f8f9fa;
@@ -106,9 +93,7 @@
     cursor: default;
 }
 
-/* ==========================================================================
-   Connection Test Results - Clean
-   ========================================================================== */
+/* Connection Test Results - Clean */
 
 .s3-test-result {
     font-size: 12px;
@@ -147,9 +132,7 @@
     font-style: italic;
 }
 
-/* ==========================================================================
-   Form Integration
-   ========================================================================== */
+/* Form Integration */
 
 .forminp .s3-validation-field {
     margin-top: 5px;
@@ -159,9 +142,7 @@
     margin-bottom: 0;
 }
 
-/* ==========================================================================
-   Responsive
-   ========================================================================== */
+/* Responsive */
 
 @media screen and (max-width: 782px) {
     .s3-path-guide,

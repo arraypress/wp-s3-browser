@@ -53,7 +53,7 @@ class Buckets extends WP_List_Table {
 		return [
 			'name'    => __( 'Bucket Name', 'arraypress' ),
 			'created' => __( 'Creation Date', 'arraypress' ),
-			'actions' => __( 'Actions', 'arraypress' ),
+			'actions' => __( 'Favorite', 'arraypress' ),
 		];
 	}
 
@@ -71,10 +71,11 @@ class Buckets extends WP_List_Table {
 		if ( ! $result->is_successful() ) {
 			echo '<div class="notice notice-error"><p>' . esc_html( $result->get_error_message() ) . '</p></div>';
 			$this->items = [];
+
 			return;
 		}
 
-		$data = $result->get_data();
+		$data    = $result->get_data();
 		$buckets = $data['buckets'];
 		$items   = [];
 
@@ -112,7 +113,7 @@ class Buckets extends WP_List_Table {
 	 * Column name - Now clickable with proper attributes
 	 */
 	public function column_name( $item ) {
-		$bucket = $item['name'];
+		$bucket  = $item['name'];
 		$actions = $this->get_row_actions( $item );
 
 		$primary_content = sprintf(
@@ -128,9 +129,9 @@ class Buckets extends WP_List_Table {
 	 * Column created - Display formatted creation date with relative time
 	 */
 	public function column_created( $item ) {
-		$bucket = $item['raw']; // Get the S3Bucket model object
+		$bucket         = $item['raw']; // Get the S3Bucket model object
 		$formatted_date = $item['created']; // Already formatted in prepare_items
-		$raw_date = $bucket->get_creation_date(); // Get raw timestamp
+		$raw_date       = $bucket->get_creation_date(); // Get raw timestamp
 
 		// Add relative time if we have a valid date
 		$relative_time = '';
@@ -187,7 +188,7 @@ class Buckets extends WP_List_Table {
 	 * @return array Array of action links
 	 */
 	protected function get_row_actions( array $item ): array {
-		$bucket = $item['name'];
+		$bucket  = $item['name'];
 		$actions = [];
 
 		// Browse action

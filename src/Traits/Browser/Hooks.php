@@ -34,8 +34,8 @@ trait Hooks {
 		add_action( 'media_upload_' . $this->get_tab_id(), [ $this, 'handle_media_tab' ] );
 
 		// Enqueue admin scripts and styles
-		add_action( 'admin_enqueue_scripts', [ $this, 'admin_enqueue_scripts' ] );
-		add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_admin_assets' ] );
+		add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_settings_assets' ] );
+		add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_browser_assets' ] );
 
 		// Add media view strings for all post types
 		add_filter( 'media_view_strings', [ $this, 'add_media_view_strings' ], 20 );

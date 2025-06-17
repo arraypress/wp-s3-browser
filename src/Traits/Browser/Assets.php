@@ -33,22 +33,6 @@ trait Assets {
 	private array $browser_script_handles = [];
 
 	/**
-	 * Admin hook for enqueuing assets on specific admin pages
-	 *
-	 * @var string|null
-	 */
-	private ?string $admin_hook = null;
-
-	/**
-	 * Set the admin hook for this browser instance
-	 *
-	 * @param string $hook Admin hook suffix
-	 */
-	public function set_admin_hook( string $hook ): void {
-		$this->admin_hook = $hook;
-	}
-
-	/**
 	 * Enqueue global configuration script
 	 *
 	 * @return string Script handle
@@ -115,7 +99,7 @@ trait Assets {
 	 *
 	 * @param string $current_hook Current admin page hook suffix
 	 */
-	public function enqueue_admin_assets( string $current_hook ): void {
+	public function enqueue_settings_assets( string $current_hook ): void {
 		// Only load on the specified admin hook
 		if ( ! $this->admin_hook || $current_hook !== $this->admin_hook ) {
 			return;
@@ -148,20 +132,20 @@ trait Assets {
 	/**
 	 * Enqueue admin scripts and styles for the S3 browser
 	 *
-	 * @param string $hook_suffix Current admin page hook suffix
+	 * @param string $current_hook Current admin page hook suffix
 	 *
 	 * @return void
 	 */
-	public function admin_enqueue_scripts( string $hook_suffix ): void {
+	public function enqueue_browser_assets( string $current_hook ): void {
 		// Check user capability
 		if ( ! current_user_can( $this->capability ) ) {
 			return;
 		}
 
 		// For media upload popup
-		if ( $hook_suffix === 'media-upload-popup' ) {
+		if ( $current_hook === 'media-upload-popup' ) {
 			$this->enqueue_media_upload_assets();
-		} elseif ( in_array( $hook_suffix, [ 'post.php', 'post-new.php' ] ) ) {
+		} elseif ( in_array( $current_hook, [ 'post.php', 'post-new.php' ] ) ) {
 			$this->enqueue_integration_assets();
 		}
 	}

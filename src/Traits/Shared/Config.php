@@ -26,6 +26,13 @@ trait Config {
 	private string $user_agent = 'ArrayPress-S3-Client/1.0';
 
 	/**
+	 * Admin hook for enqueuing assets on specific admin pages
+	 *
+	 * @var string|null
+	 */
+	private ?string $admin_hook = null;
+
+	/**
 	 * Set custom user agent for HTTP requests
 	 *
 	 * @param string $user_agent User agent string
@@ -77,6 +84,24 @@ trait Config {
 		];
 
 		return array_merge( $base_headers, $additional_headers );
+	}
+
+	/**
+	 * Set the admin hook for this browser instance
+	 *
+	 * @param string $hook Admin hook suffix
+	 */
+	public function set_admin_hook( string $hook ): void {
+		$this->admin_hook = $hook;
+	}
+
+	/**
+	 * Get current admin hook
+	 *
+	 * @return string|null Current admin hook
+	 */
+	public function get_admin_hook(): ?string {
+		return $this->admin_hook;
 	}
 
 }
