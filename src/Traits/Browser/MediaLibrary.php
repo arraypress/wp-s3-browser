@@ -110,7 +110,7 @@ trait MediaLibrary {
 		wp_enqueue_script( 'jquery' );
 
 		// Load our specific styles and scripts
-		$this->admin_enqueue_scripts( 'media-upload-popup' );
+		$this->enqueue_browser_assets( 'media-upload-popup' );
 
 		// Get request parameters
 		$view   = isset( $_GET['view'] ) ? sanitize_text_field( $_GET['view'] ) : '';
