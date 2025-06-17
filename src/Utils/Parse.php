@@ -40,7 +40,7 @@ class Parse {
 		}
 
 		// Skip shortcodes - let WooCommerce handle them
-		if ( Detect::has_shortcodes( $path ) ) {
+		if ( Shortcodes::has( $path ) ) {
 			return false;
 		}
 

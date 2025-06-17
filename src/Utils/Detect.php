@@ -42,15 +42,4 @@ class Detect {
 		return ! empty( pathinfo( basename( $parsed['object'] ), PATHINFO_EXTENSION ) );
 	}
 
-	/**
-	 * Check if a path contains shortcodes
-	 *
-	 * @param string $path Path to check
-	 *
-	 * @return bool
-	 */
-	public static function has_shortcodes( string $path ): bool {
-		return strpos( $path, '[' ) !== false && strpos( $path, ']' ) !== false;
-	}
-
 }

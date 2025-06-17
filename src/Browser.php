@@ -23,6 +23,7 @@ use ArrayPress\S3\Traits\Browser\Helpers;
 use ArrayPress\S3\Traits\Browser\I18n;
 use ArrayPress\S3\Traits\Shared\Context;
 use ArrayPress\S3\Traits\Shared\Debug;
+use ArrayPress\S3\Traits\Shared\Config;
 
 // Load WP_List_Table if not loaded
 if ( ! class_exists( 'WP_List_Table' ) ) {
@@ -45,6 +46,7 @@ class Browser {
 	use Helpers;
 	use Context;
 	use Debug;
+	use Config;
 
 	/**
 	 * Handle for the global S3 browser configuration script
