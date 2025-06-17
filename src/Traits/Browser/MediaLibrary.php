@@ -33,7 +33,7 @@ trait MediaLibrary {
 			return $tabs;
 		}
 
-		$tabs[ 's3_' . $this->provider_id ] = $this->provider_name;
+		$tabs[ $this->get_tab_id() ] = $this->provider_name;
 
 		return $tabs;
 	}
@@ -75,7 +75,7 @@ trait MediaLibrary {
 			$strings['tabs'] = [];
 		}
 
-		$strings['tabs'][ 's3_' . $this->provider_id ] = $this->provider_name;
+		$strings['tabs'][ $this->get_tab_id() ] = $this->provider_name;
 
 		return $strings;
 	}
