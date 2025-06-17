@@ -34,7 +34,7 @@ trait Hooks {
 		add_filter( 'media_upload_tabs', [ $this, 'add_media_tab' ] );
 
 		// Register tab content handler
-		add_action( 'media_upload_s3_' . $this->provider_id, [ $this, 'handle_media_tab' ] );
+		add_action( 'media_upload_s3_' . $suffix, [ $this, 'handle_media_tab' ] );
 
 		// Enqueue admin scripts and styles
 		add_action( 'admin_enqueue_scripts', [ $this, 'admin_enqueue_scripts' ] );
