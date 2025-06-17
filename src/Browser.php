@@ -16,7 +16,6 @@ namespace ArrayPress\S3;
 use ArrayPress\S3\Abstracts\Provider;
 use ArrayPress\S3\Traits\Browser\AjaxHandlers;
 use ArrayPress\S3\Traits\Browser\Assets;
-use ArrayPress\S3\Traits\Browser\Content;
 use ArrayPress\S3\Traits\Browser\Integrations;
 use ArrayPress\S3\Traits\Browser\MediaLibrary;
 use ArrayPress\S3\Traits\Browser\Hooks;
@@ -38,7 +37,6 @@ if ( ! class_exists( 'WP_List_Table' ) ) {
 class Browser {
 	use AjaxHandlers;
 	use Assets;
-	use Content;
 	use Integrations;
 	use MediaLibrary;
 	use Hooks;
