@@ -315,7 +315,7 @@ trait MediaLibrary {
 					$items[] = $part;
 				} else {
 					// Intermediate parts are links
-					$url = add_query_arg( [
+					$url     = add_query_arg( [
 						'tab'    => $this->get_tab_param(),
 						'bucket' => $bucket,
 						'prefix' => $current_path
@@ -329,7 +329,6 @@ trait MediaLibrary {
 			}
 		}
 
-		// Create and render breadcrumbs using Elementify
 		$breadcrumbs = Create::breadcrumbs( $items, '›', [ 'class' => 's3-browser-breadcrumbs' ] );
 		echo $breadcrumbs->render();
 	}
@@ -365,13 +364,13 @@ trait MediaLibrary {
 		try {
 			$list_table->prepare_items();
 		} catch ( Exception $e ) {
-			// Use Elementify for error notice
 			$error_notice = Create::error_notice(
 				__( 'Error loading buckets. Please try again.', 'arraypress' ),
 				false,
 				[ 'class' => 's3-error' ]
 			);
 			echo $error_notice->render();
+
 			return;
 		}
 
@@ -400,13 +399,13 @@ trait MediaLibrary {
 		try {
 			$list_table->prepare_items();
 		} catch ( Exception $e ) {
-			// Use Elementify for error notice
 			$error_notice = Create::error_notice(
 				__( 'Error loading files. Please try again.', 'arraypress' ),
 				false,
 				[ 'class' => 's3-error' ]
 			);
 			echo $error_notice->render();
+
 			return;
 		}
 
