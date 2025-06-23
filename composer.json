@@ -13,7 +13,8 @@
   ],
   "require": {
     "php": ">=7.4",
-    "arraypress/wp-composer-assets": "dev-main"
+    "arraypress/wp-composer-assets": "dev-main",
+    "arraypress/elementify": "dev-main"
   },
   "autoload": {
     "psr-4": {

@@ -15,11 +15,10 @@ declare( strict_types=1 );
 
 namespace ArrayPress\S3\Traits\Browser;
 
-use ArrayPress\S3\Components\Breadcrumb;
-use ArrayPress\S3\Components\Notice;
 use ArrayPress\S3\Tables\Buckets;
 use ArrayPress\S3\Tables\Objects;
 use Exception;
+use Elementify\Create;
 
 /**
  * Trait MediaLibrary
@@ -205,7 +204,7 @@ trait MediaLibrary {
 	 * @return void
 	 */
 	private function display_objects_view( string $bucket, string $prefix = '' ): void {
-		// Show breadcrumbs
+		// Show breadcrumbs using Elementify
 		$this->display_breadcrumbs( $bucket, $prefix );
 
 		// Display objects list
@@ -213,7 +212,7 @@ trait MediaLibrary {
 	}
 
 	/**
-	 * 2. Enhanced ContentRendering Trait - Modify render_upload_zone() method
+	 * Enhanced ContentRendering Trait - Modify render_upload_zone() method
 	 */
 	public function render_upload_zone() {
 		// Only show the upload zone on object views (not bucket listing)
@@ -225,51 +224,51 @@ trait MediaLibrary {
 		$prefix = isset( $_GET['prefix'] ) ? sanitize_text_field( $_GET['prefix'] ) : '';
 
 		?>
-		<div class="s3-upload-wrapper">
-			<div class="s3-toolbar-buttons">
-				<!-- Use WordPress native button classes -->
-				<button type="button" id="s3-toggle-upload" class="button button-primary">
-					<span class="dashicons dashicons-upload"></span>
+        <div class="s3-upload-wrapper">
+            <div class="s3-toolbar-buttons">
+                <!-- Use WordPress native button classes -->
+                <button type="button" id="s3-toggle-upload" class="button button-primary">
+                    <span class="dashicons dashicons-upload"></span>
 					<?php esc_html_e( 'Upload Files', 'arraypress' ); ?>
-				</button>
+                </button>
 
-				<button type="button" id="s3-create-folder" class="button button-secondary"
-				        data-bucket="<?php echo esc_attr( $bucket ); ?>"
-				        data-prefix="<?php echo esc_attr( $prefix ); ?>">
-					<span class="dashicons dashicons-plus-alt"></span>
+                <button type="button" id="s3-create-folder" class="button button-secondary"
+                        data-bucket="<?php echo esc_attr( $bucket ); ?>"
+                        data-prefix="<?php echo esc_attr( $prefix ); ?>">
+                    <span class="dashicons dashicons-plus-alt"></span>
 					<?php esc_html_e( 'New Folder', 'arraypress' ); ?>
-				</button>
-			</div>
+                </button>
+            </div>
 
-			<div id="s3-upload-container" class="s3-upload-container" style="display: none;">
-				<div class="s3-upload-header">
-					<h3 class="s3-upload-title"><?php esc_html_e( 'Upload Files', 'arraypress' ); ?></h3>
-					<button type="button" class="s3-close-upload"
-					        aria-label="<?php esc_attr_e( 'Close', 'arraypress' ); ?>">
-						<span class="dashicons dashicons-no-alt"></span>
-					</button>
-				</div>
-				<div class="s3-upload-zone" data-bucket="<?php echo esc_attr( $bucket ); ?>"
-				     data-prefix="<?php echo esc_attr( $prefix ); ?>">
-					<div class="s3-upload-message">
-						<span class="dashicons dashicons-upload"></span>
-						<p><?php esc_html_e( 'Drop files to upload', 'arraypress' ); ?></p>
-						<p class="s3-upload-or"><?php esc_html_e( 'or', 'arraypress' ); ?></p>
-						<input type="file" multiple class="s3-file-input" id="s3FileUpload">
-						<!-- WordPress native button styling -->
-						<label for="s3FileUpload" class="button button-secondary">
+            <div id="s3-upload-container" class="s3-upload-container" style="display: none;">
+                <div class="s3-upload-header">
+                    <h3 class="s3-upload-title"><?php esc_html_e( 'Upload Files', 'arraypress' ); ?></h3>
+                    <button type="button" class="s3-close-upload"
+                            aria-label="<?php esc_attr_e( 'Close', 'arraypress' ); ?>">
+                        <span class="dashicons dashicons-no-alt"></span>
+                    </button>
+                </div>
+                <div class="s3-upload-zone" data-bucket="<?php echo esc_attr( $bucket ); ?>"
+                     data-prefix="<?php echo esc_attr( $prefix ); ?>">
+                    <div class="s3-upload-message">
+                        <span class="dashicons dashicons-upload"></span>
+                        <p><?php esc_html_e( 'Drop files to upload', 'arraypress' ); ?></p>
+                        <p class="s3-upload-or"><?php esc_html_e( 'or', 'arraypress' ); ?></p>
+                        <input type="file" multiple class="s3-file-input" id="s3FileUpload">
+                        <!-- WordPress native button styling -->
+                        <label for="s3FileUpload" class="button button-secondary">
 							<?php esc_html_e( 'Select Files', 'arraypress' ); ?>
-						</label>
-					</div>
-				</div>
-				<div class="s3-upload-list"></div>
-			</div>
-		</div>
+                        </label>
+                    </div>
+                </div>
+                <div class="s3-upload-list"></div>
+            </div>
+        </div>
 		<?php
 	}
 
 	/**
-	 * Generate breadcrumb navigation
+	 * Generate breadcrumb navigation using Elementify
 	 *
 	 * @param string $bucket Bucket name
 	 * @param string $prefix Object prefix/path
@@ -277,28 +276,27 @@ trait MediaLibrary {
 	 * @return void
 	 */
 	private function display_breadcrumbs( string $bucket, string $prefix = '' ): void {
+		// Build breadcrumb items array
+		$items = [];
+
+		// Add root buckets link
+		$items[] = [
+			'text' => __( 'Buckets', 'arraypress' ),
+			'url'  => $this->get_buckets_url(),
+			'icon' => 'database'
+		];
+
+		// Add bucket link
 		$base_url = add_query_arg( [
 			'tab'    => $this->get_tab_param(),
 			'bucket' => $bucket
 		], remove_query_arg( [ 'prefix', 's', 'continuation_token' ] ) );
 
-		$breadcrumb = new Breadcrumb( '›', [ 's3-browser-breadcrumbs' ] );
-
-		// Add root buckets link
-		$breadcrumb->add_link(
-			$this->get_buckets_url(),
-			__( 'Buckets', 'arraypress' ),
-			'database',
-			[ 's3-breadcrumb-root' ]
-		);
-
-		// Add bucket link
-		$breadcrumb->add_link(
-			$base_url,
-			$bucket,
-			'category',
-			[ 's3-breadcrumb' ]
-		);
+		$items[] = [
+			'text' => $bucket,
+			'url'  => $base_url,
+			'icon' => 'category'
+		];
 
 		// Add prefix path segments
 		if ( ! empty( $prefix ) ) {
@@ -313,8 +311,8 @@ trait MediaLibrary {
 				$current_path .= $part . '/';
 
 				if ( $i === count( $parts ) - 1 ) {
-					// Last part is current
-					$breadcrumb->set_current( $part, 'category', [ 's3-breadcrumb-current' ] );
+					// Last part is current (no URL)
+					$items[] = $part;
 				} else {
 					// Intermediate parts are links
 					$url = add_query_arg( [
@@ -322,12 +320,18 @@ trait MediaLibrary {
 						'bucket' => $bucket,
 						'prefix' => $current_path
 					] );
-					$breadcrumb->add_link( $url, $part, 'category', [ 's3-breadcrumb' ] );
+					$items[] = [
+						'text' => $part,
+						'url'  => $url,
+						'icon' => 'category'
+					];
 				}
 			}
 		}
 
-		$breadcrumb->echo();
+		// Create and render breadcrumbs using Elementify
+		$breadcrumbs = Create::breadcrumbs( $items, '›', [ 'class' => 's3-browser-breadcrumbs' ] );
+		echo $breadcrumbs->render();
 	}
 
 	/**
@@ -361,12 +365,13 @@ trait MediaLibrary {
 		try {
 			$list_table->prepare_items();
 		} catch ( Exception $e ) {
-			echo Notice::error(
+			// Use Elementify for error notice
+			$error_notice = Create::error_notice(
 				__( 'Error loading buckets. Please try again.', 'arraypress' ),
 				false,
 				[ 'class' => 's3-error' ]
 			);
-
+			echo $error_notice->render();
 			return;
 		}
 
@@ -395,17 +400,17 @@ trait MediaLibrary {
 		try {
 			$list_table->prepare_items();
 		} catch ( Exception $e ) {
-			echo Notice::error(
+			// Use Elementify for error notice
+			$error_notice = Create::error_notice(
 				__( 'Error loading files. Please try again.', 'arraypress' ),
 				false,
 				[ 'class' => 's3-error' ]
 			);
-
+			echo $error_notice->render();
 			return;
 		}
 
 		// Display the list table
 		$list_table->display();
 	}
-
 }
