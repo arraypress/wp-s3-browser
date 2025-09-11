@@ -29,7 +29,6 @@ trait AjaxHandlers {
 	use Ajax\Folder;
 	use Ajax\Upload;
 	use Ajax\Bucket;
-	use Ajax\Buckets;
 	use Ajax\System;
 	use Ajax\Connection;
 }
