@@ -122,6 +122,13 @@ trait Assets {
 			'js/admin/connection.js',
 			[ 'jquery', $config_handle ]
 		);
+
+		wp_enqueue_script_from_composer_file(
+			's3-admin-buckets',
+			__FILE__,
+			'js/admin/buckets.js',
+			[ 'jquery', $config_handle ]
+		);
 	}
 
 	/**

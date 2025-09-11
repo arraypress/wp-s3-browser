@@ -96,6 +96,9 @@ trait Hooks {
 
 		// Connection test
 		add_action( 'wp_ajax_' . $this->get_action_name( 's3_connection_test' ), [ $this, 'handle_ajax_connection_test' ] );
+
+		// Refresh buckets
+		add_action( 'wp_ajax_' . $this->get_action_name( 's3_refresh_buckets' ), [ $this, 'handle_ajax_refresh_buckets' ] );
 	}
 
 }
