@@ -27,6 +27,7 @@ use ArrayPress\S3\Traits\Client\PresignedUrls;
 use ArrayPress\S3\Traits\Client\Batch;
 use ArrayPress\S3\Traits\Client\Cors;
 use ArrayPress\S3\Traits\Client\Upload;
+use ArrayPress\S3\Traits\Client\Options;
 use ArrayPress\S3\Traits\Shared\Debug;
 use ArrayPress\S3\Traits\Shared\Context;
 
@@ -47,6 +48,7 @@ class Client {
 	use Context;
 	use Cors;
 	use Upload;
+	use Options;
 
 	/**
 	 * Provider instance
