@@ -76,55 +76,6 @@
             return 'unknown';
         },
 
-        /**
-         * Toggle favorite bucket status
-         */
-        toggleFavoriteBucket: function ($button) {
-            var self = this;
-
-            // Add processing class for visual feedback
-            $button.addClass('s3-processing');
-
-            this.makeAjaxRequest('s3_toggle_favorite_', {
-                bucket: $button.data('bucket'),
-                favorite_action: $button.data('action'),
-                post_type: $button.data('post-type')
-            }, {
-                success: function (response) {
-                    self.updateFavoriteButtons(response, $button);
-                    self.showNotification(response.data.message, 'success');
-                },
-                error: function (message) {
-                    self.showNotification(message, 'error');
-                },
-                complete: function () {
-                    $button.removeClass('s3-processing');
-                }
-            });
-        },
-
-        /**
-         * Update favorite buttons after favorite change
-         */
-        updateFavoriteButtons: function (response, $button) {
-            // Reset all star buttons to empty/inactive
-            $('.s3-favorite-bucket, .s3-favorite-star').each(function () {
-                var $otherButton = $(this);
-                $otherButton.removeClass('dashicons-star-filled s3-favorite-active')
-                    .addClass('dashicons-star-empty')
-                    .data('action', 'add')
-                    .attr('title', s3BrowserConfig.i18n.navigation.setDefault);
-            });
-
-            // Update clicked button if it was added as favorite
-            if (response.data.status === 'added') {
-                $button.removeClass('dashicons-star-empty')
-                    .addClass('dashicons-star-filled s3-favorite-active')
-                    .data('action', 'remove')
-                    .attr('title', s3BrowserConfig.i18n.navigation.removeDefault);
-            }
-        }
-
     });
 
 })(jQuery);

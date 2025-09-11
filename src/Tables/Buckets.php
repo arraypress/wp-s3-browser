@@ -52,8 +52,7 @@ class Buckets extends WP_List_Table {
 	public function get_columns() {
 		return [
 			'name'    => __( 'Bucket Name', 'arraypress' ),
-			'created' => __( 'Creation Date', 'arraypress' ),
-			'actions' => __( 'Favorite', 'arraypress' ),
+			'created' => __( 'Creation Date', 'arraypress' )
 		];
 	}
 
@@ -146,38 +145,6 @@ class Buckets extends WP_List_Table {
 		}
 
 		return $formatted_date . $relative_time;
-	}
-
-	/**
-	 * Column actions - Keep existing star favoriting system
-	 */
-	public function column_actions( $item ) {
-		$bucket    = $item['name'];
-		$post_id   = isset( $_REQUEST['post_id'] ) ? intval( $_REQUEST['post_id'] ) : 0;
-		$post_type = $post_id ? get_post_type( $post_id ) : 'default';
-
-		// Get current user ID
-		$user_id = get_current_user_id();
-
-		// Check if this bucket is a favorite
-		$meta_key        = "s3_favorite_{$this->provider_id}_{$post_type}";
-		$favorite_bucket = get_user_meta( $user_id, $meta_key, true );
-		$is_favorite     = ( $favorite_bucket === $bucket );
-
-		// Create a favorite star with the appropriate icon and tooltip
-		$favorite_class  = $is_favorite ? 'dashicons-star-filled s3-favorite-active' : 'dashicons-star-empty';
-		$favorite_title  = $is_favorite ? __( 'Remove as default bucket', 'arraypress' ) : __( 'Set as default bucket', 'arraypress' );
-		$favorite_action = $is_favorite ? 'remove' : 'add';
-
-		return sprintf(
-			'<span class="s3-favorite-star dashicons %s s3-favorite-bucket" data-bucket="%s" data-provider="%s" data-action="%s" data-post-type="%s" title="%s"></span>',
-			esc_attr( $favorite_class ),
-			esc_attr( $bucket ),
-			esc_attr( $this->provider_id ),
-			esc_attr( $favorite_action ),
-			esc_attr( $post_type ),
-			esc_attr( $favorite_title )
-		);
 	}
 
 	/**

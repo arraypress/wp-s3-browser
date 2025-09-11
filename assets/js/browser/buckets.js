@@ -37,13 +37,6 @@
                     self.showBucketDetails(bucket, provider);
                 }
             });
-
-            // Existing favorite star functionality (keep as-is)
-            $(document).off('click.s3favorite').on('click.s3favorite', '.s3-favorite-bucket', function (e) {
-                e.preventDefault();
-                e.stopPropagation();
-                self.toggleFavoriteBucket($(this));
-            });
         },
 
         /**

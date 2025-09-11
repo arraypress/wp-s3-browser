@@ -15,7 +15,6 @@ declare( strict_types=1 );
 
 namespace ArrayPress\S3\Traits\Browser\Ajax;
 
-use ArrayPress\S3\Preferences\User;
 use ArrayPress\S3\Tables\Objects;
 
 /**
@@ -71,56 +70,6 @@ trait System {
 			wp_send_json_error( [
 				'message' => __( 'Failed to clear cache', 'arraypress' ),
 				'status'  => 'error'
-			] );
-		}
-	}
-
-	/**
-	 * Handle AJAX toggle favorite request
-	 *
-	 * Processes requests to set or remove a bucket as the user's default/favorite
-	 * bucket for a specific post type context. Uses UserPreferences utility for
-	 * clean separation of concerns.
-	 *
-	 * Expected POST parameters:
-	 * - bucket: Bucket name to set as favorite
-	 * - favorite_action: 'add' or 'remove' (optional, toggles if not specified)
-	 * - post_type: Context for the favorite (defaults to 'default')
-	 * - nonce: Security nonce
-	 */
-	public function handle_ajax_toggle_favorite(): void {
-		if ( ! $this->verify_ajax_request() ) {
-			return;
-		}
-
-		$bucket = $this->get_sanitized_post( 'bucket' );
-		if ( empty( $bucket ) ) {
-			wp_send_json_error( [ 'message' => __( 'Bucket name is required', 'arraypress' ) ] );
-
-			return;
-		}
-
-		$action    = $this->get_sanitized_post( 'favorite_action' );
-		$post_type = $this->get_sanitized_post( 'post_type' ) ?: 'default';
-
-		// Use UserPreferences utility for clean favorite management
-		$result = User::toggle_favorite_bucket(
-			$bucket,
-			$action,
-			0, // Use current user
-			$this->provider_id,
-			$post_type
-		);
-
-		if ( $result['success'] ) {
-			wp_send_json_success( [
-				'message' => User::get_action_message( $result['action'], $bucket ),
-				'status'  => $result['action'],
-				'bucket'  => $bucket
-			] );
-		} else {
-			wp_send_json_error( [
-				'message' => $result['error'] ?? __( 'Failed to update default bucket', 'arraypress' )
 			] );
 		}
 	}

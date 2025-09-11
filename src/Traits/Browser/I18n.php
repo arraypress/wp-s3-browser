@@ -36,7 +36,6 @@ trait I18n {
 			'loading'     => $this->get_loading_strings(),
 			'search'      => $this->get_search_strings(),
 			'display'     => $this->get_display_strings(),
-			'navigation'  => $this->get_navigation_strings(),
 			'cache'       => $this->get_cache_strings(),
 			'copyLink'    => $this->get_copy_link_strings(),
 			'fileDetails' => $this->get_file_details_strings(),
@@ -270,18 +269,6 @@ trait I18n {
 			'singleItem'    => __( 'item', 'arraypress' ),
 			'multipleItems' => __( 'items', 'arraypress' ),
 			'moreAvailable' => __( ' (more available)', 'arraypress' ),
-		];
-	}
-
-	/**
-	 * Get navigation strings
-	 *
-	 * @return array Navigation strings
-	 */
-	private function get_navigation_strings(): array {
-		return [
-			'setDefault'    => __( 'Set as default bucket', 'arraypress' ),
-			'removeDefault' => __( 'Remove as default bucket', 'arraypress' ),
 		];
 	}
 

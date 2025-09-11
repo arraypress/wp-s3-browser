@@ -75,7 +75,6 @@ trait Hooks {
 	private function register_ajax_handlers(): void {
 		// Core operations
 		add_action( 'wp_ajax_' . $this->get_action_name( 's3_load_more' ), [ $this, 'handle_ajax_load_more' ] );
-		add_action( 'wp_ajax_' . $this->get_action_name( 's3_toggle_favorite' ), [ $this, 'handle_ajax_toggle_favorite' ] );
 		add_action( 'wp_ajax_' . $this->get_action_name( 's3_clear_cache' ), [ $this, 'handle_ajax_clear_cache' ] );
 		add_action( 'wp_ajax_' . $this->get_action_name( 's3_get_upload_url' ), [ $this, 'handle_ajax_get_upload_url' ] );
 
