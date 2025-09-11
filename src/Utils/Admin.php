@@ -20,31 +20,44 @@ namespace ArrayPress\S3\Utils;
  */
 class Admin {
 
-	/**
-	 * Render complete validation field (path guide + connection test)
-	 *
-	 * @param string $title Field title
-	 * @param string $button_id Connection test button ID
-	 * @param string $result_id Connection test result ID
-	 * @param bool $show_test Whether to show connection test
-	 */
-	public static function render_validation_field( string $title, string $button_id, string $result_id, bool $show_test = true ): void {
-		?>
+    /**
+     * Render complete validation field (path guide + connection test)
+     *
+     * @param string $title     Field title
+     * @param string $button_id Connection test button ID
+     * @param string $result_id Connection test result ID
+     * @param bool   $show_test Whether to show connection test
+     */
+    public static function render_validation_field( string $title, string $button_id, string $result_id, bool $show_test = true ): void {
+        ?>
         <tr valign="top">
             <th scope="row" class="titledesc">
-				<?php echo esc_html( $title ); ?>
+                <?php echo esc_html( $title ); ?>
             </th>
             <td class="forminp">
-                <div class="s3-validation-field">
-					<?php self::render_path_format_guide(); ?>
-					<?php if ( $show_test ): ?>
-						<?php self::render_connection_test( $button_id, $result_id ); ?>
-					<?php endif; ?>
-                </div>
+                <?php self::render_validation_content( $button_id, $result_id, $show_test ); ?>
             </td>
         </tr>
-		<?php
-	}
+        <?php
+    }
+
+    /**
+     * Render validation content (path guide + optional connection test)
+     *
+     * @param string $button_id Connection test button ID
+     * @param string $result_id Connection test result ID
+     * @param bool   $show_test Whether to show connection test
+     */
+    public static function render_validation_content( string $button_id, string $result_id, bool $show_test = true ): void {
+        ?>
+        <div class="s3-validation-field">
+            <?php self::render_path_format_guide(); ?>
+            <?php if ( $show_test ): ?>
+                <?php self::render_connection_test( $button_id, $result_id ); ?>
+            <?php endif; ?>
+        </div>
+        <?php
+    }
 
     /**
      * Render path format guide section

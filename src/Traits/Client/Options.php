@@ -35,16 +35,9 @@ trait Options {
 	 * @return array Associative array of bucket names
 	 */
 	public function get_bucket_options(
-		bool $use_cache = true,
-		bool $include_none = false,
-		string $none_label = '— Select a bucket —'
+		bool $use_cache = true
 	): array {
 		$options = [];
-
-		// Add empty option if requested
-		if ( $include_none ) {
-			$options[''] = $none_label;
-		}
 
 		// Get bucket models
 		$result = $this->get_bucket_models( 1000, '', '', $use_cache );
