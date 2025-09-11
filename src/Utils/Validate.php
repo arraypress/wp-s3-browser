@@ -63,7 +63,7 @@ class Validate {
 		}
 
 		// Check for directory traversal attempts
-		if ( strpos( $filename, '..' ) !== false || strpos( $filename, '/' ) !== false || strpos( $filename, '\\' ) !== false ) {
+		if ( str_contains( $filename, '..' ) || str_contains( $filename, '/' ) || str_contains( $filename, '\\' ) ) {
 			return [
 				'valid'   => false,
 				'message' => __( 'Filename cannot contain path separators or relative path indicators', 'arraypress' )
@@ -169,7 +169,7 @@ class Validate {
 		}
 
 		// Cannot contain consecutive dots
-		if ( strpos( $folder_name, '..' ) !== false ) {
+		if ( str_contains( $folder_name, '..' ) ) {
 			return [
 				'valid'   => false,
 				'message' => __( 'Folder name cannot contain consecutive dots', 'arraypress' )

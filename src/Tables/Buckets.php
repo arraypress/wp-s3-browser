@@ -82,7 +82,7 @@ class Buckets extends WP_List_Table {
 		foreach ( $buckets as $bucket ) {
 			$items[] = [
 				'name'    => $bucket->get_name(),
-				'created' => $bucket->get_creation_date( true, 'M j, Y g:i A' ), // Updated to use consolidated method
+				'created' => $bucket->get_creation_date( true, 'M j, Y g:i A' ),
 				'raw'     => $bucket,
 			];
 		}
