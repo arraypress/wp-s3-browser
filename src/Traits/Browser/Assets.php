@@ -57,29 +57,24 @@ trait Assets {
 			$post_id   = $this->get_current_post_id();
 			$post_type = $post_id ? get_post_type( $post_id ) : 'default';
 
-			// Get favorite bucket info
-			$preferred_bucket = $this->get_preferred_bucket( $post_type );
-			$bucket_to_use    = $preferred_bucket['bucket'] ?: $this->default_bucket;
-			$prefix_to_use    = $preferred_bucket['prefix'] ?: $this->default_prefix;
+			// Use configured defaults directly
+			$bucket_to_use = $this->default_bucket;
+			$prefix_to_use = $this->default_prefix;
 
 			// Create minimal shared config with only what's needed
 			$shared_config = [
-				'providerId'         => $this->get_hook_suffix(),
-				'providerName'       => $this->provider_name,
-				'baseUrl'            => admin_url( 'media-upload.php' ),
-				'ajaxUrl'            => admin_url( 'admin-ajax.php' ),
-				'defaultBucket'      => $bucket_to_use,
-				'nonce'              => wp_create_nonce( 's3_browser_nonce_' . $this->provider_id ),
-				'allowedPostTypes'   => $this->allowed_post_types,
-				'allowedExtensions'  => Mime::get_allowed_extensions( $this->get_context() ),
-				'allowedMimeTypes'   => Mime::get_allowed_types( $this->get_context() ),
+				'providerId'        => $this->get_hook_suffix(),
+				'providerName'      => $this->provider_name,
+				'baseUrl'           => admin_url( 'media-upload.php' ),
+				'ajaxUrl'           => admin_url( 'admin-ajax.php' ),
+				'defaultBucket'     => $bucket_to_use,
+				'nonce'             => wp_create_nonce( 's3_browser_nonce_' . $this->provider_id ),
+				'allowedPostTypes'  => $this->allowed_post_types,
+				'allowedExtensions' => Mime::get_allowed_extensions( $this->get_context() ),
+				'allowedMimeTypes'  => Mime::get_allowed_types( $this->get_context() ),
 			];
 
-			// Only add favorite and prefix if relevant
-			if ( ! empty( $preferred_bucket['bucket'] ) ) {
-				$shared_config['favoriteBucket'] = $preferred_bucket['bucket'];
-			}
-
+			// Only add prefix if set
 			if ( ! empty( $prefix_to_use ) ) {
 				$shared_config['defaultPrefix'] = $prefix_to_use;
 			}
