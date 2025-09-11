@@ -29,8 +29,6 @@ trait Options {
 	 * Keys and values are both the bucket name.
 	 *
 	 * @param bool   $use_cache    Whether to use cached results
-	 * @param bool   $include_none Whether to include an empty option
-	 * @param string $none_label   Label for the empty option
 	 *
 	 * @return array Associative array of bucket names
 	 */
