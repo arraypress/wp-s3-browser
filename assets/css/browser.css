@@ -5,7 +5,7 @@
  */
 
 /* =============================================================================
-   CORE CONTAINER & LAYOUT (unchanged)
+   CORE CONTAINER & LAYOUT
    ============================================================================= */
 
 .s3-browser-container {
@@ -17,7 +17,7 @@
 }
 
 /* =============================================================================
-   TABLE LAYOUT & STRUCTURE (unchanged)
+   TABLE LAYOUT & STRUCTURE
    ============================================================================= */
 
 .s3-browser-container .wp-list-table {
@@ -61,7 +61,7 @@
 }
 
 /* =============================================================================
-   ICONS & FILE TYPE STYLING (unchanged)
+   ICONS & FILE TYPE STYLING
    ============================================================================= */
 
 .wp-list-table .column-name .dashicons {
@@ -110,35 +110,7 @@
 }
 
 /* =============================================================================
-   FAVORITES SYSTEM (unchanged)
-   ============================================================================= */
-
-.s3-favorite-star {
-    cursor: pointer;
-    display: inline-block;
-    font-size: 20px;
-    color: #c3c4c7;
-    transition: color 0.2s ease;
-    text-decoration: none;
-    margin-right: 4px;
-    vertical-align: middle;
-}
-
-.s3-favorite-star:hover {
-    color: #ffb900;
-}
-
-.s3-favorite-star.s3-favorite-active {
-    color: #ffb900;
-}
-
-.s3-favorite-star.s3-processing {
-    opacity: 0.6;
-    animation: s3-spin 1s linear infinite;
-}
-
-/* =============================================================================
-   NAVIGATION & BREADCRUMBS (unchanged)
+   NAVIGATION & BREADCRUMBS
    ============================================================================= */
 
 /* Main breadcrumb container */
@@ -258,7 +230,7 @@
 }
 
 /* =============================================================================
-   SEARCH & TOP NAVIGATION (unchanged)
+   SEARCH & TOP NAVIGATION
    ============================================================================= */
 
 .s3-top-nav {
@@ -280,7 +252,7 @@
 }
 
 /* =============================================================================
-   BUTTONS & CONTROLS (simplified - safe reductions only)
+   BUTTONS & CONTROLS
    ============================================================================= */
 
 #s3-toggle-upload.active {
@@ -331,7 +303,7 @@
 }
 
 /* =============================================================================
-   PAGINATION & BOTTOM NAVIGATION (unchanged)
+   PAGINATION & BOTTOM NAVIGATION
    ============================================================================= */
 
 .tablenav.bottom {
@@ -357,7 +329,7 @@
 }
 
 /* =============================================================================
-   NOTIFICATIONS SYSTEM (unchanged)
+   NOTIFICATIONS SYSTEM
    ============================================================================= */
 
 .s3-notification {
@@ -388,7 +360,7 @@
 }
 
 /* =============================================================================
-   UPLOAD CONTAINER STRUCTURE (unchanged)
+   UPLOAD CONTAINER STRUCTURE
    ============================================================================= */
 
 .s3-upload-container {
@@ -588,7 +560,7 @@
 }
 
 /* =============================================================================
-   MODAL SYSTEM - MAIN STRUCTURE (unchanged)
+   MODAL SYSTEM - MAIN STRUCTURE
    ============================================================================= */
 
 .s3-modal-overlay {
@@ -967,7 +939,7 @@
 }
 
 /* =============================================================================
-   PROGRESS OVERLAY SYSTEM (unchanged)
+   PROGRESS OVERLAY SYSTEM
    ============================================================================= */
 
 .s3-progress-overlay {
@@ -1022,7 +994,7 @@
 }
 
 /* =============================================================================
-   CORS STATUS & INFORMATION (unchanged)
+   CORS STATUS & INFORMATION
    ============================================================================= */
 
 .s3-cors-status {
@@ -1240,7 +1212,7 @@
 }
 
 /* =============================================================================
-   BUCKET DETAILS MODAL - CSS CLASSES TO REPLACE INLINE STYLES
+   BUCKET DETAILS MODAL
    ============================================================================= */
 
 /* Status indicators */
@@ -1469,7 +1441,7 @@
 }
 
 /* =============================================================================
-   RESPONSIVE DESIGN (kept essential mobile styles only)
+   RESPONSIVE DESIGN
    ============================================================================= */
 
 @media screen and (max-width: 782px) {

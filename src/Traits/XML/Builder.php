@@ -97,7 +97,6 @@ trait Builder {
 		$xml .= '  <Quiet>false</Quiet>' . "\n";
 
 		foreach ( $object_keys as $key ) {
-			// Ensure the key is properly handled but not double-encoded
 			$clean_key = rawurldecode( $key ); // Decode first to avoid double encoding
 			$xml       .= '  <Object>' . "\n";
 			$xml       .= '    <Key>' . htmlspecialchars( $clean_key, ENT_XML1 | ENT_COMPAT, 'UTF-8' ) . '</Key>' . "\n";
