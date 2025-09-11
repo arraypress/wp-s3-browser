@@ -53,31 +53,17 @@ trait Assets {
 
 		// Only localize if not already done
 		if ( ! wp_script_is( $handle, 'localized' ) ) {
-			// Get current context
-			$post_id   = $this->get_current_post_id();
-			$post_type = $post_id ? get_post_type( $post_id ) : 'default';
-
-			// Use configured defaults directly
-			$bucket_to_use = $this->default_bucket;
-			$prefix_to_use = $this->default_prefix;
-
 			// Create minimal shared config with only what's needed
 			$shared_config = [
 				'providerId'        => $this->get_hook_suffix(),
 				'providerName'      => $this->provider_name,
 				'baseUrl'           => admin_url( 'media-upload.php' ),
 				'ajaxUrl'           => admin_url( 'admin-ajax.php' ),
-				'defaultBucket'     => $bucket_to_use,
+				'defaultBucket'     => $this->default_bucket,
 				'nonce'             => wp_create_nonce( 's3_browser_nonce_' . $this->provider_id ),
-				'allowedPostTypes'  => $this->allowed_post_types,
 				'allowedExtensions' => Mime::get_allowed_extensions( $this->get_context() ),
 				'allowedMimeTypes'  => Mime::get_allowed_types( $this->get_context() ),
 			];
-
-			// Only add prefix if set
-			if ( ! empty( $prefix_to_use ) ) {
-				$shared_config['defaultPrefix'] = $prefix_to_use;
-			}
 
 			// Apply contextual filters
 			$shared_config = $this->apply_contextual_filters( 's3_browser_global_config', $shared_config, $this->provider_id );

@@ -122,11 +122,6 @@ trait MediaLibrary {
             if ( ! empty( $this->default_bucket ) ) {
                 $bucket = $this->default_bucket;
                 $view   = 'objects';
-
-                // Also use default prefix if configured
-                if ( ! empty( $this->default_prefix ) ) {
-                    $prefix = $this->default_prefix;
-                }
             }
         }
 
@@ -365,4 +360,5 @@ trait MediaLibrary {
         // Display the list table
         $list_table->display();
     }
+
 }

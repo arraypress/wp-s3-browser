@@ -62,7 +62,6 @@ trait Hooks {
 	 * @return void
 	 */
 	private function register_asset_handlers(): void {
-		// Enqueue admin scripts and styles
 		add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_settings_assets' ] );
 		add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_browser_assets' ] );
 	}

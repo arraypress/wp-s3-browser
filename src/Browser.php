@@ -101,13 +101,6 @@ class Browser {
 	protected string $default_bucket;
 
 	/**
-	 * Default prefix for the default bucket
-	 *
-	 * @var string
-	 */
-	protected string $default_prefix;
-
-	/**
 	 * Capability required to use this browser
 	 *
 	 * @var string
@@ -122,7 +115,6 @@ class Browser {
 	 * @param string      $secret_key         Secret key for the storage provider
 	 * @param array       $allowed_post_types Optional. Array of post types where this browser should appear. Default empty (all).
 	 * @param string      $default_bucket     Optional. Default bucket to display. Default empty.
-	 * @param string      $default_prefix     Optional. Default prefix for the default bucket. Default empty.
 	 * @param string      $capability         Optional. Capability required to use this browser. Default 'upload_files'.
 	 * @param string|null $context            Optional. Context identifier for filtering and customization. Default null.
 	 * @param bool        $debug              Optional. Whether to enable debug mode. Default false.
@@ -134,7 +126,6 @@ class Browser {
 		string $secret_key,
 		array $allowed_post_types = [],
 		string $default_bucket = '',
-		string $default_prefix = '',
 		string $capability = 'upload_files',
 		?string $context = null,
 		bool $debug = false,
@@ -145,7 +136,6 @@ class Browser {
 		$this->provider_name      = $provider->get_label();
 		$this->allowed_post_types = $allowed_post_types;
 		$this->default_bucket     = $default_bucket;
-		$this->default_prefix     = $default_prefix;
 		$this->capability         = $capability;
 
 		// Set context if provided

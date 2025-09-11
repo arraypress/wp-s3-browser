@@ -166,11 +166,6 @@
                     if (bucketToUse) {
                         params.bucket = bucketToUse;
                         params.view = 'objects';
-
-                        // Handle prefix (only if we have a bucket)
-                        if (config.defaultPrefix) {
-                            params.prefix = config.defaultPrefix;
-                        }
                     } else {
                         params.view = 'buckets';
                     }
