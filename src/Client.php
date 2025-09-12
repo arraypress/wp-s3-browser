@@ -30,6 +30,7 @@ use ArrayPress\S3\Traits\Client\Upload;
 use ArrayPress\S3\Traits\Client\Options;
 use ArrayPress\S3\Traits\Shared\Debug;
 use ArrayPress\S3\Traits\Shared\Context;
+use ArrayPress\S3\Signer;
 
 /**
  * Class Client
