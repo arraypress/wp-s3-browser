@@ -629,4 +629,36 @@ trait File {
 		);
 	}
 
+	/**
+	 * Get object metadata without downloading content (HEAD request)
+	 *
+	 * @param string $bucket     Bucket name
+	 * @param string $object_key Object key
+	 *
+	 * @return ResponseInterface Response with object metadata
+	 */
+	public function head_object( string $bucket, string $object_key ): ResponseInterface {
+		if ( empty( $bucket ) || empty( $object_key ) ) {
+			return new ErrorResponse(
+				__( 'Bucket and object key are required', 'arraypress' ),
+				'invalid_parameters',
+				400
+			);
+		}
+
+		// Use signer to perform HEAD request
+		$result = $this->signer->head_object( $bucket, $object_key );
+
+		// Debug logging if enabled
+		$this->debug( 'Client: Raw result from signer for HEAD operation:', $result );
+
+		// Apply contextual filter to final response
+		return $this->apply_contextual_filters(
+			'arraypress_s3_head_object_response',
+			$result,
+			$bucket,
+			$object_key
+		);
+	}
+
 }

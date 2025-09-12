@@ -125,4 +125,44 @@ class File {
 		return ! empty( $filetype['type'] ) && ! empty( $filetype['ext'] );
 	}
 
+	/**
+	 * Resolve a path/URL to a local file path
+	 *
+	 * @param string $path Path or URL to resolve
+	 *
+	 * @return string|null Local file path or null if not found
+	 */
+	public static function resolve_local_path( string $path ): ?string {
+		// Check if it's already a valid local path
+		if ( file_exists( $path ) ) {
+			return $path;
+		}
+
+		// Handle file:// URLs
+		if ( strpos( $path, 'file://' ) === 0 ) {
+			$local = str_replace( 'file://', '', $path );
+
+			return file_exists( $local ) ? $local : null;
+		}
+
+		// Try to convert WordPress URLs
+		$upload_dir = wp_upload_dir();
+		if ( strpos( $path, $upload_dir['baseurl'] ) === 0 ) {
+			$local = str_replace( $upload_dir['baseurl'], $upload_dir['basedir'], $path );
+
+			return file_exists( $local ) ? $local : null;
+		}
+
+		// Try site URL
+		$site_url = get_site_url();
+		if ( strpos( $path, $site_url ) === 0 ) {
+			$relative = str_replace( $site_url, '', $path );
+			$local    = ABSPATH . ltrim( $relative, '/' );
+
+			return file_exists( $local ) ? $local : null;
+		}
+
+		return null;
+	}
+
 }
