@@ -16,6 +16,9 @@ declare( strict_types=1 );
 namespace ArrayPress\S3\Traits\Client;
 
 use ArrayPress\S3\Interfaces\Response as ResponseInterface;
+use ArrayPress\S3\Responses\ErrorResponse;
+use ArrayPress\S3\Utils\File;
+use ArrayPress\S3\Utils\Mime;
 
 /**
  * Trait PresignedUrls
@@ -104,6 +107,20 @@ trait PresignedUrls {
 	 * @return ResponseInterface Pre-signed URL response or error
 	 */
 	public function get_presigned_upload_url( string $bucket, string $object_key, int $expires = 15 ): ResponseInterface {
+		$filename = basename( $object_key );
+
+		// SECURITY: Validate file type using context-aware filtering
+		if ( ! Mime::is_allowed_extension( $filename, $this->get_context() ) ) {
+			return new ErrorResponse(
+				sprintf(
+					__( 'File type ".%s" is not allowed for upload', 'arraypress' ),
+					File::extension( $filename )
+				),
+				'invalid_file_type',
+				400
+			);
+		}
+
 		return $this->signer->get_presigned_upload_url( $bucket, $object_key, $expires );
 	}
 

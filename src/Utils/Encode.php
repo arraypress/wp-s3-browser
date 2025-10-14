@@ -30,17 +30,19 @@ class Encode {
 	 * @return string Encoded object key
 	 */
 	public static function object_key( string $object_key ): string {
-		// Remove any leading slash
 		$object_key = ltrim( $object_key, '/' );
 
 		if ( empty( $object_key ) ) {
 			return '';
 		}
 
-		// Decode first to avoid double encoding, then encode properly
 		$decoded = rawurldecode( $object_key );
 
-		// Encode but preserve forward slashes for path structure
+		// Silently reject path traversal attempts
+		if ( str_contains( $decoded, '..' ) || str_contains( $decoded, "\0" ) ) {
+			return '';
+		}
+
 		return str_replace( '%2F', '/', rawurlencode( $decoded ) );
 	}
 

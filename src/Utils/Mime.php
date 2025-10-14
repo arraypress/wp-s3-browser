@@ -103,4 +103,19 @@ class Mime {
 		return array_unique( $extensions );
 	}
 
+	/**
+	 * Check if a filename has an allowed extension
+	 *
+	 * @param string      $filename Filename to check
+	 * @param string|null $context  Optional context for filtering
+	 *
+	 * @return bool True if extension is allowed
+	 */
+	public static function is_allowed_extension( string $filename, ?string $context = null ): bool {
+		$allowed_extensions = self::get_allowed_extensions( $context );
+		$extension          = strtolower( pathinfo( $filename, PATHINFO_EXTENSION ) );
+
+		return in_array( $extension, $allowed_extensions, true );
+	}
+
 }
