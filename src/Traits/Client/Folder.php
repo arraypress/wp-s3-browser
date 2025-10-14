@@ -147,8 +147,8 @@ trait Folder {
 		$bucket      = $create_params['bucket'];
 		$folder_path = $create_params['folder_path'];
 
-		// Normalize the folder path to ensure it ends with /
-		$normalized_path = Directory::normalize( $folder_path );
+		// Use folder path as-is (already normalized by build_folder_key)
+		$normalized_path = $folder_path;
 
 		// Check if folder already exists
 		$existing_check = $this->get_objects( $bucket, 1, $normalized_path, '/', '', false );
@@ -193,21 +193,42 @@ trait Folder {
 			$normalized_path
 		);
 
-		// Upload the placeholder
-		$upload_result = $this->put_object(
+		// Use signer directly for folder creation (bypass presigned URL for empty content)
+		$headers = $this->signer->generate_auth_headers(
+			'PUT',
 			$bucket,
 			$normalized_path,
-			$placeholder_content,
-			false, // Not a file path, it's content
-			'application/x-directory' // MIME type for directories
+			[],
+			$placeholder_content
 		);
 
-		if ( ! $upload_result->is_successful() ) {
+		$headers['Content-Type']   = 'application/x-directory';
+		$headers['Content-Length'] = '0';
+		$headers                   = $this->signer->get_base_request_headers( $headers );
+
+		$url = $this->provider->format_url( $bucket, $normalized_path );
+
+		$response = wp_remote_request( $url, [
+			'method'  => 'PUT',
+			'headers' => $headers,
+			'body'    => '',
+			'timeout' => 30
+		] );
+
+		if ( is_wp_error( $response ) ) {
+			return ErrorResponse::from_wp_error( $response );
+		}
+
+		$status_code = wp_remote_retrieve_response_code( $response );
+
+		if ( $status_code < 200 || $status_code >= 300 ) {
+			$body = wp_remote_retrieve_body( $response );
+
 			return new ErrorResponse(
 				sprintf( __( 'Failed to create folder "%s"', 'arraypress' ), $normalized_path ),
 				'folder_creation_error',
-				400,
-				[ 'upload_error' => $upload_result->get_error_message() ]
+				$status_code,
+				[ 'response_body' => $body ]
 			);
 		}
 
