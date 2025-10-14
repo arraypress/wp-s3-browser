@@ -126,9 +126,37 @@ trait Assets {
 		// For media upload popup
 		if ( $current_hook === 'media-upload-popup' ) {
 			$this->enqueue_media_upload_assets();
-		} elseif ( in_array( $current_hook, [ 'post.php', 'post-new.php' ] ) ) {
-			$this->enqueue_integration_assets();
+
+			return;
 		}
+
+		// For post edit pages with allowed post types
+		if ( in_array( $current_hook, [ 'post.php', 'post-new.php' ] ) ) {
+			$this->enqueue_integration_assets();
+
+			return;
+		}
+
+		// For custom admin pages - check if it matches admin_hook
+		if ( $this->admin_hook && $current_hook === $this->admin_hook ) {
+			$this->enqueue_custom_admin_page_assets();
+		}
+	}
+
+	/**
+	 * Enqueue assets for custom admin pages (non-post-type pages)
+	 *
+	 * @return void
+	 */
+	private function enqueue_custom_admin_page_assets(): void {
+		// First enqueue the global config
+		$config_handle = $this->enqueue_global_config();
+
+		// Enqueue main styles and scripts (includes upload and CORS)
+		$this->enqueue_core_browser_assets( $config_handle );
+
+		// Localize the main browser script
+		$this->localize_browser_script();
 	}
 
 	/**
