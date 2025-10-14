@@ -81,8 +81,8 @@ trait Assets {
 	 * @param string $current_hook Current admin page hook suffix
 	 */
 	public function enqueue_settings_assets( string $current_hook ): void {
-		// Only load on the specified admin hook
-		if ( ! $this->admin_hook || $current_hook !== $this->admin_hook ) {
+		// Only load on the specified admin hook(s)
+		if ( empty( $this->admin_hook ) || ! $this->matches_admin_hook( $current_hook ) ) {
 			return;
 		}
 
@@ -137,8 +137,8 @@ trait Assets {
 			return;
 		}
 
-		// For custom admin pages - check if it matches admin_hook
-		if ( $this->admin_hook && $current_hook === $this->admin_hook ) {
+		// For custom admin pages - check if it matches any registered admin hooks
+		if ( $this->matches_admin_hook( $current_hook ) ) {
 			$this->enqueue_custom_admin_page_assets();
 		}
 	}

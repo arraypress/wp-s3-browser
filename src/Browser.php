@@ -110,15 +110,19 @@ class Browser {
 	/**
 	 * Constructor
 	 *
-	 * @param Provider    $provider           The storage provider instance
-	 * @param string      $access_key         Access key for the storage provider
-	 * @param string      $secret_key         Secret key for the storage provider
-	 * @param array       $allowed_post_types Optional. Array of post types where this browser should appear. Default empty (all).
-	 * @param string      $default_bucket     Optional. Default bucket to display. Default empty.
-	 * @param string      $capability         Optional. Capability required to use this browser. Default 'upload_files'.
-	 * @param string|null $context            Optional. Context identifier for filtering and customization. Default null.
-	 * @param bool        $debug              Optional. Whether to enable debug mode. Default false.
-	 * @param string|null $admin_hook         Optional. Admin hook for enqueuing admin assets. Default null.
+	 * @param Provider          $provider           The storage provider instance
+	 * @param string            $access_key         Access key for the storage provider
+	 * @param string            $secret_key         Secret key for the storage provider
+	 * @param array             $allowed_post_types Optional. Array of post types where this browser should appear.
+	 *                                              Default empty (all).
+	 * @param string            $default_bucket     Optional. Default bucket to display. Default empty.
+	 * @param string            $capability         Optional. Capability required to use this browser. Default
+	 *                                              'upload_files'.
+	 * @param string|null       $context            Optional. Context identifier for filtering and customization.
+	 *                                              Default null.
+	 * @param bool              $debug              Optional. Whether to enable debug mode. Default false.
+	 * @param string|array|null $admin_hook         Optional. Admin hook suffix or array of hook suffixes for enqueuing
+	 *                                              admin assets. Default null.
 	 */
 	public function __construct(
 		Provider $provider,
@@ -129,7 +133,7 @@ class Browser {
 		string $capability = 'upload_files',
 		?string $context = null,
 		bool $debug = false,
-		?string $admin_hook = null
+		$admin_hook = null
 	) {
 		$this->provider           = $provider;
 		$this->provider_id        = $provider->get_id();
@@ -143,7 +147,7 @@ class Browser {
 			$this->set_context( $context );
 		}
 
-		// Set admin hook if provided
+		// Set admin hook(s) if provided
 		if ( $admin_hook !== null ) {
 			$this->set_admin_hook( $admin_hook );
 		}
