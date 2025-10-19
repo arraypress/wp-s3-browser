@@ -95,14 +95,14 @@ trait Assets {
 		$config_handle = $this->enqueue_global_config();
 
 		// Enqueue admin styles
-		wp_enqueue_style_from_composer_file(
+		wp_enqueue_composer_style(
 			's3-admin-components',
 			__FILE__,
 			'css/admin.css'
 		);
 
 		// Enqueue connection test script
-		wp_enqueue_script_from_composer_file(
+		wp_enqueue_composer_script(
 			's3-connection-test',
 			__FILE__,
 			'js/admin/connection.js',
@@ -189,7 +189,7 @@ trait Assets {
 
 		if ( $post_type === 'product' ) {
 			// WooCommerce integration
-			wp_enqueue_script_from_composer_file(
+			wp_enqueue_composer_script(
 				's3-browser-woocommerce',
 				__FILE__,
 				'js/integrations/woocommerce.js',
@@ -197,7 +197,7 @@ trait Assets {
 			);
 		} elseif ( $post_type === 'download' ) {
 			// EDD integration
-			wp_enqueue_script_from_composer_file(
+			wp_enqueue_composer_script(
 				's3-browser-edd',
 				__FILE__,
 				'js/integrations/easy-digital-downloads.js',
@@ -215,14 +215,14 @@ trait Assets {
 	 */
 	private function enqueue_core_browser_assets( string $config_handle ): bool {
 		// Enqueue main browser styles
-		wp_enqueue_style_from_composer_file(
+		wp_enqueue_composer_style(
 			's3-browser-style',
 			__FILE__,
 			'css/browser.css'
 		);
 
 		// Enqueue upload styles
-		wp_enqueue_style_from_composer_file(
+		wp_enqueue_composer_style(
 			's3-upload-style',
 			__FILE__,
 			'css/upload.css'
@@ -264,7 +264,7 @@ trait Assets {
 
 		// Enqueue scripts in order
 		foreach ( $scripts as $handle => $script_config ) {
-			$success = wp_enqueue_script_from_composer_file(
+			$success = wp_enqueue_composer_script(
 				$handle,
 				__FILE__,
 				$script_config['file'],
