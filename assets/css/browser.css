@@ -164,7 +164,7 @@
 }
 
 /* Separators */
-.s3-browser-breadcrumbs .breadcrumb li .separator {
+.s3-browser-breadcrumbs .breadcrumb li.separator {
     margin: 0 8px;
     color: #999;
     font-weight: normal;

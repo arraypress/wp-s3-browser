@@ -34,13 +34,13 @@ class Assets {
 	 */
 	public static function load_admin_css( string $handle = 's3-admin-components' ): bool {
 		// Check if already enqueued
-		if ( wp_style_is( $handle, 'enqueued' ) ) {
+		if ( wp_style_is( $handle ) ) {
 			return true;
 		}
 
 		// Use this file's location to find assets
-		if ( function_exists( 'wp_enqueue_style_from_composer_file' ) ) {
-			return wp_enqueue_style_from_composer_file(
+		if ( function_exists( 'wp_enqueue_composer_style' ) ) {
+			return wp_enqueue_composer_style(
 				$handle,
 				__FILE__,
 				'css/admin.css'

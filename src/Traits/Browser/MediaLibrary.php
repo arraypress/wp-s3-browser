@@ -15,10 +15,10 @@ declare( strict_types=1 );
 
 namespace ArrayPress\S3\Traits\Browser;
 
+use ArrayPress\Breadcrumbs\Breadcrumbs;
 use ArrayPress\S3\Tables\Buckets;
 use ArrayPress\S3\Tables\Objects;
 use Exception;
-use Elementify\Create;
 
 /**
  * Trait MediaLibrary
@@ -152,7 +152,7 @@ trait MediaLibrary {
      * @return void
      */
     private function display_objects_view( string $bucket, string $prefix = '' ): void {
-        // Show breadcrumbs using Elementify
+        // Show breadcrumbs
         $this->display_breadcrumbs( $bucket, $prefix );
 
         // Display objects list
@@ -216,7 +216,7 @@ trait MediaLibrary {
     }
 
     /**
-     * Generate breadcrumb navigation using Elementify
+     * Generate breadcrumb navigation
      *
      * @param string $bucket Bucket name
      * @param string $prefix Object prefix/path
@@ -224,15 +224,21 @@ trait MediaLibrary {
      * @return void
      */
     private function display_breadcrumbs( string $bucket, string $prefix = '' ): void {
-        // Build breadcrumb items array
-        $items = [];
+        $breadcrumbs = Breadcrumbs::create( [
+                'separator'       => '›',
+                'nav_class'       => 's3-browser-breadcrumbs',
+                'list_class'      => 'breadcrumb',
+                'item_class'      => '',
+                'separator_class' => 'separator',
+                'active_class'    => 'active',
+        ] );
 
         // Add root buckets link
-        $items[] = [
-                'text' => __( 'Buckets', 'arraypress' ),
-                'url'  => $this->get_buckets_url(),
-                'icon' => 'database'
-        ];
+        $breadcrumbs->add(
+                __( 'Buckets', 'arraypress' ),
+                $this->get_buckets_url(),
+                'dashicons-database'
+        );
 
         // Add bucket link
         $base_url = add_query_arg( [
@@ -240,11 +246,7 @@ trait MediaLibrary {
                 'bucket' => $bucket
         ], remove_query_arg( [ 'prefix', 's', 'continuation_token' ] ) );
 
-        $items[] = [
-                'text' => $bucket,
-                'url'  => $base_url,
-                'icon' => 'category'
-        ];
+        $breadcrumbs->add( $bucket, $base_url, 'dashicons-category' );
 
         // Add prefix path segments
         if ( ! empty( $prefix ) ) {
@@ -259,26 +261,19 @@ trait MediaLibrary {
                 $current_path .= $part . '/';
 
                 if ( $i === count( $parts ) - 1 ) {
-                    // Last part is current (no URL)
-                    $items[] = $part;
+                    $breadcrumbs->add_current( $part );
                 } else {
-                    // Intermediate parts are links
-                    $url     = add_query_arg( [
+                    $url = add_query_arg( [
                             'tab'    => $this->get_tab_param(),
                             'bucket' => $bucket,
                             'prefix' => $current_path
                     ] );
-                    $items[] = [
-                            'text' => $part,
-                            'url'  => $url,
-                            'icon' => 'category'
-                    ];
+                    $breadcrumbs->add( $part, $url, 'dashicons-category' );
                 }
             }
         }
 
-        $breadcrumbs = Create::breadcrumbs( $items, '›', [ 'class' => 's3-browser-breadcrumbs' ] );
-        echo $breadcrumbs->render();
+        $breadcrumbs->display();
     }
 
     /**
@@ -312,13 +307,10 @@ trait MediaLibrary {
         try {
             $list_table->prepare_items();
         } catch ( Exception $e ) {
-            $error_notice = Create::error_notice(
-                    __( 'Error loading buckets. Please try again.', 'arraypress' ),
-                    false,
-                    [ 'class' => 's3-error' ]
+            printf(
+                    '<div class="notice notice-error s3-error"><p>%s</p></div>',
+                    esc_html__( 'Error loading buckets. Please try again.', 'arraypress' )
             );
-            echo $error_notice->render();
-
             return;
         }
 
@@ -347,13 +339,10 @@ trait MediaLibrary {
         try {
             $list_table->prepare_items();
         } catch ( Exception $e ) {
-            $error_notice = Create::error_notice(
-                    __( 'Error loading files. Please try again.', 'arraypress' ),
-                    false,
-                    [ 'class' => 's3-error' ]
+            printf(
+                    '<div class="notice notice-error s3-error"><p>%s</p></div>',
+                    esc_html__( 'Error loading files. Please try again.', 'arraypress' )
             );
-            echo $error_notice->render();
-
             return;
         }
 
