@@ -44,6 +44,12 @@ trait PresignedUrls {
 			);
 		}
 
+		// SigV4 caps presigned-URL validity at 7 days (10080 minutes). Negative or
+		// zero values produce malformed URLs; absurdly large values get rejected by
+		// the provider but leak credential metadata over the wire. Clamp here so
+		// every caller — including direct library users — stays inside the spec.
+		$expires = max( 1, min( $expires, 10080 ) );
+
 		// Convert minutes to seconds and get expiration timestamp
 		$expires_seconds = $expires * 60;
 		$expires_at      = Timestamp::in_minutes( $expires );
@@ -132,6 +138,9 @@ trait PresignedUrls {
 				400
 			);
 		}
+
+		// Clamp to SigV4's 7-day max (see get_presigned_url for rationale).
+		$expires = max( 1, min( $expires, 10080 ) );
 
 		// Convert minutes to seconds and get expiration timestamp
 		$expires_seconds = $expires * 60;
