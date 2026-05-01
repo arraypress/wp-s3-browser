@@ -60,13 +60,10 @@ trait Core {
 		// SECURITY: Parse with secure options to prevent XXE attacks
 		// LIBXML_NONET: Disable network access during XML loading
 		// LIBXML_NOCDATA: Merge CDATA as text nodes (prevents CDATA injection)
+		// Note: do NOT set LIBXML_NOENT — despite the name, that flag *substitutes*
+		// entities, which is what enables XXE / billion-laughs attacks. Relying on
+		// libxml's default (entity substitution off) plus LIBXML_NONET is correct.
 		$options = LIBXML_NONET | LIBXML_NOCDATA;
-
-		// SECURITY: Add NOENT if available (prevents entity expansion attacks)
-		// This constant was added in PHP 5.3.0
-		if ( defined( 'LIBXML_NOENT' ) ) {
-			$options |= LIBXML_NOENT;
-		}
 
 		// WordPress pattern: Use @ suppression with error checking
 		// WordPress core uses this pattern throughout (SimplePie, REST API, etc.)
