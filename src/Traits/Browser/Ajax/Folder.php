@@ -115,6 +115,16 @@ trait Folder {
 			return;
 		}
 
+		// SECURITY: Refuse to recursively delete the bucket root. After normalization,
+		// a folder_path of '' or '/' resolves to depth 0, which would wipe the entire
+		// bucket. Require at least one path segment so a typo or coerced empty value
+		// cannot trigger a bucket-wide deletion through this AJAX endpoint.
+		if ( Directory::depth( $folder_path ) < 1 ) {
+			wp_send_json_error( [ 'message' => __( 'Refusing to delete bucket root. Specify a folder.', 'arraypress' ) ] );
+
+			return;
+		}
+
 		// Use the enhanced batch deletion method (handles normalization internally)
 		$result = $this->delete_folder_with_fallback( $bucket, $folder_path );
 
