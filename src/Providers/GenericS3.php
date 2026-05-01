@@ -84,6 +84,14 @@ class GenericS3Provider extends Provider {
 			throw new InvalidArgumentException( 'Endpoint is required for generic S3 provider' );
 		}
 
+		// SECURITY: validate the endpoint host before we ever sign a request to it.
+		// Without this check, a caller that exposes endpoint configuration to admins
+		// (or anyone with option-write access) creates an authenticated SSRF: a value
+		// like 169.254.169.254 would have credentialed S3-style requests issued to
+		// cloud metadata services, internal hosts, or loopback. Define
+		// ARRAYPRESS_S3_ALLOW_LOCAL_ENDPOINTS to bypass for local dev workflows.
+		self::assert_endpoint_safe( $endpoint );
+
 		// Store endpoint in params
 		$params['endpoint'] = $endpoint;
 
@@ -224,11 +232,103 @@ class GenericS3Provider extends Provider {
 	 * @param bool $use_https Whether to use HTTPS (default: true)
 	 *
 	 * @return self
+	 * @throws InvalidArgumentException If HTTPS is being disabled in a non-dev context
 	 */
 	public function set_use_https( bool $use_https = true ): self {
+		if ( ! $use_https && ! self::dev_endpoints_allowed() ) {
+			throw new InvalidArgumentException(
+				'Refusing to disable HTTPS for an S3 endpoint. ' .
+				'Define ARRAYPRESS_S3_ALLOW_LOCAL_ENDPOINTS=true to allow plain HTTP for local development.'
+			);
+		}
+
 		$this->params['use_https'] = $use_https;
 
 		return $this;
+	}
+
+	/**
+	 * Whether dev / local-network endpoints are explicitly allowed
+	 *
+	 * @return bool
+	 */
+	private static function dev_endpoints_allowed(): bool {
+		return defined( 'ARRAYPRESS_S3_ALLOW_LOCAL_ENDPOINTS' ) && ARRAYPRESS_S3_ALLOW_LOCAL_ENDPOINTS;
+	}
+
+	/**
+	 * Validate that the configured endpoint resolves to a public address.
+	 *
+	 * Resolves the endpoint hostname to its IPs and rejects private, loopback,
+	 * and reserved ranges so a credentialed S3 request cannot be aimed at
+	 * cloud-metadata services or internal hosts. This is best-effort defence
+	 * (DNS rebinding can still flip an IP between the construction-time check
+	 * and the actual request); for stronger guarantees, pin the IP into
+	 * wp_remote_* via the pre_http_request filter.
+	 *
+	 * @param string $endpoint Raw endpoint string as passed to the constructor
+	 *
+	 * @return void
+	 * @throws InvalidArgumentException If the host resolves to a private/reserved address
+	 */
+	private static function assert_endpoint_safe( string $endpoint ): void {
+		// Strip an optional scheme so we can extract the host portion.
+		$stripped = preg_replace( '#^https?://#i', '', $endpoint );
+
+		// Drop any path component.
+		$slash = strpos( $stripped, '/' );
+		if ( false !== $slash ) {
+			$stripped = substr( $stripped, 0, $slash );
+		}
+
+		// Strip the port. Bracketed IPv6 literals: keep contents, drop brackets.
+		if ( '' !== $stripped && '[' === $stripped[0] ) {
+			$end = strpos( $stripped, ']' );
+			$host = false !== $end ? substr( $stripped, 1, $end - 1 ) : trim( $stripped, '[]' );
+		} else {
+			$colon = strrpos( $stripped, ':' );
+			$host  = false !== $colon ? substr( $stripped, 0, $colon ) : $stripped;
+		}
+
+		if ( '' === $host ) {
+			throw new InvalidArgumentException( 'Endpoint host is empty' );
+		}
+
+		if ( self::dev_endpoints_allowed() ) {
+			return;
+		}
+
+		// Resolve hostnames; literal IPs are checked directly.
+		if ( filter_var( $host, FILTER_VALIDATE_IP ) ) {
+			$ips = [ $host ];
+		} else {
+			$resolved = gethostbynamel( $host );
+			$ips      = is_array( $resolved ) ? $resolved : [];
+		}
+
+		if ( empty( $ips ) ) {
+			throw new InvalidArgumentException( sprintf(
+				'Endpoint host "%s" could not be resolved.',
+				$host
+			) );
+		}
+
+		foreach ( $ips as $ip ) {
+			$is_public = (bool) filter_var(
+				$ip,
+				FILTER_VALIDATE_IP,
+				FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE
+			);
+
+			if ( ! $is_public ) {
+				throw new InvalidArgumentException( sprintf(
+					'Endpoint "%s" resolves to a private, loopback, or reserved address (%s). ' .
+					'Define ARRAYPRESS_S3_ALLOW_LOCAL_ENDPOINTS=true to allow this for local development.',
+					$host,
+					$ip
+				) );
+			}
+		}
 	}
 
 	/**
