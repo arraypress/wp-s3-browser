@@ -130,6 +130,46 @@ trait Buckets {
 		);
 
 		if ( ! ( $response instanceof BucketsResponse ) ) {
+			// ListBuckets failed (commonly: 403 AccessDenied on R2 with
+			// bucket-scoped API tokens). Fall back to a consumer-supplied
+			// bucket list — typically populated from a "Default Bucket"
+			// setting — and verify each via HeadBucket.
+			$fallback_names = (array) apply_filters( 'arraypress_s3_known_buckets_fallback', [], $params['prefix'] );
+			$fallback_names = array_values( array_unique( array_filter( array_map( 'strval', $fallback_names ) ) ) );
+
+			if ( ! empty( $fallback_names ) ) {
+				$models = [];
+
+				foreach ( $fallback_names as $bucket_name ) {
+					if ( '' !== $params['prefix'] && 0 !== strpos( $bucket_name, $params['prefix'] ) ) {
+						continue;
+					}
+
+					$exists = $this->bucket_exists( $bucket_name, $params['use_cache'] );
+					if ( $exists->is_successful() ) {
+						$models[] = new \ArrayPress\S3\Models\S3Bucket( [
+							'Name'         => $bucket_name,
+							'CreationDate' => '',
+						] );
+					}
+				}
+
+				if ( ! empty( $models ) ) {
+					return new SuccessResponse(
+						__( 'Bucket models retrieved (scoped token).', 'arraypress' ),
+						200,
+						[
+							'buckets'         => $models,
+							'truncated'       => false,
+							'next_marker'     => '',
+							'owner'           => null,
+							'response_object' => null,
+							'scoped'          => true,
+						]
+					);
+				}
+			}
+
 			return new ErrorResponse(
 				__( 'Unable to retrieve buckets. Please verify your access key, secret key, and region settings are correct.', 'arraypress' ),
 				'bucket_retrieval_failed',
