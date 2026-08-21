@@ -20,6 +20,8 @@ use ArrayPress\S3\Interfaces\Response as ResponseInterface;
 use ArrayPress\S3\Responses\BucketsResponse;
 use ArrayPress\S3\Responses\ErrorResponse;
 use InvalidArgumentException;
+use ArrayPress\S3\Xml\Parser;
+use ArrayPress\S3\Xml\Response;
 
 /**
  * Trait Buckets
@@ -149,17 +151,17 @@ trait Buckets {
 
 		// Check for error status code
 		if ( $status_code < 200 || $status_code >= 300 ) {
-			return $this->handle_error_response( $status_code, $body, 'Failed to list buckets' );
+			return Response::error( $status_code, $body, 'Failed to list buckets' );
 		}
 
 		// Parse XML response
-		$xml = $this->parse_response( $body );
+		$xml = Parser::parse( $body );
 		if ( $xml instanceof ErrorResponse ) {
 			return $xml;
 		}
 
 		// Use XML trait method to parse buckets list
-		$parsed = $this->parse_buckets_list( $xml );
+		$parsed = Response::buckets( $xml );
 
 		return new BucketsResponse(
 			$parsed['buckets'],

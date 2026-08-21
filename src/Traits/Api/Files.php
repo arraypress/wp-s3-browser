@@ -19,6 +19,8 @@ namespace ArrayPress\S3\Traits\Api;
 use ArrayPress\S3\Interfaces\Response as ResponseInterface;
 use ArrayPress\S3\Responses\ObjectsResponse;
 use ArrayPress\S3\Responses\ErrorResponse;
+use ArrayPress\S3\Xml\Parser;
+use ArrayPress\S3\Xml\Response;
 /**
  * Trait Files
  *
@@ -145,17 +147,17 @@ trait Files {
 
 		// Check for error status code
 		if ( $status_code < 200 || $status_code >= 300 ) {
-			return $this->handle_error_response( $status_code, $body, 'Failed to list objects' );
+			return Response::error( $status_code, $body, 'Failed to list objects' );
 		}
 
 		// Parse XML response
-		$xml = $this->parse_response( $body );
+		$xml = Parser::parse( $body );
 		if ( $xml instanceof ErrorResponse ) {
 			return $xml;
 		}
 
 		// Use the new XML parsing method
-		$parsed = $this->parse_objects_list( $xml );
+		$parsed = Response::objects( $xml );
 
 		// Pass the current prefix to ObjectsResponse for filtering
 		return new ObjectsResponse(

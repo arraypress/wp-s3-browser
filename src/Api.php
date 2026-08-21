@@ -17,14 +17,12 @@ namespace ArrayPress\S3;
 
 use ArrayPress\S3\Provider;
 use ArrayPress\S3\Interfaces\Api as ApiInterface;
-use ArrayPress\S3\Traits\Api\XmlParser;
 use ArrayPress\S3\Traits\Api\Signing;
 use ArrayPress\S3\Traits\Api\Buckets;
 use ArrayPress\S3\Traits\Api\Bucket;
 use ArrayPress\S3\Traits\Api\Files;
 use ArrayPress\S3\Traits\Api\File;
 use ArrayPress\S3\Traits\Api\PresignedUrls;
-use ArrayPress\S3\Traits\Api\ErrorHandling;
 use ArrayPress\S3\Traits\Api\Batch;
 use ArrayPress\S3\Traits\Api\Headers;
 use ArrayPress\S3\Traits\Api\Cors;
@@ -36,11 +34,9 @@ use ArrayPress\S3\Traits\Shared\Timeouts;
  * Class Api
  */
 class Api implements ApiInterface {
-	use XmlParser;
 	use Signing;
 	use Buckets;
 	use Bucket;
-	use ErrorHandling;
 	use Files;
 	use File;
 	use PresignedUrls;

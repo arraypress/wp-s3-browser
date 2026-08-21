@@ -1,9 +1,9 @@
 <?php
 declare( strict_types=1 );
 
-namespace ArrayPress\S3\Tests;
+namespace ArrayPress\S3\Tests\Xml;
 
-use ArrayPress\S3\Utils\XmlBuilder;
+use ArrayPress\S3\Xml\Builder;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -13,10 +13,10 @@ use PHPUnit\Framework\TestCase;
  * client and issuing a request. The output has to match a provider's parser
  * exactly, which is the kind of thing worth asserting directly.
  */
-final class XmlBuilderTest extends TestCase {
+final class BuilderTest extends TestCase {
 
 	public function test_cors_configuration_is_well_formed(): void {
-		$xml = XmlBuilder::cors_configuration( [
+		$xml = Builder::cors_configuration( [
 			[
 				'ID'             => 'UploadFromBrowser',
 				'AllowedMethods' => [ 'PUT' ],
@@ -35,7 +35,7 @@ final class XmlBuilderTest extends TestCase {
 	}
 
 	public function test_cors_escapes_values(): void {
-		$xml = XmlBuilder::cors_configuration( [
+		$xml = Builder::cors_configuration( [
 			[
 				'AllowedMethods' => [ 'PUT' ],
 				'AllowedOrigins' => [ 'https://a.test/?x=1&y=2' ],
@@ -47,7 +47,7 @@ final class XmlBuilderTest extends TestCase {
 	}
 
 	public function test_optional_cors_fields_are_omitted(): void {
-		$xml = XmlBuilder::cors_configuration( [
+		$xml = Builder::cors_configuration( [
 			[ 'AllowedMethods' => [ 'GET' ], 'AllowedOrigins' => [ '*' ] ],
 		] );
 
@@ -57,7 +57,7 @@ final class XmlBuilderTest extends TestCase {
 	}
 
 	public function test_batch_delete_is_well_formed(): void {
-		$xml    = XmlBuilder::batch_delete( [ 'a/b.txt', 'c/d.txt' ] );
+		$xml    = Builder::batch_delete( [ 'a/b.txt', 'c/d.txt' ] );
 		$parsed = simplexml_load_string( $xml );
 
 		$this->assertNotFalse( $parsed );
@@ -70,14 +70,14 @@ final class XmlBuilderTest extends TestCase {
 	 * ask the provider to delete a key that does not exist.
 	 */
 	public function test_batch_delete_decodes_keys_once(): void {
-		$xml = XmlBuilder::batch_delete( [ 'folder/my%20file.txt' ] );
+		$xml = Builder::batch_delete( [ 'folder/my%20file.txt' ] );
 
 		$this->assertStringContainsString( 'my file.txt', $xml );
 		$this->assertStringNotContainsString( '%20', $xml );
 	}
 
 	public function test_batch_delete_escapes_keys(): void {
-		$xml = XmlBuilder::batch_delete( [ 'a&b<c>.txt' ] );
+		$xml = Builder::batch_delete( [ 'a&b<c>.txt' ] );
 
 		$parsed = simplexml_load_string( $xml );
 		$this->assertNotFalse( $parsed );

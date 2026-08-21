@@ -16,13 +16,15 @@ declare( strict_types=1 );
 
 namespace ArrayPress\S3\Traits\Api;
 
-use ArrayPress\S3\Utils\XmlBuilder;
+use ArrayPress\S3\Xml\Builder;
 
 use ArrayPress\S3\Interfaces\Response as ResponseInterface;
 use ArrayPress\S3\Responses\SuccessResponse;
 use ArrayPress\S3\Responses\ErrorResponse;
 use ArrayPress\S3\Utils\Cors as CorsUtil;
 use ArrayPress\S3\Utils\Validate;
+use ArrayPress\S3\Xml\Parser;
+use ArrayPress\S3\Xml\Response;
 
 /**
  * Trait Cors
@@ -125,17 +127,17 @@ trait Cors {
 				);
 			}
 
-			return $this->handle_error_response( $status_code, $body, 'Failed to get CORS configuration' );
+			return Response::error( $status_code, $body, 'Failed to get CORS configuration' );
 		}
 
 		// Parse XML response
-		$xml = $this->parse_response( $body );
+		$xml = Parser::parse( $body );
 		if ( $xml instanceof ErrorResponse ) {
 			return $xml;
 		}
 
-		// Parse CORS configuration using XmlParser trait
-		$cors_rules = $this->parse_cors_configuration( $xml );
+		// Parse the provider's CORS document
+		$cors_rules = Response::cors( $xml );
 
 		// Analyze the configuration using Cors utility
 		$supports_upload = CorsUtil::supports_upload( $cors_rules );
@@ -247,8 +249,8 @@ trait Cors {
 			);
 		}
 
-		// Build CORS XML using XmlParser trait
-		$cors_xml = XmlBuilder::cors_configuration( $cors_rules );
+		// Build the CORS request body
+		$cors_xml = Builder::cors_configuration( $cors_rules );
 
 		// Generate authorization headers for CORS PUT operation
 		$headers = $this->generate_auth_headers( 'PUT', $bucket, '', [ 'cors' => '' ], $cors_xml );
@@ -287,7 +289,7 @@ trait Cors {
 
 		// Check for error status code
 		if ( $status_code < 200 || $status_code >= 300 ) {
-			return $this->handle_error_response( $status_code, $body, 'Failed to set CORS configuration' );
+			return Response::error( $status_code, $body, 'Failed to set CORS configuration' );
 		}
 
 		return new SuccessResponse(
@@ -379,7 +381,7 @@ trait Cors {
 				);
 			}
 
-			return $this->handle_error_response( $status_code, $body, 'Failed to delete CORS configuration' );
+			return Response::error( $status_code, $body, 'Failed to delete CORS configuration' );
 		}
 
 		return new SuccessResponse(

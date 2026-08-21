@@ -2,7 +2,7 @@
 /**
  * XML request bodies.
  *
- * @package     ArrayPress\S3\Utils
+ * @package     ArrayPress\S3\Xml
  * @copyright   Copyright (c) 2025, ArrayPress Limited
  * @license     GPL2+
  * @version     3.1.0
@@ -11,10 +11,10 @@
 
 declare( strict_types=1 );
 
-namespace ArrayPress\S3\Utils;
+namespace ArrayPress\S3\Xml;
 
 /**
- * Class XmlBuilder
+ * Class Builder
  *
  * Builds the XML bodies S3 expects for the handful of operations that take
  * one. These were a trait composed into the API client, but neither method
@@ -23,7 +23,7 @@ namespace ArrayPress\S3\Utils;
  * request; as static functions they can be tested directly, which matters for
  * output that has to match a provider's parser exactly.
  */
-final class XmlBuilder {
+final class Builder {
 
 	/**
 	 * Build CORS configuration XML from rules array

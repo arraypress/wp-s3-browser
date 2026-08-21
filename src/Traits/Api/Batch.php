@@ -7,11 +7,13 @@ declare( strict_types=1 );
 
 namespace ArrayPress\S3\Traits\Api;
 
-use ArrayPress\S3\Utils\XmlBuilder;
+use ArrayPress\S3\Xml\Builder;
 
 use ArrayPress\S3\Interfaces\Response as ResponseInterface;
 use ArrayPress\S3\Responses\SuccessResponse;
 use ArrayPress\S3\Responses\ErrorResponse;
+use ArrayPress\S3\Xml\Parser;
+use ArrayPress\S3\Xml\Response;
 
 trait Batch {
 
@@ -50,7 +52,7 @@ trait Batch {
 		}
 
 		// Build the XML for batch delete using XML trait method
-		$delete_xml = XmlBuilder::batch_delete( $object_keys );
+		$delete_xml = Builder::batch_delete( $object_keys );
 
 		// Use headers trait method for batch delete headers
 		$headers = $this->build_batch_delete_headers( $bucket, $delete_xml );
@@ -102,17 +104,17 @@ trait Batch {
 				);
 			}
 
-			return $this->handle_error_response( $status_code, $body, 'Failed to batch delete objects' );
+			return Response::error( $status_code, $body, 'Failed to batch delete objects' );
 		}
 
 		// Parse XML response using XML trait method
-		$xml = $this->parse_response( $body );
+		$xml = Parser::parse( $body );
 		if ( $xml instanceof ErrorResponse ) {
 			return $xml;
 		}
 
 		// Parse results using XML trait method
-		$results = $this->parse_batch_delete_response( $xml );
+		$results = Response::batch_delete( $xml );
 
 		return new SuccessResponse(
 			sprintf(

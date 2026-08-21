@@ -21,6 +21,8 @@ use ArrayPress\S3\Responses\ObjectResponse;
 use ArrayPress\S3\Responses\ErrorResponse;
 use ArrayPress\S3\Responses\SuccessResponse;
 use ArrayPress\S3\Utils\Encode;
+use ArrayPress\S3\Xml\Parser;
+use ArrayPress\S3\Xml\Response;
 
 /**
  * Trait Objects
@@ -103,7 +105,7 @@ trait File {
 
 		// Check for error status code
 		if ( $status_code < 200 || $status_code >= 300 ) {
-			return $this->handle_error_response( $status_code, $body, 'Failed to retrieve object' );
+			return Response::error( $status_code, $body, 'Failed to retrieve object' );
 		}
 
 		// Extract metadata
@@ -290,7 +292,7 @@ trait File {
 
 		// Check for error status codes
 		if ( $status_code < 200 || $status_code >= 300 ) {
-			return $this->handle_error_response( $status_code, $body, __( 'Failed to delete object', 'arraypress' ) );
+			return Response::error( $status_code, $body, __( 'Failed to delete object', 'arraypress' ) );
 		}
 
 		// Success! Return a meaningful response
@@ -396,7 +398,7 @@ trait File {
 
 		// Check for error status codes
 		if ( $status_code < 200 || $status_code >= 300 ) {
-			return $this->handle_error_response(
+			return Response::error(
 				$status_code,
 				$body,
 				sprintf(
@@ -408,7 +410,7 @@ trait File {
 		}
 
 		// Parse XML response for metadata using XML trait method
-		$xml_data = $this->parse_response( $body );
+		$xml_data = Parser::parse( $body );
 		if ( $xml_data instanceof ErrorResponse ) {
 			// Even if we can't parse the XML, the operation was successful
 			return new SuccessResponse(
@@ -428,7 +430,7 @@ trait File {
 		}
 
 		// Use XML trait method to parse copy result
-		$copy_data = $this->parse_copy_result( $xml_data );
+		$copy_data = Response::copy( $xml_data );
 
 		// Return success response with metadata
 		return new SuccessResponse(
