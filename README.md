@@ -1,113 +1,187 @@
 # S3 Browser for WordPress
 
-A comprehensive PHP library for integrating S3-compatible storage providers with WordPress, featuring an advanced media browser, file management, and support for multiple cloud storage providers.
+Browse, upload and manage S3-compatible storage from inside WordPress — as a media modal tab, or on
+an admin screen of your own.
 
-## Features
+Built for plugins that sell or deliver files: the browser drops into the EDD download editor and the
+WooCommerce product editor, and hands back an object key your plugin stores.
 
-- **Multi-Provider Support**: AWS S3, Cloudflare R2, DigitalOcean Spaces, Linode Object Storage, and more
-- **Advanced Media Browser**: Native WordPress media uploader integration with breadcrumb navigation
-- **File Management**: Upload, download, delete, and organize files across S3-compatible storage
-- **Presigned URLs**: Generate secure, time-limited download URLs for private files
-- **Plugin Integration**: Built-in support for WooCommerce and Easy Digital Downloads
-- **Bucket Management**: List, browse, and manage buckets across providers
-- **Caching**: WordPress transient caching for improved performance
-- **File Type Detection**: Automatic MIME type detection and file categorization
-- **Search & Filter**: Built-in search functionality for finding files quickly
-- **WordPress Integration**: Uses WordPress standards (WP_Error, transients, admin styles)
+## Requirements
+
+- PHP 8.2+
+- WordPress 6.8+
+- Extensions: `simplexml`, `curl`, `json`, `mbstring`
 
 ## Installation
-
-Install via Composer:
 
 ```bash
 composer require arraypress/wp-s3-browser
 ```
 
-## Basic Usage
-
-### Initialize the Browser
+## Getting started
 
 ```php
 use ArrayPress\S3\Browser;
-use ArrayPress\S3\Providers\CloudflareR2;
+use ArrayPress\S3\Provider;
 
-// Create a provider instance
-$provider = new CloudflareR2( 'default', [ 'account_id' => 'your_account_id' ] );
-
-// Initialize the browser
 $browser = new Browser(
-	$provider,
-	'your_access_key',
-	'your_secret_key',
-	[ 'post', 'page' ], // Allowed post types (optional)
-	'default-bucket', // Default bucket (optional)
-	'uploads/'        // Default prefix (optional)
+    Provider::r2( 'your-account-id' ),
+    $access_key,
+    $secret_key,
+    [ 'download' ],   // post types this browser appears for; [] means all
+    'my-bucket',      // bucket it opens on
+    'upload_files',   // capability required to use it
+    'edd'             // context: which integration this instance serves
 );
+
+// Confine it to one bucket. Worth doing whenever you can.
+$browser->set_allowed_buckets( [ 'my-bucket' ] );
 ```
 
-### Working with Buckets
+That registers a media modal tab, the admin assets, and a REST namespace. Nothing else is required.
+
+### Providers
+
+The provider list, endpoints and addressing rules live in
+[`arraypress/wp-s3-signer`](https://github.com/arraypress/wp-s3-signer), which this package depends
+on and re-exports as `SignerProvider`:
 
 ```php
-// Code examples coming soon...
+use ArrayPress\S3Signer\Provider as SignerProvider;
+
+Provider::r2( 'account-id' );                       // Cloudflare R2
+Provider::aws( 'eu-west-1' );                       // Amazon S3
+Provider::regional( SignerProvider::DigitalOcean, 'nyc3' );
+Provider::custom( 'minio.example.com:9000', 'us-east-1' );
 ```
 
-### Managing Objects
+Region lists for a settings dropdown come from the same enum:
 
 ```php
-// Code examples coming soon...
+foreach ( SignerProvider::Aws->regions() as $code => $label ) {
+    printf( '<option value="%s">%s</option>', esc_attr( $code ), esc_html( $label ) );
+}
 ```
 
-### File Uploads and Downloads
+## Using the client directly
+
+`Browser` owns a `Client`; you can also build one on its own.
 
 ```php
-// Code examples coming soon...
+use ArrayPress\S3\Client;
+use ArrayPress\S3\Provider;
+
+$client = new Client( Provider::r2( 'account-id' ), $access_key, $secret_key );
+
+$objects = $client->get_object_models( 'my-bucket', 100, 'invoices/' );
+
+if ( $objects->is_successful() ) {
+    foreach ( $objects->get_data()['objects'] as $object ) {
+        echo $object->get_filename(), ' — ', $object->get_size(), "\n";
+    }
+}
 ```
 
-### Integration with WordPress Plugins
+Every call returns a `ResponseInterface`. Check `is_successful()`; on failure the response carries
+the provider's own error code, which is what distinguishes a bucket-scoped token from wrong
+credentials:
 
 ```php
-// Code examples coming soon...
+if ( ! $objects->is_successful() ) {
+    error_log( $objects->get_error_code() );    // e.g. 'AccessDenied', 'NoSuchBucket'
+    return $objects->to_wp_error();             // for returning from a REST callback
+}
 ```
 
-## Supported Providers
-
-- **AWS S3** - Amazon Simple Storage Service
-- **Cloudflare R2** - Cloudflare's zero-egress object storage
-- **DigitalOcean Spaces** - DigitalOcean's S3-compatible storage
-- **Linode Object Storage** - Akamai's object storage solution
-- **Vultr Object Storage** - Vultr's S3-compatible storage
-- **Custom Providers** - Extensible architecture for custom implementations
-
-## Configuration
-
-The library supports various configuration options:
+### Presigned URLs
 
 ```php
-// Configuration examples coming soon...
+$url = $client->get_presigned_url( 'my-bucket', 'invoices/2026-01.pdf', 15 );
+
+if ( $url->is_successful() ) {
+    wp_redirect( $url->get_url() );
+}
 ```
 
-## Cache Management
+### Cache
 
-Built-in caching using WordPress transients:
+Responses are cached in transients. Invalidation bumps a generation counter folded into every key,
+so it works on sites running a persistent object cache, where deleting rows from `wp_options` would
+clear nothing.
 
 ```php
-// Cache management examples coming soon...
+$client->cache()->flush_bucket( 'my-bucket' );
+$client->cache()->flush();
 ```
 
-## API Documentation
+### Permissions
 
-For detailed API documentation and advanced usage examples, visit the [documentation](https://github.com/arraypress/s3-browser/wiki).
+There is no S3 call that reports what a token may do, so this finds out by writing a small object
+and deleting it again. The result is cached for a day, because each check costs a write against the
+bucket.
 
-## Requirements
+```php
+$permissions = $client->permissions()->check( 'my-bucket' );
+// [ 'read' => true, 'write' => true, 'delete' => false, ... ]
 
-- PHP 7.4 or later
-- WordPress 6.8.1 or later
-- Required PHP extensions: simplexml, curl, json, mbstring
+// Reads only — no write is attempted.
+$permissions = $client->permissions()->check( 'my-bucket', true, false );
+```
+
+## Browser uploads need CORS
+
+Uploads go straight from the visitor's browser to the provider over a presigned URL, so the bucket
+needs a CORS rule naming your site.
+
+```php
+$client->set_cors_scenario( 'my-bucket', 'upload_only', [ home_url() ] );
+```
+
+On Cloudflare R2 this needs an **Admin Read & Write** API token. An **Object Read & Write** token can
+list, upload and delete objects perfectly well but cannot call `PutBucketCors`, and R2 answers with
+`AccessDenied` — which reads like bad credentials and is not. Set CORS from the Cloudflare dashboard
+instead, or issue an admin token for the initial setup.
+
+## Running two browsers on one site
+
+A site with both an EDD plugin and a WooCommerce plugin bundling this library gets two `Browser`
+instances. Give each a distinct `$context` and they separate cleanly: media tab ids, asset handles
+and REST route bases all derive from it.
+
+REST namespaces additionally derive from the Composer/Strauss prefix, so two separately-distributed
+copies do not collide on a route path — a URL is global in a way PHP namespaces are not, and
+`WP_REST_Server` merges same-path registrations rather than replacing them, which would otherwise
+have one plugin serving the other's requests with its own credentials.
+
+## Layout
+
+```
+src/
+  Browser.php        Composition root: builds everything below and hooks it up
+  Client.php         Cached, validating operations returning response objects
+  Api.php            Signing and transport
+  Provider.php       Endpoints and addressing
+  Cache.php          Transient cache with generation-counter invalidation
+  Permissions.php    What a set of credentials can actually do
+  Admin/             Media tab, assets, templates, screen tests, translations
+  Rest/              REST routes, permission checks and handlers
+  Xml/               Parsing S3 payloads, and building request bodies
+  Cors/              Rule generation and analysis
+  Models/            S3Object, S3Bucket, S3Prefix
+  Responses/         Typed success and error responses
+  Tables/            WP_List_Table implementations
+  Utils/             Path, filename, MIME and validation helpers
+```
+
+## Tests
+
+```bash
+composer test
+```
+
+Transport is covered end to end against real provider payloads with no network: `tests/Support/FakeHttp`
+stands in for the WordPress HTTP API and `tests/fixtures/` holds captured S3 and R2 responses.
 
 ## License
 
-This library is licensed under the GPL v2 or later.
-
-## Credits
-
-Developed by [ArrayPress](https://arraypress.com)
+GPL-2.0-or-later. Developed by [ArrayPress](https://arraypress.com).
