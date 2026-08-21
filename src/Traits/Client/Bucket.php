@@ -18,7 +18,7 @@ namespace ArrayPress\S3\Traits\Client;
 use ArrayPress\S3\Interfaces\Response as ResponseInterface;
 use ArrayPress\S3\Responses\SuccessResponse;
 use ArrayPress\S3\Responses\ErrorResponse;
-use ArrayPress\S3\Utils\Cors;
+use ArrayPress\S3\Cors\Origin;
 use Exception;
 
 /**
@@ -230,7 +230,7 @@ trait Bucket {
 			);
 		}
 
-		$current_origin = $current_origin ?? Cors::get_current_origin();
+		$current_origin = $current_origin ?? Origin::current();
 
 		$details = [
 			'bucket'      => $bucket,

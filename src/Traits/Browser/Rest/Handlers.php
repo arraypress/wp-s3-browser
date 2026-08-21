@@ -18,7 +18,7 @@ declare( strict_types=1 );
 namespace ArrayPress\S3\Traits\Browser\Rest;
 
 use ArrayPress\S3\Tables\Objects;
-use ArrayPress\S3\Utils\Cors;
+use ArrayPress\S3\Cors\Origin;
 use ArrayPress\S3\Utils\Directory;
 use ArrayPress\S3\Utils\Sanitize;
 use ArrayPress\S3\Utils\Timestamp;
@@ -164,7 +164,7 @@ trait Handlers {
 	 */
 	public function rest_get_bucket_details( WP_REST_Request $request ) {
 		$bucket = (string) $request['bucket'];
-		$result = $this->client->get_bucket_details( $bucket, Cors::get_current_origin(), false );
+		$result = $this->client->get_bucket_details( $bucket, Origin::current(), false );
 
 		if ( ! $result->is_successful() ) {
 			return $this->rest_fail( 'rest_bucket_details_failed', $result->get_error_message(), 502 );
@@ -429,7 +429,7 @@ trait Handlers {
 	 */
 	public function rest_setup_cors( WP_REST_Request $request ) {
 		$bucket = (string) $request['bucket'];
-		$origin = (string) $request['origin'] ?: Cors::get_current_origin();
+		$origin = (string) $request['origin'] ?: Origin::current();
 
 		if ( '' === $origin ) {
 			return $this->rest_fail( 'rest_origin_required', __( 'Origin is required for CORS setup', 'arraypress' ) );

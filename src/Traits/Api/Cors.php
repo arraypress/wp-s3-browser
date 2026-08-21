@@ -21,7 +21,7 @@ use ArrayPress\S3\Xml\Builder;
 use ArrayPress\S3\Interfaces\Response as ResponseInterface;
 use ArrayPress\S3\Responses\SuccessResponse;
 use ArrayPress\S3\Responses\ErrorResponse;
-use ArrayPress\S3\Utils\Cors as CorsUtil;
+use ArrayPress\S3\Cors\Analysis;
 use ArrayPress\S3\Utils\Validate;
 use ArrayPress\S3\Xml\Parser;
 use ArrayPress\S3\Xml\Response;
@@ -139,10 +139,11 @@ trait Cors {
 		// Parse the provider's CORS document
 		$cors_rules = Response::cors( $xml );
 
-		// Analyze the configuration using Cors utility
-		$supports_upload = CorsUtil::supports_upload( $cors_rules );
-		$allowed_origins = CorsUtil::extract_allowed_origins( $cors_rules );
-		$allowed_methods = CorsUtil::extract_allowed_methods( $cors_rules );
+		// These three were calls to Utils\Cors methods that never existed, so
+		// reading back a bucket that *had* a CORS configuration was a fatal.
+		$allowed_methods = Analysis::methods( $cors_rules );
+		$allowed_origins = Analysis::origins( $cors_rules );
+		$supports_upload = (bool) array_intersect( [ 'PUT', 'POST' ], $allowed_methods );
 
 		return new SuccessResponse(
 			sprintf( __( 'CORS configuration retrieved for bucket "%s"', 'arraypress' ), $bucket ),
