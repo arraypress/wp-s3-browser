@@ -74,7 +74,7 @@ trait Buckets {
 		}
 
 		// Use signer to list buckets
-		$result = $this->signer->list_buckets( $max_keys, $prefix, $marker );
+		$result = $this->api->list_buckets( $max_keys, $prefix, $marker );
 
 		// Debug logging if enabled
 		$this->debug( 'Client: Raw result from signer:', $result );

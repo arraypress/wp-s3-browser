@@ -13,14 +13,14 @@
 
 declare( strict_types=1 );
 
-namespace ArrayPress\S3\Traits\Signer;
+namespace ArrayPress\S3\Traits\Api;
 
 use ArrayPress\S3Signer\AddressingStyle;
 use ArrayPress\S3Signer\Method;
 use ArrayPress\S3Signer\Signer as SigV4;
 
 /**
- * Trait Authentication
+ * Trait Signing
  *
  * SigV4 itself now lives in arraypress/wp-s3-signer, which has its own test
  * suite and is shared with other products. This trait is the seam: it maps
@@ -32,7 +32,7 @@ use ArrayPress\S3Signer\Signer as SigV4;
  * sent produces SignatureDoesNotMatch with no indication of which part is
  * wrong.
  */
-trait Authentication {
+trait Signing {
 
 	/**
 	 * Memoised signer, keyed by addressing host.

@@ -131,7 +131,7 @@ trait Permissions {
 				$upload_url = $upload_url_response->get_url();
 
 				// Build headers with user agent using signer's method
-				$headers = $this->signer->get_base_request_headers( [
+				$headers = $this->api->get_base_request_headers( [
 					'Content-Type' => 'text/plain'
 				] );
 
@@ -274,7 +274,7 @@ trait Permissions {
 		$upload_url = $upload_url_response->get_url();
 
 		// Build headers with user agent using signer's method
-		$headers = $this->signer->get_base_request_headers( [
+		$headers = $this->api->get_base_request_headers( [
 			'Content-Type' => 'text/plain'
 		] );
 

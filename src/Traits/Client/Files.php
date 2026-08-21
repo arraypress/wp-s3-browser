@@ -85,7 +85,7 @@ trait Files {
 		}
 
 		// Use signer to list objects
-		$result = $this->signer->list_objects(
+		$result = $this->api->list_objects(
 			$bucket,
 			$max_keys,
 			$prefix,

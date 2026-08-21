@@ -1,11 +1,11 @@
 <?php
 /**
- * CORS Operations Trait - Signer Level
+ * CORS Operations Trait - API Level
  *
  * Handles CORS configuration operations for S3-compatible storage using
  * the raw S3 API endpoints.
  *
- * @package     ArrayPress\S3\Traits\Signer
+ * @package     ArrayPress\S3\Traits\Api
  * @copyright   Copyright (c) 2025, ArrayPress Limited
  * @license     GPL2+
  * @version     1.0.0
@@ -14,7 +14,7 @@
 
 declare( strict_types=1 );
 
-namespace ArrayPress\S3\Traits\Signer;
+namespace ArrayPress\S3\Traits\Api;
 
 use ArrayPress\S3\Interfaces\Response as ResponseInterface;
 use ArrayPress\S3\Responses\SuccessResponse;

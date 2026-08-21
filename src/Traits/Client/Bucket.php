@@ -191,7 +191,7 @@ trait Bucket {
 		}
 
 		// Use signer to get bucket location
-		$result = $this->signer->get_bucket_location( $bucket );
+		$result = $this->api->get_bucket_location( $bucket );
 
 		// Debug logging if enabled
 		$this->debug( 'Client: Raw result from signer for bucket location:', $result );
@@ -249,7 +249,7 @@ trait Bucket {
 		}
 
 		// Use signer to get bucket versioning
-		$result = $this->signer->get_bucket_versioning( $bucket );
+		$result = $this->api->get_bucket_versioning( $bucket );
 
 		// Debug logging if enabled
 		$this->debug( 'Client: Raw result from signer for bucket versioning:', $result );
@@ -307,7 +307,7 @@ trait Bucket {
 		}
 
 		// Use signer to get bucket policy
-		$result = $this->signer->get_bucket_policy( $bucket );
+		$result = $this->api->get_bucket_policy( $bucket );
 
 		// Debug logging if enabled
 		$this->debug( 'Client: Raw result from signer for bucket policy:', $result );
@@ -365,7 +365,7 @@ trait Bucket {
 		}
 
 		// Use signer to get bucket lifecycle
-		$result = $this->signer->get_bucket_lifecycle( $bucket );
+		$result = $this->api->get_bucket_lifecycle( $bucket );
 
 		// Debug logging if enabled
 		$this->debug( 'Client: Raw result from signer for bucket lifecycle:', $result );

@@ -247,7 +247,7 @@ trait Batch {
 			$this->debug( "Processing batch", ( $batch_index + 1 ) . '/' . count( $batches ) );
 
 			// Try batch delete first
-			$result = $this->signer->batch_delete_objects( $bucket, $batch );
+			$result = $this->api->batch_delete_objects( $bucket, $batch );
 
 			if ( $result->is_successful() ) {
 				// Batch delete worked
@@ -307,7 +307,7 @@ trait Batch {
 		$errors  = [];
 
 		foreach ( $object_keys as $object_key ) {
-			$delete_result = $this->signer->delete_object( $bucket, $object_key );
+			$delete_result = $this->api->delete_object( $bucket, $object_key );
 
 			if ( $delete_result->is_successful() ) {
 				$deleted[] = [

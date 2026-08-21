@@ -30,7 +30,7 @@ use ArrayPress\S3\Traits\Client\Upload;
 use ArrayPress\S3\Traits\Client\Options;
 use ArrayPress\S3\Traits\Shared\Debug;
 use ArrayPress\S3\Traits\Shared\Context;
-use ArrayPress\S3\Signer;
+use ArrayPress\S3\Api;
 
 /**
  * Class Client
@@ -59,11 +59,11 @@ class Client {
 	private Provider $provider;
 
 	/**
-	 * Signer instance
+	 * Raw S3 API client
 	 *
-	 * @var Signer
+	 * @var Api
 	 */
-	private Signer $signer;
+	private Api $api;
 
 	/**
 	 * Constructor
@@ -86,7 +86,7 @@ class Client {
 		?string $context = null
 	) {
 		$this->provider = $provider;
-		$this->signer   = new Signer( $provider, $access_key, $secret_key );
+		$this->api      = new Api( $provider, $access_key, $secret_key );
 		$this->init_cache( $use_cache, $cache_ttl );
 
 		// Both objects carry their own debug flag, so setting only this one

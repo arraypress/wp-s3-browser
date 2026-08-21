@@ -74,7 +74,7 @@ trait File {
 		}
 
 		// Use HEAD request to check object existence
-		$head_result = $this->signer->head_object( $bucket, $object_key );
+		$head_result = $this->api->head_object( $bucket, $object_key );
 
 		if ( $head_result->is_successful() ) {
 			// Object exists - get metadata from the response
@@ -217,7 +217,7 @@ trait File {
 		$object_key = $delete_params['object_key'];
 
 		// Use signer to delete object
-		$result = $this->signer->delete_object( $bucket, $object_key );
+		$result = $this->api->delete_object( $bucket, $object_key );
 
 		// Debug logging if enabled
 		$this->debug( 'Client: Raw result from signer for delete operation:', $result );
@@ -270,7 +270,7 @@ trait File {
 		);
 
 		// Use signer to copy an object
-		$result = $this->signer->copy_object(
+		$result = $this->api->copy_object(
 			$params['source_bucket'],
 			$params['source_key'],
 			$params['target_bucket'],
@@ -552,7 +552,7 @@ trait File {
 		}
 
 		// Use signer to perform HEAD request
-		$result = $this->signer->head_object( $bucket, $object_key );
+		$result = $this->api->head_object( $bucket, $object_key );
 
 		// Debug logging if enabled
 		$this->debug( 'Client: Raw result from signer for HEAD operation:', $result );

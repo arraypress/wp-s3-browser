@@ -4,7 +4,7 @@ declare( strict_types=1 );
 namespace ArrayPress\S3\Tests;
 
 use ArrayPress\S3\Responses\ErrorResponse;
-use ArrayPress\S3\Traits\Signer\ErrorHandling;
+use ArrayPress\S3\Traits\Api\ErrorHandling;
 use ArrayPress\S3\Traits\XML\Core;
 use ArrayPress\S3\Traits\XML\Extract;
 use ArrayPress\S3\Traits\XML\Parser;

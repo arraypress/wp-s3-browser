@@ -3,7 +3,7 @@ declare( strict_types=1 );
 
 namespace ArrayPress\S3\Tests;
 
-use ArrayPress\S3\Signer;
+use ArrayPress\S3\Api;
 use ArrayPress\S3\Provider;
 use ArrayPress\S3Signer\Provider as ProviderType;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -107,7 +107,7 @@ final class SigningTest extends TestCase {
 		$provider = 'r2' === $provider_class
 			? Provider::r2( ...$provider_args )
 			: Provider::regional( ProviderType::DigitalOcean, ...$provider_args );
-		$signer   = new Signer( $provider, self::ACCESS_KEY, self::SECRET_KEY );
+		$signer   = new Api( $provider, self::ACCESS_KEY, self::SECRET_KEY );
 
 		$url = $signer->get_presigned_url( $bucket, $key, 60 )->get_url();
 		$bits = $this->dissect( $url );
@@ -173,7 +173,7 @@ final class SigningTest extends TestCase {
 	 */
 	public function test_auth_headers_sign_the_addressed_host(): void {
 		$spaces  = Provider::regional( ProviderType::DigitalOcean, 'ams3' );
-		$signer  = new Signer( $spaces, self::ACCESS_KEY, self::SECRET_KEY );
+		$signer  = new Api( $spaces, self::ACCESS_KEY, self::SECRET_KEY );
 		$headers = $signer->generate_auth_headers( 'DELETE', 'my-bucket', 'files/song.wav' );
 
 		$this->assertSame( 'my-bucket.ams3.digitaloceanspaces.com', $headers['host'] );
@@ -196,7 +196,7 @@ final class SigningTest extends TestCase {
 
 	public function test_empty_payload_hash_is_sha256_of_empty_string(): void {
 		$provider = Provider::r2( 'abc123' );
-		$headers  = ( new Signer( $provider, self::ACCESS_KEY, self::SECRET_KEY ) )
+		$headers  = ( new Api( $provider, self::ACCESS_KEY, self::SECRET_KEY ) )
 			->generate_auth_headers( 'GET', 'my-bucket' );
 
 		$this->assertSame( hash( 'sha256', '' ), $headers['x-amz-content-sha256'] );
@@ -204,7 +204,7 @@ final class SigningTest extends TestCase {
 
 	public function test_presign_expiry_is_clamped_to_the_sigv4_maximum(): void {
 		$provider = Provider::r2( 'abc123' );
-		$signer   = new Signer( $provider, self::ACCESS_KEY, self::SECRET_KEY );
+		$signer   = new Api( $provider, self::ACCESS_KEY, self::SECRET_KEY );
 
 		$url = $signer->get_presigned_url( 'b', 'k.txt', 99999999 )->get_url();
 		$this->assertStringContainsString( 'X-Amz-Expires=604800', $url );

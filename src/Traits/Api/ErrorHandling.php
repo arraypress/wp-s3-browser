@@ -13,7 +13,7 @@
 
 declare( strict_types=1 );
 
-namespace ArrayPress\S3\Traits\Signer;
+namespace ArrayPress\S3\Traits\Api;
 
 use ArrayPress\S3\Responses\ErrorResponse;
 

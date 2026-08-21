@@ -1,6 +1,6 @@
 <?php
 /**
- * Signer Class - Refactored with Traits
+ * S3 API Client
  *
  * Core implementation of AWS Signature Version 4 for S3-compatible storage.
  *
@@ -16,28 +16,28 @@ declare( strict_types=1 );
 namespace ArrayPress\S3;
 
 use ArrayPress\S3\Provider;
-use ArrayPress\S3\Interfaces\Signer as SignerInterface;
-use ArrayPress\S3\Traits\Signer\XmlParser;
-use ArrayPress\S3\Traits\Signer\Authentication;
-use ArrayPress\S3\Traits\Signer\Buckets;
-use ArrayPress\S3\Traits\Signer\Bucket;
-use ArrayPress\S3\Traits\Signer\Files;
-use ArrayPress\S3\Traits\Signer\File;
-use ArrayPress\S3\Traits\Signer\PresignedUrls;
-use ArrayPress\S3\Traits\Signer\ErrorHandling;
-use ArrayPress\S3\Traits\Signer\Batch;
-use ArrayPress\S3\Traits\Signer\Headers;
-use ArrayPress\S3\Traits\Signer\Cors;
+use ArrayPress\S3\Interfaces\Api as ApiInterface;
+use ArrayPress\S3\Traits\Api\XmlParser;
+use ArrayPress\S3\Traits\Api\Signing;
+use ArrayPress\S3\Traits\Api\Buckets;
+use ArrayPress\S3\Traits\Api\Bucket;
+use ArrayPress\S3\Traits\Api\Files;
+use ArrayPress\S3\Traits\Api\File;
+use ArrayPress\S3\Traits\Api\PresignedUrls;
+use ArrayPress\S3\Traits\Api\ErrorHandling;
+use ArrayPress\S3\Traits\Api\Batch;
+use ArrayPress\S3\Traits\Api\Headers;
+use ArrayPress\S3\Traits\Api\Cors;
 use ArrayPress\S3\Traits\Shared\Debug;
 use ArrayPress\S3\Traits\Shared\Config;
 use ArrayPress\S3\Traits\Shared\Timeouts;
 
 /**
- * Class Signer
+ * Class Api
  */
-class Signer implements SignerInterface {
+class Api implements ApiInterface {
 	use XmlParser;
-	use Authentication;
+	use Signing;
 	use Buckets;
 	use Bucket;
 	use ErrorHandling;

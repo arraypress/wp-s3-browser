@@ -9,7 +9,7 @@ use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 
 /**
- * Debug state across the Client and the Signer it owns.
+ * Debug state across the Client and the Api client it owns.
  *
  * Both compose the Debug trait, so each holds its own flag. The Client was
  * setting only its own, which left every debug call in the request path — the
@@ -20,7 +20,7 @@ use ReflectionClass;
 final class DebugPropagationTest extends TestCase {
 
 	/**
-	 * Read the debug flag from a Client and from its Signer.
+	 * Read the debug flag from a Client and from its Api client.
 	 *
 	 * @param Client $client Client.
 	 *
@@ -28,11 +28,11 @@ final class DebugPropagationTest extends TestCase {
 	 */
 	private function flags( Client $client ): array {
 		$rc     = new ReflectionClass( $client );
-		$signer = $rc->getProperty( 'signer' )->getValue( $client );
+		$api = $rc->getProperty( 'api' )->getValue( $client );
 
 		return [
 			(bool) $rc->getProperty( 'debug' )->getValue( $client ),
-			(bool) ( new ReflectionClass( $signer ) )->getProperty( 'debug' )->getValue( $signer ),
+			(bool) ( new ReflectionClass( $api ) )->getProperty( 'debug' )->getValue( $api ),
 		];
 	}
 
@@ -40,11 +40,11 @@ final class DebugPropagationTest extends TestCase {
 		return new Client( Provider::r2( 'account' ), 'key', 'secret', true, 3600, $debug );
 	}
 
-	public function test_debug_reaches_the_signer_at_construction(): void {
+	public function test_debug_reaches_the_api_client_at_construction(): void {
 		$this->assertSame( [ true, true ], $this->flags( $this->client( true ) ) );
 	}
 
-	public function test_debug_off_reaches_the_signer_too(): void {
+	public function test_debug_off_reaches_the_api_client_too(): void {
 		$this->assertSame( [ false, false ], $this->flags( $this->client() ) );
 	}
 

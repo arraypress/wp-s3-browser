@@ -103,7 +103,7 @@ trait Folder {
 		);
 
 		// Use signer directly for folder creation (bypass presigned URL for empty content)
-		$headers = $this->signer->generate_auth_headers(
+		$headers = $this->api->generate_auth_headers(
 			'PUT',
 			$bucket,
 			$normalized_path,
@@ -113,7 +113,7 @@ trait Folder {
 
 		$headers['Content-Type']   = 'application/x-directory';
 		$headers['Content-Length'] = '0';
-		$headers                   = $this->signer->get_base_request_headers( $headers );
+		$headers                   = $this->api->get_base_request_headers( $headers );
 
 		$url = $this->provider->format_url( $bucket, $normalized_path );
 

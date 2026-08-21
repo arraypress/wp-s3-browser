@@ -35,7 +35,7 @@ trait PresignedUrls {
 	 * @return ResponseInterface Pre-signed URL response, URL string, or error
 	 */
 	public function get_presigned_url( string $bucket, string $object_key, int $expires = 60 ): ResponseInterface {
-		return $this->signer->get_presigned_url( $bucket, $object_key, $expires );
+		return $this->api->get_presigned_url( $bucket, $object_key, $expires );
 	}
 
 
@@ -121,7 +121,7 @@ trait PresignedUrls {
 			);
 		}
 
-		return $this->signer->get_presigned_upload_url( $bucket, $object_key, $expires );
+		return $this->api->get_presigned_upload_url( $bucket, $object_key, $expires );
 	}
 
 	/**

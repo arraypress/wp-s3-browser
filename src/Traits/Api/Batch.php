@@ -1,11 +1,11 @@
 <?php
 /**
- * Enhanced Signer Batch Trait - Using Headers Method
+ * Batch Operations Trait
  */
 
 declare( strict_types=1 );
 
-namespace ArrayPress\S3\Traits\Signer;
+namespace ArrayPress\S3\Traits\Api;
 
 use ArrayPress\S3\Interfaces\Response as ResponseInterface;
 use ArrayPress\S3\Responses\SuccessResponse;

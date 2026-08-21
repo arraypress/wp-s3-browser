@@ -4,7 +4,7 @@
  *
  * Provides header building functionality for various S3 operations.
  *
- * @package     ArrayPress\S3\Traits\Signer
+ * @package     ArrayPress\S3\Traits\Api
  * @copyright   Copyright (c) 2025, ArrayPress Limited
  * @license     GPL2+
  * @version     1.0.0
@@ -13,7 +13,7 @@
 
 declare( strict_types=1 );
 
-namespace ArrayPress\S3\Traits\Signer;
+namespace ArrayPress\S3\Traits\Api;
 
 use ArrayPress\S3\Utils\Encode;
 

@@ -1,6 +1,6 @@
 <?php
 /**
- * Signer Interface
+ * S3 API Interface
  *
  * Defines the contract for AWS Signature Version 4 signing implementation.
  *
@@ -22,7 +22,7 @@ use WP_Error;
  *
  * Defines the methods that all AWS Signature Version 4 implementations must provide.
  */
-interface Signer {
+interface Api {
 
 	/**
 	 * Generate authorization headers for an S3 request

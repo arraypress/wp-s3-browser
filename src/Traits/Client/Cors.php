@@ -67,7 +67,7 @@ trait Cors {
 		}
 
 		// Use signer to get CORS configuration
-		$result = $this->signer->get_cors_configuration( $bucket );
+		$result = $this->api->get_cors_configuration( $bucket );
 
 		// Debug logging if enabled
 		$this->debug( 'Client: Raw result from signer for CORS get:', $result );
@@ -124,7 +124,7 @@ trait Cors {
 		$clear_cache = $params['clear_cache'];
 
 		// Use signer to set CORS configuration
-		$result = $this->signer->set_cors_configuration( $bucket, $cors_rules );
+		$result = $this->api->set_cors_configuration( $bucket, $cors_rules );
 
 		// Debug logging if enabled
 		$this->debug( 'Client: Raw result from signer for CORS set:', $result );
@@ -179,7 +179,7 @@ trait Cors {
 		$clear_cache = $params['clear_cache'];
 
 		// Use signer to delete CORS configuration
-		$result = $this->signer->delete_cors_configuration( $bucket );
+		$result = $this->api->delete_cors_configuration( $bucket );
 
 		// Debug logging if enabled
 		$this->debug( 'Client: Raw result from signer for CORS delete:', $result );

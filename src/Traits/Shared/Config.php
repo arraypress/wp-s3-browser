@@ -1,6 +1,6 @@
 <?php
 /**
- * Client/Signer Config Trait
+ * Shared Config Trait
  *
  * @package     ArrayPress\S3\Traits
  * @copyright   Copyright (c) 2025, ArrayPress Limited
