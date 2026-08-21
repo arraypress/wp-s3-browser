@@ -73,19 +73,92 @@
         },
 
         /**
+         * The first file row with nothing in it, if there is one.
+         *
+         * A fresh product starts with one blank row, and filling it beats
+         * adding a second and leaving the blank behind.
+         */
+        firstEmptyRow: function () {
+            var $empty = null;
+
+            $('.edd_repeatable_row').each(function () {
+                var $candidate = $(this);
+
+                if (!$empty && !$.trim($candidate.find('.edd_repeatable_upload_field').val() || '')) {
+                    $empty = $candidate;
+                }
+            });
+
+            return $empty;
+        },
+
+        /**
+         * The object paths already listed on this product.
+         */
+        existingPaths: function () {
+            var paths = [];
+
+            $('.edd_repeatable_upload_field').each(function () {
+                var value = $.trim($(this).val() || '');
+
+                if (value) {
+                    paths.push(value.replace(/^s3:\/\//, '').replace(/^\/+|\/+$/g, ''));
+                }
+            });
+
+            return paths;
+        },
+
+        /**
          * Write the files into the file table, adding rows as needed.
+         *
+         * Files already listed are skipped. EDD does not deduplicate -- two
+         * rows naming the same object both save, and the customer gets the
+         * same download link twice -- and picking one by accident out of a
+         * long list is easy.
+         *
+         * A file genuinely wanted twice, under two price conditions, is added
+         * with the row's own Insert button instead. That is a deliberate act
+         * on one row, so it is honoured; this is a bulk action, where a repeat
+         * is almost always a misclick.
          */
         insertFiles: function (files) {
             if (!files.length) {
                 return;
             }
 
+            var existing = this.existingPaths();
+            var wanted = files.filter(function (file) {
+                return existing.indexOf(file.bucket + '/' + file.key) === -1;
+            });
+            var skipped = files.length - wanted.length;
+
+            if (!wanted.length) {
+                window.alert(
+                    (S3BrowserGlobalConfig.i18n.alreadyAdded || '%d skipped').replace('%d', skipped)
+                );
+                this.closeFrame();
+
+                return;
+            }
+
+            files = wanted;
+
+            var self = this;
+
+            // The row whose button opened the browser is the one to fill, and
+            // filling it replaces whatever was there -- which is what clicking
+            // that row's button asks for, and what EDD's own handler does.
+            //
+            // Without one, do not fall back to the last row: it usually holds
+            // a real file, and writing over it destroys a download nobody
+            // asked to change. Take an empty row if there is one, or make one.
             var $row = window.edd_row && window.edd_row.length
                 ? window.edd_row
-                : $('.edd_repeatable_row').last();
+                : self.firstEmptyRow();
 
             files.forEach(function (file, index) {
-                if (index > 0) {
+                if (index > 0 || !$row || !$row.length) {
                     // EDD clones the last row on click, so the new one lands
                     // after whatever is currently last.
                     $('.edd_add_repeatable').filter(':visible').first().trigger('click');
@@ -95,6 +168,12 @@
                 $row.find('.edd_repeatable_upload_field').val(file.bucket + '/' + file.key);
                 $row.find('.edd_repeatable_name_field').val(file.fileName);
             });
+
+            if (skipped) {
+                window.alert(
+                    (S3BrowserGlobalConfig.i18n.alreadyAdded || '%d skipped').replace('%d', skipped)
+                );
+            }
 
             this.closeFrame();
         },

@@ -167,6 +167,12 @@ class Assets {
 				// identify the sender by origin alone.
 				'adminOrigin'       => $this->admin_origin(),
 				'insertToken'       => wp_create_nonce( 's3_browser_insert' ),
+				// The integration scripts run on the edit screen, not inside
+				// the browser, so they never see the browser's own strings.
+				'i18n'              => [
+					/* translators: %d: number of files already present */
+					'alreadyAdded' => __( '%d of the selected files are already in this list and were skipped.', 'arraypress' ),
+				],
 				'restUrl'           => esc_url_raw( rest_url( $this->rest->route_path() ) ),
 				'restNonce'         => wp_create_nonce( 'wp_rest' ),
 				'defaultBucket'     => $this->config->default_bucket,

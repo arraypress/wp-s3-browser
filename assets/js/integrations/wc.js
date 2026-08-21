@@ -96,12 +96,45 @@
                 return;
             }
 
+            var existing = [];
+
+            $('.downloadable_files input[name="_wc_file_urls[]"]').each(function () {
+                var value = $.trim($(this).val() || '');
+
+                if (value) {
+                    existing.push(value.replace(/^s3:\/\//, '').replace(/^\/+|\/+$/g, ''));
+                }
+            });
+
+            files = files.filter(function (file) {
+                return existing.indexOf(file.bucket + '/' + file.key) === -1;
+            });
+
+            if (!files.length) {
+                this.closeFrame();
+
+                return;
+            }
+
+            // Only the row whose button opened the browser is written over --
+            // that is what clicking it asks for. Without one, take an empty row
+            // or add one, rather than replacing a file nobody asked to change.
             var $row = window.wc_target_row && window.wc_target_row.length
                 ? window.wc_target_row
-                : $('.downloadable_files tbody tr').last();
+                : null;
+
+            if (!$row) {
+                $('.downloadable_files tbody tr').each(function () {
+                    var $candidate = $(this);
+
+                    if (!$row && !$.trim($candidate.find('input[name="_wc_file_urls[]"]').val() || '')) {
+                        $row = $candidate;
+                    }
+                });
+            }
 
             files.forEach(function (file, index) {
-                if (index > 0) {
+                if (index > 0 || !$row || !$row.length) {
                     $('.downloadable_files .insert').filter(':visible').first().trigger('click');
                     $row = $('.downloadable_files tbody tr').last();
                 }
@@ -110,6 +143,13 @@
                 $row.find('input[name="_wc_file_names[]"]').val(file.fileName);
             });
 
+            this.closeFrame();
+        },
+
+        /**
+         * Close whichever frame the browser was opened in.
+         */
+        closeFrame: function () {
             try {
                 if (window.wp && window.wp.media && window.wp.media.frame) {
                     window.wp.media.frame.close();
