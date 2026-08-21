@@ -77,7 +77,7 @@
                 var $link = $(this);
 
                 if ($link.hasClass('s3-download-file')) {
-                    window.open($link.data('url'), '_blank');
+                    self.downloadFile($link);
                 } else if ($link.hasClass('s3-delete-file')) {
                     self.deleteFile($link);
                 } else if ($link.hasClass('s3-delete-folder')) {
@@ -343,7 +343,7 @@
             self.setButtonBusy($button);
             $button.find('.s3-button-text').text(s3BrowserConfig.i18n.loading.loadingText);
 
-            this.makeAjaxRequest('s3_load_more_', {
+            this.makeAjaxRequest('listObjects', {
                 bucket: bucket,
                 prefix: prefix || '',
                 continuation_token: token
@@ -394,7 +394,7 @@
                 return;
             }
 
-            this.makeAjaxRequest('s3_clear_cache_', {
+            this.makeAjaxRequest('clearCache', {
                 type: $button.data('type'),
                 bucket: $button.data('bucket') || '',
                 prefix: $button.data('prefix') || ''
@@ -426,6 +426,49 @@
 
             var queryString = $.param(params);
             window.location.href = window.location.href.split('?')[0] + '?' + queryString;
+        },
+
+        /**
+         * Fetch a download URL and open it.
+         *
+         * Minted on click rather than rendered into every row: signing each
+         * one up front is a full SigV4 derivation per file, and it would put a
+         * working, hour-long URL for every object into the page source.
+         */
+        downloadFile: function ($link) {
+            var self = this;
+
+            if ($link.data('s3-fetching')) {
+                return;
+            }
+
+            $link.data('s3-fetching', true);
+
+            // Opened before the request so the click is still trusted; popup
+            // blockers reject window.open() from an async callback.
+            var target = window.open('', '_blank');
+
+            this.makeAjaxRequest('downloadUrl', {
+                bucket: $link.data('bucket'),
+                object_key: $link.data('key')
+            }, {
+                success: function (response) {
+                    if (target) {
+                        target.location = response.data.url;
+                    } else {
+                        window.location = response.data.url;
+                    }
+                },
+                error: function (message) {
+                    if (target) {
+                        target.close();
+                    }
+                    self.showNotification(message, 'error');
+                },
+                complete: function () {
+                    $link.removeData('s3-fetching');
+                }
+            });
         },
 
         /**
@@ -519,38 +562,38 @@
         },
 
         /**
-         * Map of legacy action suffixes to REST routes.
+         * Named REST routes.
          *
-         * Kept as a lookup rather than threading routes through every caller,
-         * so the ten existing call sites need no changes.
+         * A lookup rather than routes threaded through every caller, so a call
+         * site names what it wants rather than restating a path and a verb.
          */
         restRoutes: {
-            's3_load_more_':               {method: 'GET',    path: '/buckets/{bucket}/objects'},
-            's3_clear_cache_':             {method: 'DELETE', path: '/cache'},
-            's3_get_upload_url_':          {method: 'POST',   path: '/buckets/{bucket}/objects/upload-url', rename: {object_key: 'key'}},
-            's3_delete_object_':           {method: 'DELETE', path: '/buckets/{bucket}/objects'},
-            's3_rename_object_':           {method: 'PATCH',  path: '/buckets/{bucket}/objects'},
-            's3_get_presigned_url_':       {method: 'POST',   path: '/buckets/{bucket}/objects/download-url', rename: {object_key: 'key'}},
-            's3_create_folder_':           {method: 'POST',   path: '/buckets/{bucket}/folders'},
-            's3_delete_folder_':           {method: 'DELETE', path: '/buckets/{bucket}/folders'},
-            's3_get_bucket_details_':      {method: 'GET',    path: '/buckets/{bucket}'},
-            's3_setup_cors_':              {method: 'PUT',    path: '/buckets/{bucket}/cors'},
-            's3_delete_cors_configuration_': {method: 'DELETE', path: '/buckets/{bucket}/cors'},
-            's3_connection_test_':         {method: 'GET',    path: '/connection'}
+            'listObjects':               {method: 'GET',    path: '/buckets/{bucket}/objects'},
+            'clearCache':             {method: 'DELETE', path: '/cache'},
+            'uploadUrl':          {method: 'POST',   path: '/buckets/{bucket}/objects/upload-url', rename: {object_key: 'key'}},
+            'deleteObject':           {method: 'DELETE', path: '/buckets/{bucket}/objects'},
+            'renameObject':           {method: 'PATCH',  path: '/buckets/{bucket}/objects'},
+            'downloadUrl':       {method: 'POST',   path: '/buckets/{bucket}/objects/download-url', rename: {object_key: 'key'}},
+            'createFolder':           {method: 'POST',   path: '/buckets/{bucket}/folders'},
+            'deleteFolder':           {method: 'DELETE', path: '/buckets/{bucket}/folders'},
+            'bucketDetails':      {method: 'GET',    path: '/buckets/{bucket}'},
+            'setupCors':              {method: 'PUT',    path: '/buckets/{bucket}/cors'},
+            'deleteCors': {method: 'DELETE', path: '/buckets/{bucket}/cors'},
+            'connectionTest':         {method: 'GET',    path: '/connection'}
         },
 
         /**
-         * Issue a request against the REST API.
+         * Issue a request against a named REST route.
          *
-         * Keeps the historical {success, data} callback shape so existing
-         * callers are unaffected by the move off admin-ajax.
+         * Callbacks receive {success, data} — retained because every call site
+         * reads response.data, not because admin-ajax is still involved.
          */
-        makeAjaxRequest: function (actionSuffix, data, callbacks) {
+        makeAjaxRequest: function (routeName, data, callbacks) {
             callbacks = callbacks || {};
 
-            var route = this.restRoutes[actionSuffix];
+            var route = this.restRoutes[routeName];
             if (!route) {
-                callbacks.error && callbacks.error('Unknown action: ' + actionSuffix);
+                callbacks.error && callbacks.error('Unknown route: ' + routeName);
                 callbacks.complete && callbacks.complete();
                 return;
             }

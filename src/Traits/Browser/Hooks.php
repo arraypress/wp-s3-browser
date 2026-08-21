@@ -32,10 +32,8 @@ trait Hooks {
 		// Register asset enqueue handlers
 		$this->register_asset_handlers();
 
-		// Register the REST API routes, plus the legacy AJAX actions that
-		// delegate to them.
+		// Register the REST API routes.
 		$this->register_rest_handlers();
-		$this->register_ajax_handlers();
 
 		// Add plugin integrations
 		$this->add_edd_integration();
@@ -93,38 +91,5 @@ trait Hooks {
 		add_action( 'rest_api_init', [ $this, 'register_rest_routes' ] );
 	}
 
-	/**
-	 * Register all AJAX handlers with consistent naming
-	 *
-	 * These remain for backwards compatibility only; each one delegates to the
-	 * matching REST handler.
-	 *
-	 * @return void
-	 */
-	private function register_ajax_handlers(): void {
-		// Core operations
-		add_action( 'wp_ajax_' . $this->get_action_name( 's3_load_more' ), [ $this, 'handle_ajax_load_more' ] );
-		add_action( 'wp_ajax_' . $this->get_action_name( 's3_clear_cache' ), [ $this, 'handle_ajax_clear_cache' ] );
-		add_action( 'wp_ajax_' . $this->get_action_name( 's3_get_upload_url' ), [ $this, 'handle_ajax_get_upload_url' ] );
-
-		// Object operations
-		add_action( 'wp_ajax_' . $this->get_action_name( 's3_delete_object' ), [ $this, 'handle_ajax_delete_object' ] );
-		add_action( 'wp_ajax_' . $this->get_action_name( 's3_rename_object' ), [ $this, 'handle_ajax_rename_object' ] );
-		add_action( 'wp_ajax_' . $this->get_action_name( 's3_get_presigned_url' ), [ $this, 'handle_ajax_get_presigned_url' ] );
-
-		// Folder operations
-		add_action( 'wp_ajax_' . $this->get_action_name( 's3_create_folder' ), [ $this, 'handle_ajax_create_folder' ] );
-		add_action( 'wp_ajax_' . $this->get_action_name( 's3_delete_folder' ), [ $this, 'handle_ajax_delete_folder' ] );
-
-		// Bucket operations
-		add_action( 'wp_ajax_' . $this->get_action_name( 's3_get_bucket_details' ), [ $this, 'handle_ajax_get_bucket_details' ] );
-
-		// CORS operations
-		add_action( 'wp_ajax_' . $this->get_action_name( 's3_setup_cors' ), [ $this, 'handle_ajax_setup_cors_upload' ] );
-		add_action( 'wp_ajax_' . $this->get_action_name( 's3_delete_cors_configuration' ), [ $this, 'handle_ajax_delete_cors_configuration' ] );
-
-		// Connection test
-		add_action( 'wp_ajax_' . $this->get_action_name( 's3_connection_test' ), [ $this, 'handle_ajax_connection_test' ] );
-	}
 
 }

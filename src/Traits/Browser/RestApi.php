@@ -2,8 +2,7 @@
 /**
  * Browser REST API Trait
  *
- * Aggregates the REST route registration and handlers, mirroring how
- * AjaxHandlers composes the legacy admin-ajax endpoints.
+ * Aggregates the REST route registration and handlers.
  *
  * @package     ArrayPress\S3\Traits
  * @copyright   Copyright (c) 2025, ArrayPress Limited

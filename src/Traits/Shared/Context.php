@@ -83,9 +83,11 @@ trait Context {
 	}
 
 	/**
-	 * Get unique hook suffix based on provider and context
+	 * Get a unique suffix based on provider and context
 	 *
-	 * This is used for AJAX action names and other WordPress hooks
+	 * Distinguishes one browser instance from another — an EDD one and a
+	 * WooCommerce one on the same site — in REST route bases and asset
+	 * handles.
 	 *
 	 * @return string Hook suffix for AJAX actions
 	 */
@@ -109,28 +111,6 @@ trait Context {
 		return 's3_' . $this->get_hook_suffix();
 	}
 
-	/**
-	 * Get the base URL parameter for navigation
-	 *
-	 * This returns the tab parameter value for URLs
-	 *
-	 * @return string Tab parameter value
-	 */
-	protected function get_tab_param(): string {
-		return $this->get_tab_id();
-	}
 
-	/**
-	 * Get a contextually-aware action name
-	 *
-	 * Useful for creating AJAX action names, option keys, etc.
-	 *
-	 * @param string $action_base Base action name (e.g., 'load_more', 'delete_object')
-	 *
-	 * @return string Full action name with context
-	 */
-	protected function get_action_name( string $action_base ): string {
-		return $action_base . '_' . $this->get_hook_suffix();
-	}
 
 }

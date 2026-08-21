@@ -60,7 +60,7 @@
             var progressMessage = s3BrowserConfig.i18n.folders.deletingFolderProgress.replace('{name}', folderName);
             this.showProgressOverlay(progressMessage);
 
-            this.makeAjaxRequest('s3_delete_folder_', {
+            this.makeAjaxRequest('deleteFolder', {
                 bucket: bucket,
                 folder_path: folderPath,
                 recursive: true
@@ -198,7 +198,7 @@
 
             this.setModalLoading('s3FolderModal', true, s3BrowserConfig.i18n.folders.creatingFolder);
 
-            this.makeAjaxRequest('s3_create_folder_', {
+            this.makeAjaxRequest('createFolder', {
                 bucket: bucket,
                 prefix: prefix,
                 folder_name: folderName

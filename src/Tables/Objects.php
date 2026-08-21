@@ -309,17 +309,21 @@ class Objects extends WP_List_Table {
 				esc_html__( 'Copy Link', 'arraypress' )
 			);
 
-			// Download link
-			if ( isset( $item['object'] ) ) {
-				$presigned_url = $item['object']->get_presigned_url( $this->client, $this->bucket, 60 );
-				if ( ! is_wp_error( $presigned_url ) ) {
-					$actions['download'] = sprintf(
-						'<a href="#" class="s3-download-file" data-url="%s">%s</a>',
-						esc_attr( $presigned_url ),
-						esc_html__( 'Download', 'arraypress' )
-					);
-				}
-			}
+			// Download link.
+			//
+			// The URL is minted on click, not here. Signing every row up front
+			// costs a full SigV4 derivation per file — measurable on a
+			// thousand-row listing — for links most visitors never use, and it
+			// puts a working, hour-long download URL for every object into the
+			// page source, where it survives in browser history, caches and
+			// anything that scrapes the DOM. The Copy Link action already
+			// fetches on demand through the REST route; this now does the same.
+			$actions['download'] = sprintf(
+				'<a href="#" class="s3-download-file" data-bucket="%s" data-key="%s">%s</a>',
+				esc_attr( $this->bucket ),
+				esc_attr( $item['key'] ),
+				esc_html__( 'Download', 'arraypress' )
+			);
 
 			$actions['delete'] = sprintf(
 				'<a href="#" class="s3-delete-file button-delete" data-filename="%s" data-bucket="%s" data-key="%s">%s</a>',
@@ -478,31 +482,6 @@ class Objects extends WP_List_Table {
             <br class="clear"/>
         </div>
 		<?php
-	}
-
-	/**
-	 * Handle AJAX load more request
-	 *
-	 * @param Client $client      S3 client instance
-	 * @param string $provider_id Provider identifier
-	 *
-	 * @return void
-	 */
-	public static function ajax_load_more( Client $client, string $provider_id ): void {
-		// wp_unslash() before sanitizing: WordPress slashes $_POST, so a prefix
-		// like "Dave's Mixes/" would otherwise arrive as "Dave\'s Mixes/" and
-		// never match anything in the bucket.
-		$bucket             = sanitize_text_field( wp_unslash( $_POST['bucket'] ?? '' ) );
-		$prefix             = sanitize_text_field( wp_unslash( $_POST['prefix'] ?? '' ) );
-		$continuation_token = sanitize_text_field( wp_unslash( $_POST['continuation_token'] ?? '' ) );
-
-		$result = self::get_page_data( $client, $provider_id, $bucket, $prefix, $continuation_token );
-
-		if ( is_wp_error( $result ) ) {
-			wp_send_json_error( [ 'message' => $result->get_error_message() ] );
-		}
-
-		wp_send_json_success( $result );
 	}
 
 	/**

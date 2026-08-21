@@ -14,7 +14,6 @@ declare( strict_types=1 );
 namespace ArrayPress\S3;
 
 use ArrayPress\S3\Provider;
-use ArrayPress\S3\Traits\Browser\AjaxHandlers;
 use ArrayPress\S3\Traits\Browser\RestApi;
 use ArrayPress\S3\Traits\Browser\Templates;
 use ArrayPress\S3\Traits\Browser\Assets;
@@ -39,7 +38,6 @@ if ( ! class_exists( 'WP_List_Table' ) ) {
  * S3-compatible storage files directly within the WordPress media uploader.
  */
 class Browser {
-	use AjaxHandlers;
 	use RestApi;
 	use Templates;
 	use Assets;

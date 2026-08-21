@@ -240,7 +240,7 @@ trait MediaLibrary {
 
         // Add bucket link
         $base_url = add_query_arg( [
-                'tab'    => $this->get_tab_param(),
+                'tab'    => $this->get_tab_id(),
                 'bucket' => $bucket
         ], remove_query_arg( [ 'prefix', 's', 'continuation_token' ] ) );
 
@@ -262,7 +262,7 @@ trait MediaLibrary {
                     $breadcrumbs->add_current( $part );
                 } else {
                     $url = add_query_arg( [
-                            'tab'    => $this->get_tab_param(),
+                            'tab'    => $this->get_tab_id(),
                             'bucket' => $bucket,
                             'prefix' => $current_path
                     ] );
@@ -282,7 +282,7 @@ trait MediaLibrary {
     private function get_buckets_url(): string {
         return add_query_arg(
                 [
-                        'tab'  => $this->get_tab_param(),
+                        'tab'  => $this->get_tab_id(),
                         'view' => 'buckets'
                 ],
                 remove_query_arg( [ 'bucket', 'prefix', 's', 'continuation_token' ] )

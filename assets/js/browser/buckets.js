@@ -58,7 +58,7 @@
             this.showProgressOverlay(s3BrowserConfig.i18n.buckets.loadingDetails);
 
             // Load bucket details including CORS info
-            this.makeAjaxRequest('s3_get_bucket_details_', {
+            this.makeAjaxRequest('bucketDetails', {
                 bucket: bucket,
                 provider: provider || S3BrowserGlobalConfig.providerId,
                 current_origin: window.location.origin // Explicitly pass origin
@@ -184,7 +184,7 @@
             this.showProgressOverlay(i18n.settingUpCors);
 
             // Make the CORS setup request
-            this.makeAjaxRequest('s3_setup_cors_', {
+            this.makeAjaxRequest('setupCors', {
                 bucket: bucket,
                 origin: window.location.origin
             }, {
@@ -294,7 +294,7 @@
 
             this.showProgressOverlay(i18n.revokingCors);
 
-            this.makeAjaxRequest('s3_delete_cors_configuration_', {
+            this.makeAjaxRequest('deleteCors', {
                 bucket: bucket
             }, {
                 success: function (response) {

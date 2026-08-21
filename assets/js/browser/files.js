@@ -22,7 +22,7 @@
 
             window.S3Browser.setButtonBusy($button, s3BrowserConfig.i18n.ui.deleting);
 
-            this.makeAjaxRequest('s3_delete_object_', {
+            this.makeAjaxRequest('deleteObject', {
                 bucket: $button.data('bucket'),
                 key: $button.data('key')
             }, {
@@ -244,7 +244,7 @@
 
             this.setModalLoading('s3CopyLinkModal', true, s3BrowserConfig.i18n.copyLink.generatingLink);
 
-            this.makeAjaxRequest('s3_get_presigned_url_', {
+            this.makeAjaxRequest('downloadUrl', {
                 bucket: context.bucket,
                 object_key: context.key,
                 expires_minutes: expiresMinutes
@@ -500,7 +500,7 @@
 
             this.setModalLoading('s3RenameModal', true, s3BrowserConfig.i18n.files.renamingFile);
 
-            this.makeAjaxRequest('s3_rename_object_', {
+            this.makeAjaxRequest('renameObject', {
                 bucket: context.bucket,
                 current_key: context.key,
                 new_filename: newFilename
