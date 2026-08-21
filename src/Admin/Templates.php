@@ -1,20 +1,6 @@
 <?php
 /**
- * Browser Templates Trait
- *
- * @package     ArrayPress\S3\Traits
- * @copyright   Copyright (c) 2025, ArrayPress Limited
- * @license     GPL2+
- * @version     2.1.0
- * @author      David Sherlock
- */
-
-declare( strict_types=1 );
-
-namespace ArrayPress\S3\Traits\Browser;
-
-/**
- * Trait Templates
+ * Browser Templates
  *
  * Prints Underscore templates for wp.template(), the same mechanism WordPress
  * uses for its own media modal.
@@ -29,8 +15,29 @@ namespace ArrayPress\S3\Traits\Browser;
  * visible opt-out. Translated strings are rendered by PHP at print time, so
  * they go through esc_html__() and never travel through a JavaScript i18n
  * object.
+ *
+ * @package     ArrayPress\S3\Admin
+ * @copyright   Copyright (c) 2025, ArrayPress Limited
+ * @license     GPL2+
+ * @author      David Sherlock
  */
-trait Templates {
+
+declare( strict_types=1 );
+
+namespace ArrayPress\S3\Admin;
+
+/**
+ * Class Templates
+ */
+class Templates {
+
+	/**
+	 * Build a template printer.
+	 *
+	 * @param string $capability Capability a user needs to be shown these.
+	 */
+	public function __construct( private string $capability ) {
+	}
 
 	/**
 	 * Whether the templates have already been printed this request.

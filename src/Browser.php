@@ -15,7 +15,7 @@ namespace ArrayPress\S3;
 
 use ArrayPress\S3\Provider;
 use ArrayPress\S3\Rest\Controller as RestController;
-use ArrayPress\S3\Traits\Browser\Templates;
+use ArrayPress\S3\Admin\Templates;
 use ArrayPress\S3\Traits\Browser\Assets;
 use ArrayPress\S3\Traits\Browser\Integrations;
 use ArrayPress\S3\Traits\Browser\MediaLibrary;
@@ -36,7 +36,6 @@ if ( ! class_exists( 'WP_List_Table' ) ) {
  * S3-compatible storage files directly within the WordPress media uploader.
  */
 class Browser {
-	use Templates;
 	use Assets;
 	use Integrations;
 	use MediaLibrary;
@@ -126,6 +125,13 @@ class Browser {
 	protected RestController $rest;
 
 	/**
+	 * Underscore templates for the browser's JavaScript.
+	 *
+	 * @var Templates
+	 */
+	protected Templates $templates;
+
+	/**
 	 * Constructor
 	 *
 	 * Instantiate on 'init', not 'admin_init'.
@@ -206,6 +212,8 @@ class Browser {
 
 		// Set debug on Browser instance too
 		$this->set_debug( $debug );
+
+		$this->templates = new Templates( $this->capability );
 
 		$this->rest = new RestController(
 			$this->client,

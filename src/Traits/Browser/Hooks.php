@@ -68,8 +68,8 @@ trait Hooks {
 		// wp.template() reads its markup from script tags in the document, so
 		// they have to be printed even on the media-upload iframe, which does
 		// not fire admin_footer.
-		add_action( 'admin_footer', [ $this, 'print_templates' ] );
-		add_action( 'admin_print_footer_scripts', [ $this, 'print_templates' ] );
+		add_action( 'admin_footer', [ $this->templates, 'print_templates' ] );
+		add_action( 'admin_print_footer_scripts', [ $this->templates, 'print_templates' ] );
 	}
 
 	/**

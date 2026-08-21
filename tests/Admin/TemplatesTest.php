@@ -1,19 +1,10 @@
 <?php
 declare( strict_types=1 );
 
-namespace ArrayPress\S3\Tests;
+namespace ArrayPress\S3\Tests\Admin;
 
-use ArrayPress\S3\Traits\Browser\Templates;
+use ArrayPress\S3\Admin\Templates;
 use PHPUnit\Framework\TestCase;
-
-/**
- * Minimal host for the Templates trait.
- */
-final class TemplateHost {
-	use Templates;
-
-	protected string $capability = 'upload_files';
-}
 
 /**
  * Underscore templates for wp.template().
@@ -29,10 +20,10 @@ final class TemplatesTest extends TestCase {
 	}
 
 	private function render(): string {
-		$host = new TemplateHost();
+		$templates = new Templates( 'upload_files' );
 
 		ob_start();
-		$host->print_templates();
+		$templates->print_templates();
 
 		return (string) ob_get_clean();
 	}
@@ -72,11 +63,11 @@ final class TemplatesTest extends TestCase {
 	}
 
 	public function test_printing_twice_emits_one_copy(): void {
-		$host = new TemplateHost();
+		$templates = new Templates( 'upload_files' );
 
 		ob_start();
-		$host->print_templates();
-		$host->print_templates();
+		$templates->print_templates();
+		$templates->print_templates();
 		$output = (string) ob_get_clean();
 
 		$this->assertSame(
