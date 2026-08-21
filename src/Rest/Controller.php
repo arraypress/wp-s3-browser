@@ -284,6 +284,16 @@ class Controller {
 		] );
 
 		// --- Presigned download URL ------------------------------------------
+		// --- What else points at an object -----------------------------------
+		register_rest_route( $namespace, '/' . $base . '/buckets/(?P<bucket>[^/]+)/objects/references', [
+			[
+				'methods'             => 'GET',
+				'callback'            => [ $this, 'rest_object_references' ],
+				'permission_callback' => [ $this, 'rest_bucket_permission_check' ],
+				'args'                => $bucket_arg + $object_key_arg,
+			],
+		] );
+
 		register_rest_route( $namespace, '/' . $base . '/buckets/(?P<bucket>[^/]+)/objects/download-url', [
 			[
 				'methods'             => 'POST',
@@ -775,7 +785,7 @@ class Controller {
 		if ( $exists->is_successful() && ( $exists->get_data()['exists'] ?? false ) ) {
 			return $this->rest_fail(
 				'rest_rename_conflict',
-				/* translators: %1$s: value */
+				/* translators: %s: new filename */
 				sprintf( __( 'A file named "%s" already exists in this location', 'arraypress' ), $new_filename ),
 				409
 			);
@@ -789,13 +799,73 @@ class Controller {
 
 		$this->client->cache()->flush_bucket( $bucket );
 
+		/**
+		 * Fires after an object has been renamed.
+		 *
+		 * A key stored elsewhere does not follow the object, so anything
+		 * holding one has to be told. Runs only after the rename succeeded.
+		 *
+		 * @param string $bucket  Bucket name.
+		 * @param string $old_key Key the object had.
+		 * @param string $new_key Key the object now has.
+		 */
+		do_action( 'arraypress_s3_object_renamed', $bucket, $current_key, $new_key );
+
 		return $this->rest_ok( [
-			/* translators: %1$s: value */
+			/* translators: %s: new filename */
 			'message'      => sprintf( __( 'File renamed to "%s" successfully', 'arraypress' ), $new_filename ),
 			'bucket'       => $bucket,
 			'old_key'      => $current_key,
 			'new_key'      => $new_key,
 			'new_filename' => $new_filename,
+		] );
+	}
+
+	/**
+	 * Report what else points at an object
+	 *
+	 * A key stored elsewhere -- a product's download file, a post meta value --
+	 * does not follow the object when it is renamed or moved. Nothing in this
+	 * library knows what those places are, so it asks: a consumer answers the
+	 * filter with whatever it holds, and the browser warns before renaming.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 *
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function rest_object_references( WP_REST_Request $request ) {
+		$bucket = (string) $request['bucket'];
+		$key    = (string) $request['key'];
+
+		/**
+		 * Filter the things referring to an object.
+		 *
+		 * @param array  $references List of [ 'label' => string, 'edit_url' => string ].
+		 * @param string $bucket     Bucket name.
+		 * @param string $key        Object key.
+		 */
+		$references = (array) apply_filters( 'arraypress_s3_object_references', [], $bucket, $key );
+
+		$clean = [];
+
+		foreach ( $references as $reference ) {
+			$label = trim( (string) ( $reference['label'] ?? '' ) );
+
+			if ( '' === $label ) {
+				continue;
+			}
+
+			$clean[] = [
+				'label'    => $label,
+				'edit_url' => esc_url_raw( (string) ( $reference['edit_url'] ?? '' ) ),
+			];
+		}
+
+		return $this->rest_ok( [
+			'bucket'     => $bucket,
+			'key'        => $key,
+			'references' => $clean,
+			'count'      => count( $clean ),
 		] );
 	}
 

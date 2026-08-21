@@ -332,7 +332,6 @@
             var bucket = $button.data('bucket');
             var key = $button.data('key');
 
-            // Debug logging to check data
             // Store context
             var context = {filename: filename, bucket: bucket, key: key};
 
@@ -349,7 +348,10 @@
                 // escaping does not touch quotes.
                 '<input type="text" id="s3RenameInput" maxlength="255">',
                 '<p class="description">' + s3BrowserConfig.i18n.files.filenameHelp + '</p>',
-                '</div>'
+                '</div>',
+                // Filled in once the lookup returns; empty until then, so the
+                // dialog is usable immediately rather than waiting on it.
+                '<div class="s3-object-references" hidden></div>'
             ].join('');
 
             var $modal = this.showModal('s3RenameModal', s3BrowserConfig.i18n.files.renameFile, content, [
@@ -372,6 +374,8 @@
 
             // Initially disable submit button
             $modal.find('button[data-action="submit"]').prop('disabled', true);
+
+            self.loadObjectReferences($modal, context);
 
             // Bind real-time validation
             $modal.on('keyup', '#s3RenameInput', function (e) {
@@ -454,6 +458,55 @@
             }
 
             return {valid: true, message: ''};
+        },
+
+        /**
+         * Warn if anything else refers to this object by its key.
+         *
+         * A stored key does not follow the object when it is renamed, so a
+         * product pointing at the old one stops working -- silently, at the
+         * moment a customer tries to download it. Nothing here knows what
+         * holds those keys; the server asks its consumers and reports back.
+         */
+        loadObjectReferences: function ($modal, context) {
+            var $panel = $modal.find('.s3-object-references');
+
+            this.makeAjaxRequest('objectReferences', {
+                bucket: context.bucket,
+                key: context.key
+            }, {
+                success: function (response) {
+                    var references = (response.data && response.data.references) || [];
+
+                    if (!references.length) {
+                        return;
+                    }
+
+                    var i18n = s3BrowserConfig.i18n.files;
+                    var heading = (references.length === 1 ? i18n.referencedByOne : i18n.referencedByMany)
+                        .replace('%d', references.length);
+
+                    var items = references.map(function (reference) {
+                        var label = window.S3Browser.escapeHtml(reference.label);
+
+                        return reference.edit_url
+                            ? '<li><a href="' + window.S3Browser.escapeHtml(reference.edit_url) + '" target="_blank" rel="noopener">' + label + '</a></li>'
+                            : '<li>' + label + '</li>';
+                    }).join('');
+
+                    $panel.html(
+                        '<div class="notice notice-warning inline">' +
+                        '<p><strong>' + window.S3Browser.escapeHtml(heading) + '</strong></p>' +
+                        '<ul>' + items + '</ul>' +
+                        '<p>' + window.S3Browser.escapeHtml(i18n.referencesUpdated) + '</p>' +
+                        '</div>'
+                    ).prop('hidden', false);
+                },
+                error: function () {
+                    // A failed lookup must not block the rename. The warning is
+                    // advice, and the rename works with or without it.
+                }
+            });
         },
 
         /**

@@ -153,7 +153,7 @@ trait File {
 			// For other errors, we can't determine existence
 			return new ErrorResponse(
 				sprintf(
-					/* translators: %1$s: object key, %2$s: bucket name, %3$s: value */
+					/* translators: %1$s: object key, %2$s: bucket name, %3$s: error message */
 					__( 'Unable to determine if object "%1$s" exists in bucket "%2$s": %3$s', 'arraypress' ),
 					$object_key,
 					$bucket,
@@ -433,7 +433,7 @@ trait File {
 		// upload_file(), a wrapper nothing called.
 		if ( $is_path && ! is_readable( $file_path ) ) {
 			return new ErrorResponse(
-				/* translators: %1$s: value */
+				/* translators: %s: file path */
 				sprintf( __( 'File not found or unreadable: %s', 'arraypress' ), $file_path ),
 				'file_not_found',
 				404,

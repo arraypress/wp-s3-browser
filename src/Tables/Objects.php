@@ -462,7 +462,7 @@ class Objects extends WP_List_Table {
 					$has_more = isset( $this->_pagination_args['continuation_token'] ) && $this->_pagination_args['continuation_token'];
 
 					echo esc_html( sprintf(
-						/* translators: %1$s: value */
+						/* translators: %s: number of items */
 						_n( '%s item', '%s items', $count, 'arraypress' ),
 						number_format_i18n( $count )
 					) );
@@ -549,7 +549,7 @@ class Objects extends WP_List_Table {
 		} catch ( Exception $e ) {
 			return new WP_Error(
 				'rest_list_objects_failed',
-				/* translators: %1$s: value */
+				/* translators: %s: error message */
 				sprintf( __( 'Error loading more items: %s', 'arraypress' ), $e->getMessage() ),
 				[ 'status' => 502 ]
 			);

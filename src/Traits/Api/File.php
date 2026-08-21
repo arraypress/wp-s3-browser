@@ -403,7 +403,7 @@ trait File {
 				$status_code,
 				$body,
 				sprintf(
-					/* translators: %1$s: origin, %2$s: value */
+					/* translators: %1$s: source object key, %2$s: destination object key */
 					__( 'Failed to copy object from %1$s to %2$s', 'arraypress' ),
 					"{$source_bucket}/{$source_key}",
 					"{$target_bucket}/{$target_key}"
@@ -417,7 +417,7 @@ trait File {
 			// Even if we can't parse the XML, the operation was successful
 			return new SuccessResponse(
 				sprintf(
-					/* translators: %1$s: origin, %2$s: value */
+					/* translators: %1$s: source object key, %2$s: destination object key */
 					__( 'Object copied from %1$s to %2$s', 'arraypress' ),
 					"{$source_bucket}/{$source_key}",
 					"{$target_bucket}/{$target_key}"
@@ -438,7 +438,7 @@ trait File {
 		// Return success response with metadata
 		return new SuccessResponse(
 			sprintf(
-				/* translators: %1$s: origin, %2$s: value */
+				/* translators: %1$s: source object key, %2$s: destination object key */
 				__( 'Object copied from %1$s to %2$s', 'arraypress' ),
 				"{$source_bucket}/{$source_key}",
 				"{$target_bucket}/{$target_key}"

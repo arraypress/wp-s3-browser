@@ -211,7 +211,7 @@ class Buckets extends WP_List_Table {
 					<?php
 					$count = count( $this->items );
 					echo esc_html( sprintf(
-						/* translators: %1$s: value */
+						/* translators: %s: number of buckets */
 						_n( '%s bucket', '%s buckets', $count, 'arraypress' ),
 						number_format_i18n( $count )
 					) );

@@ -88,7 +88,7 @@ trait Bucket {
 		$location = Extract::location( $xml, $this->provider->get_region() );
 
 		return new SuccessResponse(
-			/* translators: %1$s: value */
+			/* translators: %s: bucket name */
 			sprintf( __( 'Bucket location retrieved for "%s"', 'arraypress' ), $bucket ),
 			$status_code,
 			[

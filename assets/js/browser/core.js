@@ -573,6 +573,7 @@
             'uploadUrl':          {method: 'POST',   path: '/buckets/{bucket}/objects/upload-url', rename: {object_key: 'key'}},
             'deleteObject':           {method: 'DELETE', path: '/buckets/{bucket}/objects'},
             'renameObject':           {method: 'PATCH',  path: '/buckets/{bucket}/objects'},
+            'objectReferences':       {method: 'GET',    path: '/buckets/{bucket}/objects/references'},
             'downloadUrl':       {method: 'POST',   path: '/buckets/{bucket}/objects/download-url', rename: {object_key: 'key'}},
             'createFolder':           {method: 'POST',   path: '/buckets/{bucket}/folders'},
             'deleteFolder':           {method: 'DELETE', path: '/buckets/{bucket}/folders'},

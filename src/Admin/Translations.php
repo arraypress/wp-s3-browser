@@ -55,6 +55,10 @@ class Translations {
 				'filenameInvalid'  => __( 'Filename contains invalid characters', 'arraypress' ),
 				'filenameTooLong'  => __( 'Filename is too long', 'arraypress' ),
 				'filenameSame'     => __( 'The new filename is the same as the current filename', 'arraypress' ),
+				'referencedByOne'  => __( 'One product links to this file', 'arraypress' ),
+				/* translators: %d: number of products linking to the file */
+				'referencedByMany' => __( '%d products link to this file', 'arraypress' ),
+				'referencesUpdated' => __( 'Their links will be updated to the new name automatically.', 'arraypress' ),
 			],
 			'folders' => [
 				'newFolder'                 => __( 'New Folder', 'arraypress' ),
