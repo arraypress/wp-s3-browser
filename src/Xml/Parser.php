@@ -80,6 +80,12 @@ class Parser {
 		// LIBXML_NOENT is deliberately absent. Despite the name it *substitutes*
 		// entities, which is exactly what enables XXE and billion-laughs. The
 		// default (no substitution) plus NONET is the safe combination.
+		// The warning is suppressed because the errors are collected from
+		// libxml_get_errors() below and returned properly. Without this a
+		// malformed provider response prints a PHP warning into whatever
+		// output is being generated. WordPress core does the same in
+		// SimplePie.
+		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
 		$xml = @simplexml_load_string( $xml_string, SimpleXMLElement::class, LIBXML_NONET | LIBXML_NOCDATA );
 
 		$errors = libxml_get_errors();

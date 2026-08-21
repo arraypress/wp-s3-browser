@@ -25,5 +25,11 @@
              Foo.php. These are Composer libraries, so PSR-4 wins. A mismatch
              there is silently unloadable, and CI checks it separately. -->
         <exclude name="WordPress.Files.FileName"/>
+
+        <!-- Warns on parameters named $namespace, $object, $default. PHP does
+             not reserve any of these as parameter names, WordPress core uses
+             $namespace itself, and renaming them would make the signatures
+             worse to read, not better. -->
+        <exclude name="Universal.NamingConventions.NoReservedKeywordParameterNames"/>
     </rule>
 </ruleset>
