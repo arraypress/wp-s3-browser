@@ -74,38 +74,6 @@ trait Headers {
 	}
 
 	/**
-	 * Build headers for upload operations
-	 *
-	 * Creates headers for object upload operations with optional
-	 * content type and custom metadata.
-	 *
-	 * @param string $bucket       Bucket name
-	 * @param string $object_key   Object key
-	 * @param string $content_type Optional content type
-	 * @param array  $metadata     Optional custom metadata
-	 *
-	 * @return array Complete headers array for upload operation
-	 */
-	protected function build_upload_headers(
-		string $bucket,
-		string $object_key,
-		string $content_type = 'application/octet-stream',
-		array $metadata = []
-	): array {
-		$encoded_key = Encode::object_key( $object_key );
-		$headers = $this->generate_auth_headers( 'PUT', $bucket, $encoded_key );
-
-		$headers['Content-Type'] = $content_type;
-
-		// Add custom metadata
-		foreach ( $metadata as $key => $value ) {
-			$headers['x-amz-meta-' . $key] = $value;
-		}
-
-		return $headers;
-	}
-
-	/**
 	 * Build headers for HEAD operations
 	 *
 	 * Creates headers for HEAD requests to get object metadata.
@@ -118,36 +86,6 @@ trait Headers {
 	protected function build_head_headers( string $bucket, string $object_key ): array {
 		$encoded_key = Encode::object_key( $object_key );
 		return $this->generate_auth_headers( 'HEAD', $bucket, $encoded_key );
-	}
-
-	/**
-	 * Build headers for multipart upload operations
-	 *
-	 * Creates headers for multipart upload initiation, parts, and completion.
-	 *
-	 * @param string $bucket       Bucket name
-	 * @param string $object_key   Object key
-	 * @param string $method       HTTP method (POST for initiate, PUT for parts)
-	 * @param array  $query_params Query parameters for the operation
-	 * @param string $content_type Optional content type
-	 *
-	 * @return array Complete headers array for multipart operation
-	 */
-	protected function build_multipart_headers(
-		string $bucket,
-		string $object_key,
-		string $method,
-		array $query_params = [],
-		string $content_type = 'application/octet-stream'
-	): array {
-		$encoded_key = Encode::object_key( $object_key );
-		$headers = $this->generate_auth_headers( $method, $bucket, $encoded_key, $query_params );
-
-		if ( $method === 'POST' || $method === 'PUT' ) {
-			$headers['Content-Type'] = $content_type;
-		}
-
-		return $headers;
 	}
 
 	/**

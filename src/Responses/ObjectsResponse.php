@@ -168,33 +168,6 @@ class ObjectsResponse extends Response {
 	}
 
 	/**
-	 * Get next page URL for admin interface
-	 *
-	 * @param string $bucket     Bucket name
-	 * @param string $prefix     Current prefix
-	 * @param string $admin_url  Base admin URL (required)
-	 * @param array  $query_args Additional query args to add
-	 *
-	 * @return string|null URL for the next page or null if not truncated
-	 */
-	public function get_next_page_url( string $bucket, string $prefix, string $admin_url, array $query_args = [] ): ?string {
-		// If not truncated or no token, no next page
-		if ( ! $this->is_truncated() || empty( $this->continuation_token ) || empty( $admin_url ) ) {
-			return null;
-		}
-
-		// Add bucket, prefix, and continuation token to query args
-		$args = array_merge( [
-			'bucket'             => $bucket,
-			'prefix'             => $prefix,
-			'continuation_token' => urlencode( $this->continuation_token )
-		], $query_args );
-
-		// Build the URL
-		return add_query_arg( $args, $admin_url );
-	}
-
-	/**
 	 * Convert response to array
 	 *
 	 * @return array Response as array

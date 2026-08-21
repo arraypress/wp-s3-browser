@@ -452,43 +452,4 @@ trait Batch {
 		}
 	}
 
-	/**
-	 * Ensure a folder is completely removed including any placeholder objects
-	 *
-	 * @param string $bucket      Bucket name
-	 * @param string $folder_path Folder path
-	 *
-	 * @return ResponseInterface Response
-	 */
-	public function cleanup_folder_after_deletion( string $bucket, string $folder_path ): ResponseInterface {
-		$normalized_path = Directory::normalize( $folder_path );
-
-		// Try to delete the folder placeholder object
-		$placeholder_result = $this->delete_object( $bucket, $normalized_path );
-
-		// Check if the folder still appears in listings
-		$check_result = $this->folder_exists( $bucket, $folder_path );
-		if ( $check_result->is_successful() ) {
-			$data = $check_result->get_data();
-			if ( $data['exists'] ) {
-				// Folder still exists, try to list and delete any remaining objects
-				$remaining_objects = $this->get_object_models( $bucket, 100, $normalized_path, '' );
-				if ( $remaining_objects->is_successful() ) {
-					$remaining_data = $remaining_objects->get_data();
-					if ( ! empty( $remaining_data['objects'] ) ) {
-						foreach ( $remaining_data['objects'] as $object ) {
-							$this->delete_object( $bucket, $object->get_key() );
-						}
-					}
-				}
-			}
-		}
-
-		return new SuccessResponse(
-			sprintf( __( 'Folder cleanup completed for "%s"', 'arraypress' ), $normalized_path ),
-			200,
-			[ 'folder_path' => $normalized_path ]
-		);
-	}
-
 }

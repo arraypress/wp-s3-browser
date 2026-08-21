@@ -133,15 +133,6 @@ class CloudflareR2 extends Provider {
 	}
 
 	/**
-	 * Check if account ID is required
-	 *
-	 * @return bool
-	 */
-	public function requires_account_id(): bool {
-		return true;
-	}
-
-	/**
 	 * Get the region for signing
 	 *
 	 * Cloudflare R2 always uses 'auto' for signing region
@@ -150,27 +141,6 @@ class CloudflareR2 extends Provider {
 	 */
 	public function get_region(): string {
 		return 'auto';
-	}
-
-	/**
-	 * Check if the provider supports public buckets
-	 *
-	 * @return bool
-	 */
-	public function supports_public_buckets(): bool {
-		return true;
-	}
-
-	/**
-	 * Build public bucket URL for Cloudflare R2
-	 *
-	 * @param string $account_id Cloudflare account ID
-	 * @param string $bucket     Bucket name
-	 *
-	 * @return string Public bucket URL
-	 */
-	public static function build_public_url( string $account_id, string $bucket ): string {
-		return 'https://' . $bucket . '.' . $account_id . '.r2.dev';
 	}
 
 }

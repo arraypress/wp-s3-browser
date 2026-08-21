@@ -98,13 +98,6 @@ interface Provider {
 	public function get_default_region(): string;
 
 	/**
-	 * Check if account ID is required
-	 *
-	 * @return bool
-	 */
-	public function requires_account_id(): bool;
-
-	/**
 	 * Check if a region is valid for this provider
 	 *
 	 * @param string $region Region code to check

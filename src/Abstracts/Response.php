@@ -75,15 +75,6 @@ abstract class Response implements ResponseInterface {
 	}
 
 	/**
-	 * Get raw response data
-	 *
-	 * @return mixed
-	 */
-	public function get_raw_data() {
-		return $this->raw_data;
-	}
-
-	/**
 	 * Base implementation for to_array
 	 *
 	 * @return array

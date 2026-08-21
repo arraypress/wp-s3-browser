@@ -67,22 +67,4 @@ class Encode {
 		return str_replace( '%2F', '/', rawurlencode( $decoded ) );
 	}
 
-	/**
-	 * Encode an object key, returning null instead of throwing
-	 *
-	 * For callers that want to branch on a rejected key rather than handle an
-	 * exception.
-	 *
-	 * @param string $object_key S3 object key to encode
-	 *
-	 * @return string|null Encoded key, or null if the key was rejected
-	 */
-	public static function try_object_key( string $object_key ): ?string {
-		try {
-			return self::object_key( $object_key );
-		} catch ( InvalidArgumentException $e ) {
-			return null;
-		}
-	}
-
 }

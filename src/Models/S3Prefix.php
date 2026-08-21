@@ -17,7 +17,6 @@ namespace ArrayPress\S3\Models;
 
 use ArrayPress\S3\Utils\Directory;
 
-
 /**
  * Class S3Prefix
  */
@@ -85,30 +84,6 @@ class S3Prefix {
 	}
 
 	/**
-	 * Get admin URL for browsing this prefix
-	 *
-	 * @param string $bucket     Bucket name
-	 * @param string $admin_url  Base admin URL (required)
-	 * @param array  $query_args Additional query args to add
-	 *
-	 * @return string URL for browsing this prefix
-	 */
-	public function get_admin_url( string $bucket, string $admin_url, array $query_args = [] ): string {
-		if ( empty( $admin_url ) ) {
-			return '';
-		}
-
-		// Merge provided query args with required ones
-		$args = array_merge( [
-			'bucket' => $bucket,
-			'prefix' => $this->prefix
-		], $query_args );
-
-		// Add query parameters
-		return add_query_arg( $args, $admin_url );
-	}
-
-	/**
 	 * Convert to array
 	 *
 	 * @return array
@@ -121,17 +96,6 @@ class S3Prefix {
 			'IsRootLevel'  => $this->is_root_level(),
 			'PathParts'    => $this->get_path_parts()
 		];
-	}
-
-	/**
-	 * Create from string
-	 *
-	 * @param string $prefix Prefix string
-	 *
-	 * @return self
-	 */
-	public static function from_string( string $prefix ): self {
-		return new self( $prefix );
 	}
 
 }

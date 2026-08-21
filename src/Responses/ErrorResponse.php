@@ -130,17 +130,4 @@ class ErrorResponse extends Response {
 		return $array;
 	}
 
-	/**
-	 * Convert to WP_Error
-	 *
-	 * @return WP_Error
-	 */
-	public function to_wp_error(): WP_Error {
-		return new WP_Error(
-			$this->error_code,
-			$this->error_message,
-			$this->error_data
-		);
-	}
-
 }

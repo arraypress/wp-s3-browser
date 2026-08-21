@@ -23,24 +23,6 @@ use ArrayPress\S3\Utils\Xml;
 trait Pagination {
 
 	/**
-	 * Check if XML array represents truncated results (S3-specific)
-	 *
-	 * @param array $xml XML array
-	 *
-	 * @return bool True if truncated
-	 */
-	protected function is_truncated_response( array $xml ): bool {
-		$truncated_value = Xml::find_value( $xml, 'IsTruncated' );
-		if ( $truncated_value !== null ) {
-			$text_value = $this->extract_text_value( $truncated_value );
-
-			return $text_value === 'true' || $text_value === '1';
-		}
-
-		return false;
-	}
-
-	/**
 	 * Get next continuation token from XML (S3-specific)
 	 *
 	 * @param array $xml XML array

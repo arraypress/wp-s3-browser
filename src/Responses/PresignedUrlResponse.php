@@ -65,15 +65,6 @@ class PresignedUrlResponse extends Response {
 	}
 
 	/**
-	 * Get expiration timestamp
-	 *
-	 * @return int|null
-	 */
-	public function get_expires_at(): ?int {
-		return $this->expires_at;
-	}
-
-	/**
 	 * Check if URL has expired
 	 *
 	 * @return bool

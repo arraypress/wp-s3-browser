@@ -50,17 +50,6 @@ class Mime {
 	}
 
 	/**
-	 * Merge additional MIME types with existing ones
-	 *
-	 * @param array $existing_mime_types Existing mime types array
-	 *
-	 * @return array Merged mime types
-	 */
-	public static function merge_additional_types( array $existing_mime_types ): array {
-		return array_merge( $existing_mime_types, self::get_additional_types() );
-	}
-
-	/**
 	 * Get WordPress allowed MIME types
 	 *
 	 * @param string|null $context Optional context for filtering (e.g., 'woocommerce', 'edd')

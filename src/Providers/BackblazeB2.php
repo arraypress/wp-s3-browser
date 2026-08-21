@@ -118,33 +118,4 @@ class BackblazeB2 extends Provider {
 		);
 	}
 
-	/**
-	 * Check if account ID is required
-	 *
-	 * @return bool
-	 */
-	public function requires_account_id(): bool {
-		return false;
-	}
-
-	/**
-	 * Check if provider supports public buckets
-	 *
-	 * @return bool
-	 */
-	public function supports_public_buckets(): bool {
-		return true;
-	}
-
-	/**
-	 * Set account ID
-	 *
-	 * @param string $account_id Backblaze account ID
-	 *
-	 * @return self
-	 */
-	public function set_account_id( string $account_id ): self {
-		return $this->set_param( 'account_id', $account_id );
-	}
-
 }

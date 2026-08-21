@@ -116,13 +116,4 @@ class VultrObjectStorage extends Provider {
 		);
 	}
 
-	/**
-	 * Check if account ID is required
-	 *
-	 * @return bool
-	 */
-	public function requires_account_id(): bool {
-		return false;
-	}
-
 }

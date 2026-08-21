@@ -191,36 +191,4 @@ class LinodeObjectStorage extends Provider {
 		return $this->regions[ $this->region ]['endpoint'];
 	}
 
-	/**
-	 * Check if account ID is required
-	 *
-	 * @return bool
-	 */
-	public function requires_account_id(): bool {
-		return false;
-	}
-
-	/**
-	 * Check if provider supports public buckets
-	 *
-	 * @return bool
-	 */
-	public function supports_public_buckets(): bool {
-		return true;
-	}
-
-	/**
-	 * Enable static website for a bucket
-	 *
-	 * @param string $bucket  Bucket name
-	 * @param bool   $enabled Whether to enable or disable
-	 *
-	 * @return self
-	 */
-	public function set_website_enabled( string $bucket, bool $enabled = true ): self {
-		$this->params[ 'website_enabled_' . $bucket ] = $enabled;
-
-		return $this;
-	}
-
 }

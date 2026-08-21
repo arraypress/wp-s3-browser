@@ -156,22 +156,6 @@ class S3Object {
 	}
 
 	/**
-	 * Check if ETag is likely a reliable MD5 hash
-	 *
-	 * @return bool True if ETag appears to be a valid MD5 hash
-	 */
-	public function has_reliable_md5(): bool {
-		$md5 = $this->get_md5_checksum();
-
-		if ( ! $md5 ) {
-			return false;
-		}
-
-		// MD5 hashes are exactly 32 hexadecimal characters
-		return preg_match( '/^[a-f0-9]{32}$/i', $md5 ) === 1;
-	}
-
-	/**
 	 * Check if this is a multipart upload
 	 *
 	 * @return bool
@@ -282,29 +266,6 @@ class S3Object {
 		$this->presigned_url = $response;
 
 		return $response instanceof PresignedUrlResponse ? $response->get_url() : $response;
-	}
-
-	/**
-	 * Get admin URL for viewing or downloading this object
-	 *
-	 * @param string $bucket     Bucket name
-	 * @param string $admin_url  Base admin URL (required)
-	 * @param array  $query_args Additional query args to add
-	 *
-	 * @return string URL for this object
-	 */
-	public function get_admin_url( string $bucket, string $admin_url, array $query_args = [] ): string {
-		if ( empty( $admin_url ) ) {
-			return '';
-		}
-
-		$args = array_merge( [
-			'bucket' => $bucket,
-			'object' => $this->key,
-			'action' => 'view'
-		], $query_args );
-
-		return add_query_arg( $args, $admin_url );
 	}
 
 	/**
@@ -425,17 +386,6 @@ class S3Object {
 			'IsMultipart'   => $this->is_multipart(),
 			'MD5Checksum'   => $this->get_md5_checksum()
 		];
-	}
-
-	/**
-	 * Create from array
-	 *
-	 * @param array $data Object data
-	 *
-	 * @return self
-	 */
-	public static function from_array( array $data ): self {
-		return new self( $data );
 	}
 
 }

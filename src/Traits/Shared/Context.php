@@ -47,40 +47,12 @@ trait Context {
 	}
 
 	/**
-	 * Check if a specific context is set
-	 *
-	 * @param string $context Context to check
-	 *
-	 * @return bool Whether the specified context matches the current context
-	 */
-	public function is_context( string $context ): bool {
-		return $this->context === $context;
-	}
-
-	/**
 	 * Check if any context is set
 	 *
 	 * @return bool Whether a context is currently set
 	 */
 	public function has_context(): bool {
 		return $this->context !== null;
-	}
-
-	/**
-	 * Apply a filter with context support
-	 *
-	 * @param string $filter_name Base filter name
-	 * @param mixed  $value       Value to filter
-	 * @param mixed  ...$args     Additional arguments for the filter
-	 *
-	 * @return mixed Filtered value
-	 */
-	protected function apply_context_filter( string $filter_name, $value, ...$args ) {
-		// Add context as the last parameter
-		$args[] = $this->context;
-
-		// Apply the filter
-		return apply_filters( $filter_name, $value, ...$args );
 	}
 
 	/**
@@ -159,32 +131,6 @@ trait Context {
 	 */
 	protected function get_action_name( string $action_base ): string {
 		return $action_base . '_' . $this->get_hook_suffix();
-	}
-
-	/**
-	 * Get a contextually-aware meta key
-	 *
-	 * Useful for user meta, post meta, etc.
-	 *
-	 * @param string $meta_base Base meta key
-	 *
-	 * @return string Full meta key with context
-	 */
-	protected function get_meta_key( string $meta_base ): string {
-		return $meta_base . '_' . $this->get_hook_suffix();
-	}
-
-	/**
-	 * Get a contextually-aware option name
-	 *
-	 * Useful for WordPress options
-	 *
-	 * @param string $option_base Base option name
-	 *
-	 * @return string Full option name with context
-	 */
-	protected function get_option_name( string $option_base ): string {
-		return $option_base . '_' . $this->get_hook_suffix();
 	}
 
 }

@@ -135,29 +135,6 @@ class BucketsResponse extends Response {
 	}
 
 	/**
-	 * Get next page URL for admin interface
-	 *
-	 * @param string $admin_url  Base admin URL (required)
-	 * @param array  $query_args Additional query args to add
-	 *
-	 * @return string|null URL for the next page or null if not truncated
-	 */
-	public function get_next_page_url( string $admin_url, array $query_args = [] ): ?string {
-		// If not truncated or no marker, no next page
-		if ( ! $this->is_truncated() || empty( $this->next_marker ) || empty( $admin_url ) ) {
-			return null;
-		}
-
-		// Add the marker to query params
-		$args = array_merge( [
-			'marker' => $this->next_marker
-		], $query_args );
-
-		// Build the URL
-		return add_query_arg( $args, $admin_url );
-	}
-
-	/**
 	 * Convert to array
 	 *
 	 * @return array

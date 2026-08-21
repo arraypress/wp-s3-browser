@@ -58,24 +58,4 @@ class Post {
 		return ! empty( get_post_meta( $post_id, '_s3_migration_date', true ) );
 	}
 
-	/**
-	 * Get S3 migration info for a post
-	 *
-	 * @param int $post_id Post ID
-	 *
-	 * @return array Migration info or empty array
-	 */
-	public static function get_migration_info( int $post_id ): array {
-		if ( ! self::is_migrated( $post_id ) ) {
-			return [];
-		}
-
-		return [
-			'date'   => get_post_meta( $post_id, '_s3_migration_date', true ),
-			'bucket' => get_post_meta( $post_id, '_s3_migration_bucket', true ),
-			'folder' => get_post_meta( $post_id, '_s3_migration_folder', true ),
-			'files'  => get_post_meta( $post_id, '_s3_migration_files', true ) ?: []
-		];
-	}
-
 }

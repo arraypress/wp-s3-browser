@@ -22,32 +22,4 @@ namespace ArrayPress\S3\Utils;
  */
 class Assets {
 
-	/**
-	 * Force load admin CSS without Browser initialization
-	 *
-	 * Use this when you need the admin styles (e.g., for validation sections)
-	 * but don't have credentials configured yet.
-	 *
-	 * @param string $handle Optional. Style handle. Default 's3-admin-components'.
-	 *
-	 * @return bool True if enqueued successfully, false otherwise
-	 */
-	public static function load_admin_css( string $handle = 's3-admin-components' ): bool {
-		// Check if already enqueued
-		if ( wp_style_is( $handle ) ) {
-			return true;
-		}
-
-		// Use this file's location to find assets
-		if ( function_exists( 'arraypress_enqueue_composer_style' ) ) {
-			return arraypress_enqueue_composer_style(
-				$handle,
-				__FILE__,
-				'css/admin.css'
-			);
-		}
-
-		return false;
-	}
-
 }

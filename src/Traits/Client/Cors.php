@@ -198,37 +198,6 @@ trait Cors {
 	}
 
 	/**
-	 * Check if a bucket has CORS configuration
-	 *
-	 * @param string $bucket    Bucket name
-	 * @param bool   $use_cache Whether to use cache
-	 *
-	 * @return ResponseInterface Response with CORS status
-	 */
-	public function has_cors_configuration( string $bucket, bool $use_cache = true ): ResponseInterface {
-		$cors_result = $this->get_cors_configuration( $bucket, $use_cache );
-
-		if ( ! $cors_result->is_successful() ) {
-			return $cors_result;
-		}
-
-		$data     = $cors_result->get_data();
-		$has_cors = $data['has_cors'] ?? false;
-
-		return new SuccessResponse(
-			$has_cors ?
-				sprintf( __( 'Bucket "%s" has CORS configuration', 'arraypress' ), $bucket ) :
-				sprintf( __( 'Bucket "%s" has no CORS configuration', 'arraypress' ), $bucket ),
-			200,
-			[
-				'bucket'      => $bucket,
-				'has_cors'    => $has_cors,
-				'rules_count' => $data['rules_count'] ?? 0
-			]
-		);
-	}
-
-	/**
 	 * Check if CORS allows uploads from specific origin
 	 *
 	 * @param string $bucket    Bucket name

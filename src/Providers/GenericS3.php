@@ -162,54 +162,6 @@ class GenericS3 extends Provider {
 	}
 
 	/**
-	 * Check if account ID is required
-	 *
-	 * @return bool
-	 */
-	public function requires_account_id(): bool {
-		return false;
-	}
-
-	/**
-	 * Set whether to use path-style URLs
-	 *
-	 * @param bool $use_path_style Whether to use path-style URLs
-	 *
-	 * @return self
-	 */
-	public function set_path_style( bool $use_path_style ): self {
-		$this->path_style = $use_path_style;
-
-		return $this;
-	}
-
-	/**
-	 * Set a service name for identifying this provider
-	 *
-	 * @param string $name Service name
-	 *
-	 * @return self
-	 */
-	public function set_service_name( string $name ): self {
-		$this->label = $name;
-
-		return $this;
-	}
-
-	/**
-	 * Override the region code used for signing
-	 *
-	 * @param string $signing_region Region code to use for signing
-	 *
-	 * @return self
-	 */
-	public function set_signing_region( string $signing_region ): self {
-		$this->params['signing_region'] = $signing_region;
-
-		return $this;
-	}
-
-	/**
 	 * Get region for signing
 	 *
 	 * @return string
@@ -224,27 +176,6 @@ class GenericS3 extends Provider {
 
 		// Otherwise use the current region
 		return $this->region;
-	}
-
-	/**
-	 * Set whether to use HTTPS
-	 *
-	 * @param bool $use_https Whether to use HTTPS (default: true)
-	 *
-	 * @return self
-	 * @throws InvalidArgumentException If HTTPS is being disabled in a non-dev context
-	 */
-	public function set_use_https( bool $use_https = true ): self {
-		if ( ! $use_https && ! self::dev_endpoints_allowed() ) {
-			throw new InvalidArgumentException(
-				'Refusing to disable HTTPS for an S3 endpoint. ' .
-				'Define ARRAYPRESS_S3_ALLOW_LOCAL_ENDPOINTS=true to allow plain HTTP for local development.'
-			);
-		}
-
-		$this->params['use_https'] = $use_https;
-
-		return $this;
 	}
 
 	/**

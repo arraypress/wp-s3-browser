@@ -147,27 +147,4 @@ class WasabiStorage extends Provider {
 		);
 	}
 
-	/**
-	 * Check if account ID is required
-	 *
-	 * @return bool
-	 */
-	public function requires_account_id(): bool {
-		return false;
-	}
-
-	/**
-	 * Set CDN domain for a bucket
-	 *
-	 * @param string $bucket     Bucket name
-	 * @param string $cdn_domain CDN domain (without protocol)
-	 *
-	 * @return self
-	 */
-	public function set_cdn_domain( string $bucket, string $cdn_domain ): self {
-		$this->params[ 'cdn_domain_' . $bucket ] = $cdn_domain;
-
-		return $this;
-	}
-
 }

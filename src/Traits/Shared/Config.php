@@ -34,28 +34,6 @@ trait Config {
 	private array $admin_hook = [];
 
 	/**
-	 * Set custom user agent for HTTP requests
-	 *
-	 * @param string $user_agent User agent string
-	 *
-	 * @return self
-	 */
-	public function set_user_agent( string $user_agent ): self {
-		$this->user_agent = $user_agent;
-
-		return $this;
-	}
-
-	/**
-	 * Get current user agent
-	 *
-	 * @return string Current user agent
-	 */
-	public function get_user_agent(): string {
-		return $this->user_agent;
-	}
-
-	/**
 	 * Get user agent with WordPress info (for better compatibility)
 	 *
 	 * @return string Enhanced user agent
@@ -100,24 +78,6 @@ trait Config {
 		} else {
 			$this->admin_hook = [];
 		}
-	}
-
-	/**
-	 * Get current admin hooks
-	 *
-	 * @return array Array of admin hook suffixes
-	 */
-	public function get_admin_hooks(): array {
-		return $this->admin_hook;
-	}
-
-	/**
-	 * Get current admin hook (backward compatibility - returns first hook)
-	 *
-	 * @return string|null Current admin hook
-	 */
-	public function get_admin_hook(): ?string {
-		return ! empty( $this->admin_hook ) ? $this->admin_hook[0] : null;
 	}
 
 	/**

@@ -55,15 +55,6 @@ final class EncodeTest extends TestCase {
 		Encode::object_key( "a\0b.txt" );
 	}
 
-	/**
-	 * Rejection must not fall through to the bucket root: returning '' here is
-	 * what turned a blocked traversal into an operation on the whole bucket.
-	 */
-	public function test_try_variant_returns_null_rather_than_empty(): void {
-		$this->assertNull( Encode::try_object_key( 'a/../b' ) );
-		$this->assertSame( 'a/b.txt', Encode::try_object_key( 'a/b.txt' ) );
-	}
-
 	public function test_encodes_unicode(): void {
 		$this->assertSame(
 			'Kits/D%C3%A9j%C3%A0%20vu.zip',

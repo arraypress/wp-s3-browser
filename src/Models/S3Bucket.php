@@ -87,26 +87,6 @@ class S3Bucket {
 	}
 
 	/**
-	 * Get admin URL for viewing this bucket
-	 *
-	 * @param string $admin_url  Base admin URL (required)
-	 * @param array  $query_args Additional query args to add
-	 *
-	 * @return string URL for viewing this bucket
-	 */
-	public function get_admin_url( string $admin_url, array $query_args = [] ): string {
-		if ( empty( $admin_url ) ) {
-			return '';
-		}
-
-		$args = array_merge( [
-			'bucket' => $this->name
-		], $query_args );
-
-		return add_query_arg( $args, $admin_url );
-	}
-
-	/**
 	 * Convert to array
 	 *
 	 * @return array
@@ -118,17 +98,6 @@ class S3Bucket {
 			'Region'        => $this->region,
 			'FormattedDate' => $this->get_creation_date( true )
 		];
-	}
-
-	/**
-	 * Create from array
-	 *
-	 * @param array $data Bucket data
-	 *
-	 * @return self
-	 */
-	public static function from_array( array $data ): self {
-		return new self( $data );
 	}
 
 }

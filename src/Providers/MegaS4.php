@@ -119,22 +119,4 @@ class MegaS4 extends Provider {
 		return str_replace( '{region}', $this->region, $this->endpoint_pattern );
 	}
 
-	/**
-	 * Check if account ID is required
-	 *
-	 * @return bool
-	 */
-	public function requires_account_id(): bool {
-		return true;
-	}
-
-	/**
-	 * Get IAM endpoint for this provider
-	 *
-	 * @return string
-	 */
-	public function get_iam_endpoint(): string {
-		return 'iam.' . $this->get_endpoint();
-	}
-
 }

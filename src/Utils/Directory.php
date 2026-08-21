@@ -197,17 +197,6 @@ class Directory {
 	}
 
 	/**
-	 * Check if object key represents a folder (ends with /)
-	 *
-	 * @param string $object_key Object key to check
-	 *
-	 * @return bool True if it represents a folder
-	 */
-	public static function is_folder( string $object_key ): bool {
-		return str_ends_with( $object_key, '/' );
-	}
-
-	/**
 	 * Get the depth level of a path (number of folder levels)
 	 *
 	 * @param string $path Path to analyze

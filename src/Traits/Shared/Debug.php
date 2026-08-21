@@ -191,15 +191,6 @@ trait Debug {
 	}
 
 	/**
-	 * Check if debug mode is enabled
-	 *
-	 * @return bool
-	 */
-	public function is_debug_enabled(): bool {
-		return $this->debug;
-	}
-
-	/**
 	 * Set a custom debug callback function
 	 *
 	 * @param callable $callback Function to call for debug logging
@@ -209,17 +200,6 @@ trait Debug {
 	 */
 	public function set_debug_callback( callable $callback ): self {
 		$this->debug_callback = $callback;
-
-		return $this;
-	}
-
-	/**
-	 * Remove the debug callback (fallback to error_log)
-	 *
-	 * @return self
-	 */
-	public function remove_debug_callback(): self {
-		$this->debug_callback = null;
 
 		return $this;
 	}

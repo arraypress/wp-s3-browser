@@ -62,19 +62,6 @@ trait Caching {
 	}
 
 	/**
-	 * Set cache enabled/disabled
-	 *
-	 * @param bool $enabled Whether to enable cache
-	 *
-	 * @return self
-	 */
-	public function set_cache_enabled( bool $enabled ): self {
-		$this->cache_enabled = $enabled;
-
-		return $this;
-	}
-
-	/**
 	 * Generate cache key
 	 *
 	 * The key folds in two monotonic "generation" counters — one global, one

@@ -94,20 +94,6 @@ trait Permissions {
 	}
 
 	/**
-	 * Check if the current key can read from the bucket
-	 *
-	 * @param string $bucket    Bucket name
-	 * @param bool   $use_cache Whether to use cached results
-	 *
-	 * @return bool
-	 */
-	public function can_read( string $bucket, bool $use_cache = true ): bool {
-		$permissions = $this->check_key_permissions( $bucket, $use_cache );
-
-		return $permissions['read'] ?? false;
-	}
-
-	/**
 	 * Check if the current key can write to the bucket
 	 *
 	 * @param string $bucket    Bucket name
@@ -119,64 +105,6 @@ trait Permissions {
 		$permissions = $this->check_key_permissions( $bucket, $use_cache );
 
 		return $permissions['write'] ?? false;
-	}
-
-	/**
-	 * Check if the current key can upload to the bucket (alias for can_write)
-	 *
-	 * @param string $bucket    Bucket name
-	 * @param bool   $use_cache Whether to use cached results
-	 *
-	 * @return bool
-	 */
-	public function can_upload( string $bucket, bool $use_cache = true ): bool {
-		return $this->can_write( $bucket, $use_cache );
-	}
-
-	/**
-	 * Check if the current key can delete from the bucket
-	 *
-	 * @param string $bucket    Bucket name
-	 * @param bool   $use_cache Whether to use cached results
-	 *
-	 * @return bool
-	 */
-	public function can_delete( string $bucket, bool $use_cache = true ): bool {
-		$permissions = $this->check_key_permissions( $bucket, $use_cache );
-
-		return $permissions['delete'] ?? false;
-	}
-
-	/**
-	 * Check if the current key has full access (read, write, delete)
-	 *
-	 * @param string $bucket    Bucket name
-	 * @param bool   $use_cache Whether to use cached results
-	 *
-	 * @return bool
-	 */
-	public function has_full_access( string $bucket, bool $use_cache = true ): bool {
-		$permissions = $this->check_key_permissions( $bucket, $use_cache );
-
-		return ( $permissions['read'] ?? false ) &&
-		       ( $permissions['write'] ?? false ) &&
-		       ( $permissions['delete'] ?? false );
-	}
-
-	/**
-	 * Clear cached permissions for a specific bucket or all buckets
-	 *
-	 * @param string|null $bucket Specific bucket or null for all
-	 *
-	 * @return void
-	 */
-	public function clear_permissions_cache( ?string $bucket = null ): void {
-		if ( $bucket === null ) {
-			$this->cached_permissions = [];
-		} else {
-			$cache_key = $this->get_permissions_cache_key( $bucket );
-			unset( $this->cached_permissions[ $cache_key ] );
-		}
 	}
 
 	/**

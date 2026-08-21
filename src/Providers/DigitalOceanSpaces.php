@@ -116,27 +116,6 @@ class DigitalOceanSpaces extends Provider {
 	}
 
 	/**
-	 * Check if account ID is required
-	 *
-	 * @return bool
-	 */
-	public function requires_account_id(): bool {
-		return false;
-	}
-
-	/**
-	 * Set a custom CDN domain for a bucket
-	 *
-	 * @param string $bucket Bucket name
-	 * @param string $domain Custom CDN domain (without protocol)
-	 *
-	 * @return self
-	 */
-	public function set_custom_cdn( string $bucket, string $domain ): self {
-		return $this->set_param( 'custom_cdn_' . $bucket, $domain );
-	}
-
-	/**
 	 * Format URL specifically for DigitalOcean Spaces
 	 *
 	 * Overrides the parent method to handle CDN URLs when requested
@@ -153,47 +132,6 @@ class DigitalOceanSpaces extends Provider {
 		}
 
 		return parent::format_url( $bucket, $object );
-	}
-
-	/**
-	 * Enable edge caching with custom TTL
-	 *
-	 * @param int $ttl TTL in seconds
-	 *
-	 * @return self
-	 */
-	public function enable_edge_caching( int $ttl = 3600 ): self {
-		$this->set_param( 'edge_caching', true );
-		$this->set_param( 'edge_caching_ttl', $ttl );
-
-		return $this;
-	}
-
-	/**
-	 * Disable edge caching
-	 *
-	 * @return self
-	 */
-	public function disable_edge_caching(): self {
-		return $this->set_param( 'edge_caching', false );
-	}
-
-	/**
-	 * Check if edge caching is enabled
-	 *
-	 * @return bool
-	 */
-	public function is_edge_caching_enabled(): bool {
-		return (bool) $this->get_param( 'edge_caching', false );
-	}
-
-	/**
-	 * Get edge caching TTL
-	 *
-	 * @return int TTL in seconds
-	 */
-	public function get_edge_caching_ttl(): int {
-		return (int) $this->get_param( 'edge_caching_ttl', 3600 );
 	}
 
 }

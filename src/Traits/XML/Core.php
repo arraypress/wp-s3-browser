@@ -201,18 +201,6 @@ trait Core {
 	}
 
 	/**
-	 * Get a value from a dot-notation path in an array (uses utility)
-	 *
-	 * @param array  $array The array to search
-	 * @param string $path  Dot notation path (e.g. "Buckets.Bucket")
-	 *
-	 * @return mixed|null The value or null if not found
-	 */
-	protected function get_value_from_path( array $array, string $path ) {
-		return Xml::get_value( $array, $path );
-	}
-
-	/**
 	 * Process XML namespaces
 	 *
 	 * WordPress pattern: Handle namespaced elements with depth tracking.

@@ -249,16 +249,6 @@ abstract class Provider implements ProviderInterface {
 	}
 
 	/**
-	 * Check if account ID is required
-	 * Override in specific providers
-	 *
-	 * @return bool
-	 */
-	public function requires_account_id(): bool {
-		return false;
-	}
-
-	/**
 	 * Get parameter value
 	 *
 	 * @param string $key     Parameter key
