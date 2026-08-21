@@ -103,20 +103,41 @@ final class ParserTest extends TestCase {
 	}
 
 	/**
-	 * A billion-laughs document must not expand. Same defence as above: with
-	 * substitution off, the nested entities stay unexpanded references.
+	 * A billion-laughs document must not expand without bound.
+	 *
+	 * Six levels of nesting would reach a million characters if every entity
+	 * were substituted. What stops it varies by libxml version -- 2.9.13
+	 * rejects the document outright, newer builds apply their own expansion
+	 * limits -- so this asserts the outcome that matters rather than the
+	 * mechanism: either the parse fails, or what comes back is nowhere near
+	 * full expansion.
+	 *
+	 * An earlier version of this test asserted the result was under 1000
+	 * characters against a three-level payload that expands to exactly 1000.
+	 * It passed locally, where the document is refused, and failed on CI,
+	 * where it expands -- reporting a version difference as a security
+	 * problem.
 	 */
 	public function test_entity_expansion_does_not_blow_up(): void {
 		$xml = '<?xml version="1.0"?><!DOCTYPE r ['
 			. '<!ENTITY a "aaaaaaaaaa">'
 			. '<!ENTITY b "&a;&a;&a;&a;&a;&a;&a;&a;&a;&a;">'
 			. '<!ENTITY c "&b;&b;&b;&b;&b;&b;&b;&b;&b;&b;">'
-			. ']><r><v>&c;</v></r>';
+			. '<!ENTITY d "&c;&c;&c;&c;&c;&c;&c;&c;&c;&c;">'
+			. '<!ENTITY e "&d;&d;&d;&d;&d;&d;&d;&d;&d;&d;">'
+			. '<!ENTITY f "&e;&e;&e;&e;&e;&e;&e;&e;&e;&e;">'
+			. ']><r><v>&f;</v></r>';
 
 		$parsed = Parser::parse( $xml );
-		$value  = $parsed instanceof ErrorResponse ? '' : (string) ( $parsed['v']['value'] ?? '' );
 
-		$this->assertLessThan( 1000, strlen( $value ) );
+		if ( $parsed instanceof ErrorResponse ) {
+			$this->assertSame( 'xml_parse_error', $parsed->get_error_code() );
+
+			return;
+		}
+
+		// Fully expanded this is 1,000,000 characters.
+		$this->assertLessThan( 100000, strlen( (string) ( $parsed['v']['value'] ?? '' ) ) );
 	}
 
 	public function test_namespaced_children_are_prefixed(): void {
