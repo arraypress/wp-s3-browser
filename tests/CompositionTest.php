@@ -96,6 +96,64 @@ final class CompositionTest extends TestCase {
 	}
 
 	/**
+	 * Every $this->property reachable in a class or its traits must be
+	 * declared somewhere on the composed class.
+	 *
+	 * The same hazard as the method check, and it has already happened twice:
+	 * Shared\Config gave Api an admin-hook list it never used, and
+	 * Shared\Context read $this->provider_id while Client, which composed it,
+	 * had no such property. Both were latent -- fatal only once someone called
+	 * the method that touched them.
+	 */
+	#[DataProvider( 'composed_classes' )]
+	public function test_every_internal_property_resolves( string $class ): void {
+		$reflection = new ReflectionClass( $class );
+
+		$defined = [];
+		foreach ( $reflection->getProperties() as $property ) {
+			$defined[ $property->getName() ] = true;
+		}
+
+		$unresolved = [];
+		foreach ( $this->internal_properties( $reflection ) as $name ) {
+			if ( ! isset( $defined[ $name ] ) ) {
+				$unresolved[] = '$' . $name;
+			}
+		}
+
+		$this->assertSame(
+			[],
+			$unresolved,
+			$reflection->getShortName() . ' reads properties nothing declares: ' . implode( ', ', $unresolved )
+		);
+	}
+
+	/**
+	 * Collect $this->property from a class file and every trait it composes.
+	 *
+	 * @param ReflectionClass $reflection Class to scan.
+	 *
+	 * @return array<int, string> Property names.
+	 */
+	private function internal_properties( ReflectionClass $reflection ): array {
+		$names = [];
+
+		foreach ( $this->source_files( $reflection ) as $file ) {
+			// $this->foo not followed by '(' -- a property read rather than a
+			// method call. The \b matters: without it the name part backtracks
+			// so the lookahead can succeed, and every name loses its last
+			// character.
+			preg_match_all( '/\$this->([a-z_][a-z0-9_]*)\b(?!\s*\()/i', (string) file_get_contents( $file ), $found );
+
+			foreach ( $found[1] as $name ) {
+				$names[ $name ] = $name;
+			}
+		}
+
+		return array_values( $names );
+	}
+
+	/**
 	 * Collect $this->foo( from a class file and every trait it composes.
 	 *
 	 * @param ReflectionClass $reflection Class to scan.
@@ -103,6 +161,27 @@ final class CompositionTest extends TestCase {
 	 * @return array<string, string> Lowercased name => name as written.
 	 */
 	private function internal_calls( ReflectionClass $reflection ): array {
+		$calls = [];
+
+		foreach ( $this->source_files( $reflection ) as $file ) {
+			preg_match_all( '/\$this->([a-z_][a-z0-9_]*)\s*\(/i', (string) file_get_contents( $file ), $found );
+
+			foreach ( $found[1] as $name ) {
+				$calls[ strtolower( $name ) ] = $name;
+			}
+		}
+
+		return $calls;
+	}
+
+	/**
+	 * Every file contributing code to a composed class.
+	 *
+	 * @param ReflectionClass $reflection Class to scan.
+	 *
+	 * @return array<int, string> File paths.
+	 */
+	private function source_files( ReflectionClass $reflection ): array {
 		$files = [ $reflection->getFileName() ];
 
 		foreach ( $reflection->getTraits() as $trait ) {
@@ -117,16 +196,6 @@ final class CompositionTest extends TestCase {
 			$files[] = $parent->getFileName();
 		}
 
-		$calls = [];
-
-		foreach ( array_unique( array_filter( $files ) ) as $file ) {
-			preg_match_all( '/\$this->([a-z_][a-z0-9_]*)\s*\(/i', (string) file_get_contents( $file ), $found );
-
-			foreach ( $found[1] as $name ) {
-				$calls[ strtolower( $name ) ] = $name;
-			}
-		}
-
-		return $calls;
+		return array_values( array_unique( array_filter( $files ) ) );
 	}
 }

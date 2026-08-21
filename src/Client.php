@@ -41,7 +41,10 @@ class Client {
 	use File;
 	use PresignedUrls;
 	use Batch;
-	use Debug;
+	// Aliased so the override below can set the flag before propagating.
+	use Debug {
+		set_debug as private set_debug_flag;
+	}
 	use Context;
 	use Cors;
 	use Upload;
@@ -110,6 +113,25 @@ class Client {
 		if ( $context !== null ) {
 			$this->set_context( $context );
 		}
+	}
+
+	/**
+	 * Enable or disable debug output
+	 *
+	 * A client owns an Api with its own flag, and setting only one of them is
+	 * how debug output came to be unreachable: the canonical request, the
+	 * string to sign and the response body all come from the Api, and those
+	 * are exactly what a SignatureDoesNotMatch needs.
+	 *
+	 * @param bool $enable Whether to enable debug output.
+	 *
+	 * @return self
+	 */
+	public function set_debug( bool $enable ): self {
+		$this->set_debug_flag( $enable );
+		$this->api->set_debug( $enable );
+
+		return $this;
 	}
 
 	/**

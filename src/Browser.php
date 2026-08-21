@@ -280,6 +280,27 @@ class Browser {
 	}
 
 	/**
+	 * Get a suffix distinguishing this browser instance from another
+	 *
+	 * An EDD browser and a WooCommerce browser on the same site must not
+	 * share REST route bases, asset handles or media tab ids.
+	 *
+	 * @return string
+	 */
+	public function get_hook_suffix(): string {
+		return $this->has_context() ? $this->provider_id . '_' . $this->get_context() : $this->provider_id;
+	}
+
+	/**
+	 * Get the media uploader tab id for this browser
+	 *
+	 * @return string
+	 */
+	public function get_tab_id(): string {
+		return 's3_' . $this->get_hook_suffix();
+	}
+
+	/**
 	 * Set the admin page hook(s) this browser loads its assets on
 	 *
 	 * @param string|array $hook Hook suffix, or several.

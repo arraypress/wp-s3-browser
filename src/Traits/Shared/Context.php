@@ -82,35 +82,4 @@ trait Context {
 		return $value;
 	}
 
-	/**
-	 * Get a unique suffix based on provider and context
-	 *
-	 * Distinguishes one browser instance from another — an EDD one and a
-	 * WooCommerce one on the same site — in REST route bases and asset
-	 * handles.
-	 *
-	 * @return string Hook suffix for AJAX actions
-	 */
-	private function get_hook_suffix(): string {
-		if ( $this->has_context() ) {
-			return $this->provider_id . '_' . $this->get_context();
-		}
-
-		// Fallback to just provider ID
-		return $this->provider_id;
-	}
-
-	/**
-	 * Get the tab ID for media uploader tabs
-	 *
-	 * This consistently returns the tab ID with 's3_' prefix
-	 *
-	 * @return string Tab ID for media uploader
-	 */
-	protected function get_tab_id(): string {
-		return 's3_' . $this->get_hook_suffix();
-	}
-
-
-
 }

@@ -33,6 +33,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		. "\tclass WP_List_Table {\n"
 		. "\t\tpublic \$items = [];\n"
 		. "\t\tprotected \$_pagination_args = [];\n"
+		. "\t\tprotected \$_column_headers = [];\n"
 		. "\t\tpublic function __construct( \$args = [] ) {}\n"
 		. "\t\tpublic function set_pagination_args( \$args ) { \$this->_pagination_args = \$args; }\n"
 		. "\t\tpublic function row_actions( \$actions, \$always_visible = false ) { return ''; }\n"
