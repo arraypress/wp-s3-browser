@@ -88,7 +88,13 @@ class Client {
 		$this->provider = $provider;
 		$this->signer   = new Signer( $provider, $access_key, $secret_key );
 		$this->init_cache( $use_cache, $cache_ttl );
-		$this->debug = $debug;
+
+		// Both objects carry their own debug flag, so setting only this one
+		// left every debug call in the request path silently disabled — the
+		// canonical request, the string to sign, the response body. Those are
+		// exactly what a SignatureDoesNotMatch needs, and asking for debug got
+		// you none of them.
+		$this->set_debug( $debug );
 
 		// Set context if provided
 		if ( $context !== null ) {

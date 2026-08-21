@@ -29,7 +29,6 @@ use ArrayPress\S3\Traits\Signer\Batch;
 use ArrayPress\S3\Traits\Signer\Headers;
 use ArrayPress\S3\Traits\Signer\Cors;
 use ArrayPress\S3\Traits\Shared\Debug;
-use ArrayPress\S3\Traits\Shared\Context;
 use ArrayPress\S3\Traits\Shared\Config;
 use ArrayPress\S3\Traits\Shared\Timeouts;
 
@@ -48,7 +47,6 @@ class Signer implements SignerInterface {
 	use Batch;
 	use Headers;
 	use Debug;
-	use Context;
 	use Config;
 	use Timeouts;
 	use Cors;

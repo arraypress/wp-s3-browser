@@ -187,6 +187,16 @@ trait Debug {
 	public function set_debug( bool $enable ): self {
 		$this->debug = $enable;
 
+		// A Client owns a Signer with its own flag. Toggling one and not the
+		// other is how debug output came to be unreachable.
+		//
+		// Not `instanceof self`: inside a trait that resolves to the composing
+		// class, so it would ask whether a Signer is a Client and always say
+		// no.
+		if ( isset( $this->signer ) && is_object( $this->signer ) && method_exists( $this->signer, 'set_debug' ) ) {
+			$this->signer->set_debug( $enable );
+		}
+
 		return $this;
 	}
 
