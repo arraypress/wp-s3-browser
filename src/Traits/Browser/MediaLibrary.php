@@ -176,15 +176,13 @@ trait MediaLibrary {
             <div class="s3-toolbar-buttons">
                 <!-- Use WordPress native button classes -->
                 <button type="button" id="s3-toggle-upload" class="button button-primary">
-                    <span class="dashicons dashicons-upload"></span>
-                    <?php esc_html_e( 'Upload Files', 'arraypress' ); ?>
+					<?php esc_html_e( 'Upload Files', 'arraypress' ); ?>
                 </button>
 
                 <button type="button" id="s3-create-folder" class="button button-secondary"
                         data-bucket="<?php echo esc_attr( $bucket ); ?>"
                         data-prefix="<?php echo esc_attr( $prefix ); ?>">
-                    <span class="dashicons dashicons-plus-alt"></span>
-                    <?php esc_html_e( 'New Folder', 'arraypress' ); ?>
+					<?php esc_html_e( 'New Folder', 'arraypress' ); ?>
                 </button>
             </div>
 

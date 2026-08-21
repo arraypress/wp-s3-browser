@@ -125,6 +125,18 @@
         /**
          * Handle successful AJAX response
          */
+        /**
+         * Escape a value for insertion into HTML text.
+         *
+         * Bucket names and provider error strings arrive from the storage API,
+         * so they are data rather than markup.
+         */
+        escapeHtml: function (text) {
+            const div = document.createElement('div');
+            div.textContent = text === undefined || text === null ? '' : text;
+            return div.innerHTML;
+        },
+
         handleSuccess: function ($result, response) {
             if (response.success) {
                 const strings = this.getTranslationStrings();
@@ -140,9 +152,9 @@
                 // Add bucket list if available and not too many
                 if (response.data.buckets && response.data.buckets.length > 0) {
                     if (response.data.buckets.length <= 5) {
-                        html += '<br><span class="s3-bucket-list">Buckets: ' + response.data.buckets.join(', ') + '</span>';
+                        html += '<br><span class="s3-bucket-list">Buckets: ' + this.escapeHtml(response.data.buckets.join(', ')) + '</span>';
                     } else {
-                        html += '<br><span class="s3-bucket-list">First 5 buckets: ' + response.data.buckets.slice(0, 5).join(', ') + '...</span>';
+                        html += '<br><span class="s3-bucket-list">First 5 buckets: ' + this.escapeHtml(response.data.buckets.slice(0, 5).join(', ')) + '...</span>';
                     }
                 }
 
@@ -192,9 +204,9 @@
         showError: function ($result, message, details) {
             $result.removeClass('loading success').addClass('error');
 
-            let html = '✗ ' + message;
+            let html = '✗ ' + this.escapeHtml(message);
             if (details) {
-                html += '<br><span class="s3-test-details">' + details + '</span>';
+                html += '<br><span class="s3-test-details">' + this.escapeHtml(details) + '</span>';
             }
 
             $result.html(html);

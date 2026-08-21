@@ -343,9 +343,7 @@ class Objects extends WP_List_Table {
 	public function column_actions( array $item ): string {
 		if ( $item['type'] === 'file' ) {
 			return sprintf(
-				'<button type="button" class="button button-primary s3-insert-file" data-filename="%s" data-bucket="%s" data-key="%s" title="%s">
-                <span class="dashicons dashicons-insert"></span> %s
-            </button>',
+				'<button type="button" class="button button-primary s3-insert-file" data-filename="%s" data-bucket="%s" data-key="%s" title="%s">%s</button>',
 				esc_attr( $item['name'] ),
 				esc_attr( $this->bucket ),
 				esc_attr( $item['key'] ),
@@ -354,9 +352,7 @@ class Objects extends WP_List_Table {
 			);
 		} elseif ( $item['type'] === 'folder' ) {
 			return sprintf(
-				'<button type="button" class="button button-secondary s3-open-folder" data-prefix="%s" data-bucket="%s" data-folder-name="%s" title="%s">
-                <span class="dashicons dashicons-portfolio"></span> %s
-            </button>',
+				'<button type="button" class="button button-secondary s3-open-folder" data-prefix="%s" data-bucket="%s" data-folder-name="%s" title="%s">%s</button>',
 				esc_attr( $item['prefix'] ),
 				esc_attr( $this->bucket ),
 				esc_attr( $item['name'] ),
@@ -438,9 +434,7 @@ class Objects extends WP_List_Table {
 						<?php
 						// WordPress native button styling
 						printf(
-							'<button type="button" class="button button-secondary s3-refresh-button" data-type="objects" data-bucket="%s" data-prefix="%s" data-provider="%s">
-                        <span class="dashicons dashicons-update"></span> %s
-                    </button>',
+							'<button type="button" class="button button-secondary s3-refresh-button" data-type="objects" data-bucket="%s" data-prefix="%s" data-provider="%s">%s</button>',
 							esc_attr( $this->bucket ),
 							esc_attr( $this->prefix ),
 							esc_attr( $this->provider_id ),
@@ -474,7 +468,6 @@ class Objects extends WP_List_Table {
                                 data-bucket="<?php echo esc_attr( $this->bucket ); ?>"
                                 data-prefix="<?php echo esc_attr( $this->prefix ); ?>"
                                 data-provider="<?php echo esc_attr( $this->provider_id ); ?>">
-                            <span class="dashicons dashicons-update"></span>
                             <span class="s3-button-text"><?php esc_html_e( 'Load More Items', 'arraypress' ); ?></span>
                             <span class="spinner" style="display: none;"></span>
                         </button>

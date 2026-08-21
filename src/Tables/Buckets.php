@@ -190,9 +190,7 @@ class Buckets extends WP_List_Table {
 						<?php
 						// Use WordPress native button classes
 						printf(
-							'<button type="button" class="button button-secondary s3-refresh-button" data-type="buckets" data-provider="%s">
-                        <span class="dashicons dashicons-update"></span> %s
-                    </button>',
+							'<button type="button" class="button button-secondary s3-refresh-button" data-type="buckets" data-provider="%s">%s</button>',
 							esc_attr( $this->provider_id ),
 							esc_html__( 'Refresh', 'arraypress' )
 						);

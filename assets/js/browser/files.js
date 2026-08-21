@@ -20,8 +20,6 @@
 
             if (!confirm(confirmMessage)) return;
 
-            var $icon = $button.find('.dashicons');
-            $icon.addClass('spin');
             $button.prop('disabled', true);
 
             this.makeAjaxRequest('s3_delete_object_', {
@@ -381,7 +379,11 @@
             var content = [
                 '<div class="s3-modal-field">',
                 '<label for="s3RenameInput">' + s3BrowserConfig.i18n.files.filenameLabel + '</label>',
-                '<input type="text" id="s3RenameInput" maxlength="255" value="' + $('<div>').text(nameWithoutExt).html() + '">',
+                // No interpolation into the attribute: the value is assigned as a
+                // property once the modal exists (see below). A filename containing
+                // a double quote would otherwise escape value="..." — text-node
+                // escaping does not touch quotes.
+                '<input type="text" id="s3RenameInput" maxlength="255">',
                 '<p class="description">' + s3BrowserConfig.i18n.files.filenameHelp + '</p>',
                 '</div>'
             ].join('');
@@ -442,6 +444,10 @@
                     }
                 }
             });
+
+            // Assign the current name as a property rather than as markup, so
+            // quotes and angle brackets in the filename are inert.
+            $('#s3RenameInput').val(nameWithoutExt);
 
             // Focus and select the input
             setTimeout(function () {

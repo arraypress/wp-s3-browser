@@ -17,7 +17,7 @@
 
             // Add loading state to the button
             var originalHtml = $button.html();
-            $button.html('<span class="dashicons dashicons-update s3-spin"></span> ' + s3BrowserConfig.i18n.folders.opening);
+            $button.text(s3BrowserConfig.i18n.folders.opening);
             $button.prop('disabled', true);
 
             // Navigate to the folder

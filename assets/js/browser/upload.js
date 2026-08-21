@@ -197,7 +197,7 @@
                 var $progress = $([
                     '<div class="s3-upload-item" id="' + uploadId + '">',
                     '  <div class="s3-upload-item-info">',
-                    '    <span class="s3-filename">' + file.name + '</span>',
+                    '    <span class="s3-filename">' + window.S3Browser.escapeHtml(file.name) + '</span>',
                     '    <span class="s3-filesize">' + self.formatFileSize(file.size) + '</span>',
                     '  </div>',
                     '  <div class="s3-progress-container">',

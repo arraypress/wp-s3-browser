@@ -298,10 +298,6 @@
     align-items: center;
 }
 
-.s3-refresh-button.refreshing .dashicons {
-    animation: s3-spin 1.5s linear infinite;
-}
-
 /* =============================================================================
    PAGINATION & BOTTOM NAVIGATION
    ============================================================================= */
@@ -1387,13 +1383,6 @@
    ANIMATIONS & KEYFRAMES (simplified - removed redundant ones)
    ============================================================================= */
 
-@keyframes s3-spin {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
 }
 
 @keyframes s3-notification-fadeIn {

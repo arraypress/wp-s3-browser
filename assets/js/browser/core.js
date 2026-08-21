@@ -393,7 +393,9 @@
 
             if ($button.hasClass('refreshing')) return;
 
-            $button.addClass('refreshing').find('.dashicons').addClass('spin');
+            // The button carries no icon now, so signal work with the
+            // disabled state WordPress already styles.
+            $button.addClass('refreshing').prop('disabled', true);
 
             this.makeAjaxRequest('s3_clear_cache_', {
                 type: $button.data('type'),
@@ -408,7 +410,7 @@
                 },
                 error: function (message) {
                     self.showNotification(message, 'error');
-                    $button.removeClass('refreshing').find('.dashicons').removeClass('spin');
+                    $button.removeClass('refreshing').prop('disabled', false);
                 }
             });
         },
@@ -427,6 +429,37 @@
 
             var queryString = $.param(params);
             window.location.href = window.location.href.split('?')[0] + '?' + queryString;
+        },
+
+        /**
+         * Escape a value for insertion into HTML *text*.
+         *
+         * Serialises through a text node, which escapes &, < and > — the
+         * characters that matter between tags.
+         */
+        escapeHtml: function (text) {
+            return $('<div>').text(text === undefined || text === null ? '' : text).html();
+        },
+
+        /**
+         * Escape a value for insertion into a quoted HTML *attribute*.
+         *
+         * escapeHtml() is not sufficient here. Text-node serialisation leaves
+         * quotes untouched, because quotes carry no meaning between tags — so
+         * a value of `foo" onfocus=alert(1) autofocus` escapes to itself and
+         * then breaks straight out of value="...". Anything interpolated into
+         * an attribute must go through this instead.
+         *
+         * Better still, set the value as a property (.val(), .attr()) and skip
+         * string concatenation altogether.
+         */
+        escapeAttr: function (text) {
+            return String(text === undefined || text === null ? '' : text)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
         },
 
         /**
@@ -567,7 +600,12 @@
         showNotification: function (message, type) {
             $('.s3-notification').remove();
 
-            var $notification = $('<div class="s3-notification s3-notification-' + type + '">' + message + '</div>');
+            // Messages routinely originate from the storage provider's error
+            // text, which echoes the object key back — so treat them as data,
+            // not markup.
+            var $notification = $('<div/>')
+                .addClass('s3-notification s3-notification-' + (type || 'info'))
+                .text(message === undefined || message === null ? '' : message);
             $('.s3-browser-container').prepend($notification);
 
             if ($notification.length) {
