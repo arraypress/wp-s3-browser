@@ -83,7 +83,9 @@ if ( ! function_exists( 'sanitize_key' ) ) {
 
 if ( ! function_exists( 'apply_filters' ) ) {
 	function apply_filters( string $hook, $value, ...$args ) {
-		return $value;
+		$callback = $GLOBALS['wp_test_filters'][ $hook ] ?? null;
+
+		return is_callable( $callback ) ? $callback( $value, ...$args ) : $value;
 	}
 }
 
@@ -433,5 +435,49 @@ if ( ! function_exists( 'get_allowed_mime_types' ) ) {
 			'mp4'          => 'video/mp4',
 			'mp3'          => 'audio/mpeg',
 		];
+	}
+}
+
+// Hook registration is recorded rather than executed, so a test can assert
+// that a browser wired itself up without a WordPress runtime behind it.
+if ( ! function_exists( 'add_filter' ) ) {
+	function add_filter( string $hook, $callback, int $priority = 10, int $accepted_args = 1 ): bool {
+		$GLOBALS['wp_test_hooks'][ $hook ][] = $callback;
+
+		return true;
+	}
+}
+
+if ( ! function_exists( 'add_action' ) ) {
+	function add_action( string $hook, $callback, int $priority = 10, int $accepted_args = 1 ): bool {
+		return add_filter( $hook, $callback, $priority, $accepted_args );
+	}
+}
+
+if ( ! function_exists( 'did_action' ) ) {
+	function did_action( string $hook ): int {
+		return (int) ( $GLOBALS['wp_test_did_action'][ $hook ] ?? 0 );
+	}
+}
+
+if ( ! function_exists( 'get_current_screen' ) ) {
+	function get_current_screen() {
+		return $GLOBALS['wp_test_screen'] ?? null;
+	}
+}
+
+if ( ! function_exists( 'get_post_type' ) ) {
+	function get_post_type( $post = null ) {
+		if ( is_int( $post ) ) {
+			return $GLOBALS['wp_test_post_types'][ $post ] ?? false;
+		}
+
+		return $GLOBALS['wp_test_current_post_type'] ?? false;
+	}
+}
+
+if ( ! function_exists( 'is_admin' ) ) {
+	function is_admin(): bool {
+		return (bool) ( $GLOBALS['wp_test_is_admin'] ?? true );
 	}
 }

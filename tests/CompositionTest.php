@@ -3,7 +3,12 @@ declare( strict_types=1 );
 
 namespace ArrayPress\S3\Tests;
 
+use ArrayPress\S3\Admin\Assets;
+use ArrayPress\S3\Admin\Config;
+use ArrayPress\S3\Admin\MediaLibrary;
+use ArrayPress\S3\Admin\Screen;
 use ArrayPress\S3\Admin\Templates;
+use ArrayPress\S3\Admin\Translations;
 use ArrayPress\S3\Api;
 use ArrayPress\S3\Browser;
 use ArrayPress\S3\Cache;
@@ -42,15 +47,20 @@ final class CompositionTest extends TestCase {
 	public static function composed_classes(): array {
 		$classes = [
 			Api::class,
+			Assets::class,
 			Browser::class,
 			Buckets::class,
 			Cache::class,
 			Client::class,
+			Config::class,
 			Controller::class,
+			MediaLibrary::class,
 			Objects::class,
 			Permissions::class,
 			Provider::class,
+			Screen::class,
 			Templates::class,
+			Translations::class,
 		];
 
 		return array_combine(

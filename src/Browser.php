@@ -13,15 +13,12 @@ declare( strict_types=1 );
 
 namespace ArrayPress\S3;
 
-use ArrayPress\S3\Provider;
-use ArrayPress\S3\Rest\Controller as RestController;
+use ArrayPress\S3\Admin\Assets;
+use ArrayPress\S3\Admin\Config;
+use ArrayPress\S3\Admin\MediaLibrary;
+use ArrayPress\S3\Admin\Screen;
 use ArrayPress\S3\Admin\Templates;
-use ArrayPress\S3\Traits\Browser\Assets;
-use ArrayPress\S3\Traits\Browser\Integrations;
-use ArrayPress\S3\Traits\Browser\MediaLibrary;
-use ArrayPress\S3\Traits\Browser\Hooks;
-use ArrayPress\S3\Traits\Browser\Helpers;
-use ArrayPress\S3\Traits\Shared\Context;
+use ArrayPress\S3\Rest\Controller as RestController;
 use ArrayPress\S3\Traits\Shared\Debug;
 
 // Load WP_List_Table if not loaded
@@ -36,93 +33,49 @@ if ( ! class_exists( 'WP_List_Table' ) ) {
  * S3-compatible storage files directly within the WordPress media uploader.
  */
 class Browser {
-	use Assets;
-	use Integrations;
-	use MediaLibrary;
-	use Hooks;
-	use Helpers;
-	use Context;
 	use Debug;
 
 	/**
-	 * Handle for the global S3 browser configuration script
-	 *
-	 * This script contains shared configuration data used across
-	 * all S3 browser instances and components.
-	 *
-	 * @var string
-	 */
-	private const GLOBAL_CONFIG_HANDLE = 's3-browser-global-config';
-
-	/**
-	 * S3 Client instance
+	 * S3 client the browser reads and writes through.
 	 *
 	 * @var Client
 	 */
 	protected Client $client;
 
 	/**
-	 * Storage provider instance
+	 * What this browser instance is.
 	 *
-	 * @var Provider
+	 * @var Config
 	 */
-	protected Provider $provider;
+	protected Config $config;
 
 	/**
-	 * Storage provider ID
-	 *
-	 * @var string
-	 */
-	protected string $provider_id;
-
-	/**
-	 * Storage provider name
-	 *
-	 * @var string
-	 */
-	protected string $provider_name;
-
-	/**
-	 * List of allowed post types for this browser
+	 * Buckets this browser may address; empty means no restriction.
 	 *
 	 * @var array
-	 */
-	protected array $allowed_post_types = [];
-
-	/**
-	 * Default bucket name (if empty, will show bucket selection)
-	 *
-	 * @var string
-	 */
-	protected string $default_bucket;
-
-	/**
-	 * Capability required to use this browser
-	 *
-	 * @var string
-	 */
-	protected string $capability;
-
-	/**
-	 * Buckets this browser may address. Empty means "no restriction".
-	 *
-	 * @var string[]
 	 */
 	protected array $allowed_buckets = [];
 
 	/**
-	 * Admin page hooks this browser enqueues its assets on.
+	 * Admin pages this browser loads its assets on.
 	 *
 	 * @var array
 	 */
 	private array $admin_hook = [];
 
 	/**
-	 * The REST surface for this instance.
+	 * Screen tests.
 	 *
-	 * @var RestController
+	 * @var Screen
 	 */
-	protected RestController $rest;
+	protected Screen $screen;
+
+	/**
+	 * Asset loader.
+	 *
+	 * @var Assets
+	 */
+	protected Assets $assets;
 
 	/**
 	 * Underscore templates for the browser's JavaScript.
@@ -132,30 +85,31 @@ class Browser {
 	protected Templates $templates;
 
 	/**
-	 * Constructor
+	 * Media modal tab.
 	 *
-	 * Instantiate on 'init', not 'admin_init'.
+	 * @var MediaLibrary
+	 */
+	protected MediaLibrary $media;
+
+	/**
+	 * REST surface.
 	 *
-	 * The browser registers REST routes, and admin_init does not run for REST
-	 * requests — only for wp-admin pages and admin-ajax.php. Building the
-	 * browser on admin_init therefore leaves the routes unregistered for
-	 * exactly the requests that need them, and every call fails with "No route
-	 * was found matching the URL and request method". The browser's own hooks
-	 * are admin-scoped internally, so constructing it on 'init' is safe.
+	 * @var RestController
+	 */
+	protected RestController $rest;
+
+	/**
+	 * Build a browser.
 	 *
-	 * @param Provider          $provider           The storage provider instance
-	 * @param string            $access_key         Access key for the storage provider
-	 * @param string            $secret_key         Secret key for the storage provider
-	 * @param array             $allowed_post_types Optional. Array of post types where this browser should appear.
-	 *                                              Default empty (all).
-	 * @param string            $default_bucket     Optional. Default bucket to display. Default empty.
-	 * @param string            $capability         Optional. Capability required to use this browser. Default
-	 *                                              'upload_files'.
-	 * @param string|null       $context            Optional. Context identifier for filtering and customization.
-	 *                                              Default null.
-	 * @param bool              $debug              Optional. Whether to enable debug mode. Default false.
-	 * @param string|array|null $admin_hook         Optional. Admin hook suffix or array of hook suffixes for enqueuing
-	 *                                              admin assets. Default null.
+	 * @param Provider          $provider           Storage provider.
+	 * @param string            $access_key         Access key.
+	 * @param string            $secret_key         Secret key.
+	 * @param array             $allowed_post_types Post types this browser appears for; empty means all.
+	 * @param string            $default_bucket     Bucket to open on.
+	 * @param string            $capability         Capability required to use it.
+	 * @param string|null       $context            Which integration this instance serves.
+	 * @param bool              $debug              Whether to emit debug output.
+	 * @param string|array|null $admin_hook         Admin page hook(s) to load assets on.
 	 */
 	public function __construct(
 		Provider $provider,
@@ -168,66 +122,82 @@ class Browser {
 		bool $debug = false,
 		$admin_hook = null
 	) {
-		$this->provider           = $provider;
-		$this->provider_id        = $provider->get_id();
-		$this->provider_name      = $provider->get_label();
-		$this->allowed_post_types = $allowed_post_types;
-		$this->default_bucket     = $default_bucket;
-		$this->capability         = $capability;
+		$this->config = new Config(
+			$provider->get_id(),
+			$provider->get_label(),
+			$capability,
+			$default_bucket,
+			$allowed_post_types,
+			$context
+		);
 
-		// Set context if provided
-		if ( $context !== null ) {
-			$this->set_context( $context );
-		}
-
-		// Set admin hook(s) if provided
-		if ( $admin_hook !== null ) {
+		if ( null !== $admin_hook ) {
 			$this->set_admin_hook( $admin_hook );
 		}
 
-		// Initialize S3 client with debug setting
-		$this->client = new Client(
-			$provider,
-			$access_key,
-			$secret_key,
-			true, // Use cache
-			HOUR_IN_SECONDS,
-			$debug,
-			$this->get_context()
-		);
+		$this->client = new Client( $provider, $access_key, $secret_key, true, HOUR_IN_SECONDS, $debug, $context );
 
 		// A scoped token cannot list buckets, so give the client the names we
 		// already know: the allow-list if one is set, otherwise the default
 		// bucket. Without this the browser shows a listing error for what is a
 		// perfectly good, and recommended, configuration.
-		$known = $this->get_allowed_buckets();
+		$known = $this->get_allowed_buckets() ?: array_filter( [ $default_bucket ] );
 
-		if ( empty( $known ) && '' !== $default_bucket ) {
-			$known = [ $default_bucket ];
-		}
-
-		if ( ! empty( $known ) ) {
+		if ( $known ) {
 			$this->client->set_known_buckets( $known );
 		}
 
-		// Set debug on Browser instance too
 		$this->set_debug( $debug );
-
-		$this->templates = new Templates( $this->capability );
 
 		$this->rest = new RestController(
 			$this->client,
-			$this->provider_id,
-			$this->capability,
-			$this->get_hook_suffix(),
+			$this->config->provider_id,
+			$capability,
+			$this->config->hook_suffix(),
 			// A closure rather than the resolved array: get_allowed_buckets()
 			// runs through a filter, and set_allowed_buckets() may be called
 			// after construction, so the controller has to ask each time.
 			fn(): array => $this->get_allowed_buckets()
 		);
 
-		// Initialize WordPress hooks
-		$this->init_hooks();
+		$this->screen    = new Screen( $this->config );
+		$this->assets    = new Assets( $this->config, $this->screen, $this->rest, fn(): array => $this->admin_hook );
+		$this->templates = new Templates( $capability );
+		$this->media     = new MediaLibrary( $this->config, $this->screen, $this->assets, $this->client );
+
+		$this->register_hooks();
+	}
+
+	/**
+	 * Hook the browser into WordPress.
+	 *
+	 * @return void
+	 */
+	private function register_hooks(): void {
+		add_filter( 'media_upload_tabs', [ $this->media, 'add_media_tab' ] );
+		add_action( 'media_upload_' . $this->config->tab_id(), [ $this->media, 'handle_media_tab' ] );
+		add_filter( 'media_view_strings', [ $this->media, 'add_media_view_strings' ], 20 );
+
+		add_action( 'admin_enqueue_scripts', [ $this->assets, 'enqueue_settings_assets' ] );
+		add_action( 'admin_enqueue_scripts', [ $this->assets, 'enqueue_browser_assets' ] );
+
+		// wp.template() reads its markup from script tags in the document, so
+		// they have to be printed even on the media-upload iframe, which does
+		// not fire admin_footer.
+		add_action( 'admin_footer', [ $this->templates, 'print_templates' ] );
+		add_action( 'admin_print_footer_scripts', [ $this->templates, 'print_templates' ] );
+
+		// If rest_api_init has already fired, adding a callback to it now would
+		// never run. That happens whenever a consumer builds the Browser late --
+		// inside rest_api_init itself, or on a hook that fires after it -- so
+		// register straight away instead of silently producing 404s.
+		if ( did_action( 'rest_api_init' ) ) {
+			$this->rest->register_rest_routes();
+
+			return;
+		}
+
+		add_action( 'rest_api_init', [ $this->rest, 'register_rest_routes' ] );
 	}
 
 	/**
@@ -274,8 +244,8 @@ class Browser {
 		return (array) apply_filters(
 			's3_browser_allowed_buckets',
 			$this->allowed_buckets,
-			$this->provider_id,
-			$this->get_context()
+			$this->config->provider_id,
+			$this->config->context
 		);
 	}
 
@@ -288,7 +258,7 @@ class Browser {
 	 * @return string
 	 */
 	public function get_hook_suffix(): string {
-		return $this->has_context() ? $this->provider_id . '_' . $this->get_context() : $this->provider_id;
+		return $this->config->hook_suffix();
 	}
 
 	/**
@@ -297,7 +267,7 @@ class Browser {
 	 * @return string
 	 */
 	public function get_tab_id(): string {
-		return 's3_' . $this->get_hook_suffix();
+		return $this->config->tab_id();
 	}
 
 	/**
@@ -367,7 +337,7 @@ class Browser {
 	 * @return string Provider ID
 	 */
 	public function get_provider_id(): string {
-		return $this->provider_id;
+		return $this->config->provider_id;
 	}
 
 }
