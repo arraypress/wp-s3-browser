@@ -83,12 +83,12 @@ trait Hooks {
 		// inside rest_api_init itself, or on a hook that fires after it — so
 		// register straight away instead of silently producing 404s.
 		if ( did_action( 'rest_api_init' ) ) {
-			$this->register_rest_routes();
+			$this->rest->register_rest_routes();
 
 			return;
 		}
 
-		add_action( 'rest_api_init', [ $this, 'register_rest_routes' ] );
+		add_action( 'rest_api_init', [ $this->rest, 'register_rest_routes' ] );
 	}
 
 

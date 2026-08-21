@@ -14,7 +14,7 @@ declare( strict_types=1 );
 namespace ArrayPress\S3;
 
 use ArrayPress\S3\Provider;
-use ArrayPress\S3\Traits\Browser\RestApi;
+use ArrayPress\S3\Rest\Controller as RestController;
 use ArrayPress\S3\Traits\Browser\Templates;
 use ArrayPress\S3\Traits\Browser\Assets;
 use ArrayPress\S3\Traits\Browser\Integrations;
@@ -37,7 +37,6 @@ if ( ! class_exists( 'WP_List_Table' ) ) {
  * S3-compatible storage files directly within the WordPress media uploader.
  */
 class Browser {
-	use RestApi;
 	use Templates;
 	use Assets;
 	use Integrations;
@@ -113,6 +112,13 @@ class Browser {
 	 * @var string[]
 	 */
 	protected array $allowed_buckets = [];
+
+	/**
+	 * The REST surface for this instance.
+	 *
+	 * @var RestController
+	 */
+	protected RestController $rest;
 
 	/**
 	 * Constructor
@@ -196,6 +202,17 @@ class Browser {
 		// Set debug on Browser instance too
 		$this->set_debug( $debug );
 
+		$this->rest = new RestController(
+			$this->client,
+			$this->provider_id,
+			$this->capability,
+			$this->get_hook_suffix(),
+			// A closure rather than the resolved array: get_allowed_buckets()
+			// runs through a filter, and set_allowed_buckets() may be called
+			// after construction, so the controller has to ask each time.
+			fn(): array => $this->get_allowed_buckets()
+		);
+
 		// Initialize WordPress hooks
 		$this->init_hooks();
 	}
@@ -247,6 +264,39 @@ class Browser {
 			$this->provider_id,
 			$this->get_context()
 		);
+	}
+
+	/**
+	 * Set an explicit REST namespace for this browser
+	 *
+	 * Only needed when the automatic derivation is not distinct enough.
+	 *
+	 * @param string $namespace Namespace, e.g. 'my-plugin/v1'.
+	 *
+	 * @return self
+	 */
+	public function set_rest_namespace( string $namespace ): self {
+		$this->rest->set_rest_namespace( $namespace );
+
+		return $this;
+	}
+
+	/**
+	 * Get the REST namespace this browser registers under
+	 *
+	 * @return string
+	 */
+	public function get_rest_namespace(): string {
+		return $this->rest->get_rest_namespace();
+	}
+
+	/**
+	 * Get this browser's REST controller
+	 *
+	 * @return RestController
+	 */
+	public function rest(): RestController {
+		return $this->rest;
 	}
 
 	/**
