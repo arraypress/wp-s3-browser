@@ -57,5 +57,4 @@ trait Options {
 
 		return $options;
 	}
-
 }

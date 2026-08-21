@@ -81,5 +81,4 @@ trait Context {
 
 		return $value;
 	}
-
 }

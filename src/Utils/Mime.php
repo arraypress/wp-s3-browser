@@ -79,5 +79,4 @@ class Mime {
 
 		return in_array( $extension, $allowed_extensions, true );
 	}
-
 }

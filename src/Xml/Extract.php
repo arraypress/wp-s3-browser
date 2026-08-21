@@ -150,5 +150,4 @@ class Extract {
 		// naming it, so an empty element is a value, not a missing one.
 		return self::text( $location ) ?: 'us-east-1';
 	}
-
 }

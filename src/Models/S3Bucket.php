@@ -74,7 +74,11 @@ class S3Bucket {
 			return $this->creation_date;
 		}
 
-		return empty( $this->creation_date ) ? '' : date( $format, strtotime( $this->creation_date ) );
+		// wp_date(), not date(): this is shown to an administrator, and
+		// WordPress sets PHP's default timezone to UTC, so date() would
+		// render every timestamp in UTC regardless of the timezone the
+		// site is configured for.
+		return empty( $this->creation_date ) ? '' : (string) wp_date( $format, strtotime( $this->creation_date ) );
 	}
 
 	/**
@@ -96,8 +100,7 @@ class S3Bucket {
 			'Name'          => $this->name,
 			'CreationDate'  => $this->creation_date,
 			'Region'        => $this->region,
-			'FormattedDate' => $this->get_creation_date( true )
+			'FormattedDate' => $this->get_creation_date( true ),
 		];
 	}
-
 }

@@ -169,5 +169,4 @@ trait PresignedUrls {
 
 		return $response->is_successful() ? $response->get_url() : $fallback;
 	}
-
 }

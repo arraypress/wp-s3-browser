@@ -167,5 +167,4 @@ class Client {
 	public function get_provider(): Provider {
 		return $this->provider;
 	}
-
 }

@@ -28,5 +28,4 @@ class Shortcodes {
 	public static function has( string $path ): bool {
 		return str_contains( $path, '[' ) && str_contains( $path, ']' );
 	}
-
 }

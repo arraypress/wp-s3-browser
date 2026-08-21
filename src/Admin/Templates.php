@@ -285,5 +285,4 @@ class Templates {
 		<?php
 		$this->close_template();
 	}
-
 }

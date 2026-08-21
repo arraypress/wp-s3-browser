@@ -267,5 +267,4 @@ class Response {
 
 		return $buckets;
 	}
-
 }

@@ -47,5 +47,4 @@ class Sanitize {
 	public static function minutes( int $minutes ): int {
 		return max( 1, min( $minutes, 10080 ) );
 	}
-
 }

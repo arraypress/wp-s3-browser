@@ -120,7 +120,7 @@ class S3Object {
 			'.Spotlight-V100',
 			'.Trashes',
 			'._.DS_Store',
-			'$RECYCLE.BIN'
+			'$RECYCLE.BIN',
 		];
 
 		$hidden_files = apply_filters( 's3_object_hidden_files', $hidden_files, $this->key, $current_prefix );
@@ -189,7 +189,7 @@ class S3Object {
 			'MimeType'      => $this->get_mime_type(),
 			'Category'      => $this->get_category(),
 			'IsMultipart'   => $this->is_multipart(),
-			'MD5Checksum'   => $this->get_md5_checksum()
+			'MD5Checksum'   => $this->get_md5_checksum(),
 		];
 	}
 
@@ -233,7 +233,11 @@ class S3Object {
 			return $this->last_modified;
 		}
 
-		return empty( $this->last_modified ) ? '' : date( $format, strtotime( $this->last_modified ) );
+		// wp_date(), not date(): this is shown to an administrator, and
+		// WordPress sets PHP's default timezone to UTC, so date() would
+		// render every timestamp in UTC regardless of the timezone the
+		// site is configured for.
+		return empty( $this->last_modified ) ? '' : (string) wp_date( $format, strtotime( $this->last_modified ) );
 	}
 	/**
 	 * Get MIME type
@@ -332,11 +336,10 @@ class S3Object {
 			return [
 				'composite_hash' => $parts[0],
 				'part_count'     => (int) $parts[1],
-				'full_etag'      => $this->etag
+				'full_etag'      => $this->etag,
 			];
 		}
 
 		return null;
 	}
-
 }

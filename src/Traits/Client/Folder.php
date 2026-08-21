@@ -47,7 +47,7 @@ trait Folder {
 			'arraypress_s3_create_folder_params',
 			[
 				'bucket'      => $bucket,
-				'folder_path' => $folder_path
+				'folder_path' => $folder_path,
 			],
 			$bucket,
 			$folder_path
@@ -86,7 +86,7 @@ trait Folder {
 					[
 						'bucket'      => $bucket,
 						'folder_path' => $normalized_path,
-						'existed'     => true
+						'existed'     => true,
 					]
 				);
 			}
@@ -122,7 +122,7 @@ trait Folder {
 			'method'  => 'PUT',
 			'headers' => $headers,
 			'body'    => '',
-			'timeout' => 30
+			'timeout' => 30,
 		] );
 
 		if ( is_wp_error( $response ) ) {
@@ -146,7 +146,7 @@ trait Folder {
 		$success_data = [
 			'bucket'      => $bucket,
 			'folder_path' => $normalized_path,
-			'created'     => true
+			'created'     => true,
 		];
 
 		// Apply contextual filter to the folder creation success result
@@ -197,7 +197,7 @@ trait Folder {
 				'folder_path' => $folder_path,
 				'recursive'   => $recursive,
 				'force'       => $force,
-				'proceed'     => true
+				'proceed'     => true,
 			],
 			$bucket,
 			$folder_path
@@ -211,7 +211,7 @@ trait Folder {
 				403,
 				[
 					'bucket'      => $bucket,
-					'folder_path' => $folder_path
+					'folder_path' => $folder_path,
 				]
 			);
 		}
@@ -265,7 +265,7 @@ trait Folder {
 						[
 							'folder_path'  => $normalized_path,
 							'object_count' => $total_objects,
-							'folder_count' => $total_folders
+							'folder_count' => $total_folders,
 						]
 					);
 				}
@@ -286,7 +286,7 @@ trait Folder {
 					'arraypress_s3_delete_folder_object',
 					[
 						'object_key' => $object_key,
-						'proceed'    => true
+						'proceed'    => true,
 					],
 					$bucket,
 					$normalized_path,
@@ -300,13 +300,13 @@ trait Folder {
 				$delete_result = $this->delete_object( $bucket, $object_key );
 
 				if ( ! $delete_result->is_successful() ) {
-					$failed_count ++;
+					++$failed_count;
 					$failures[] = [
 						'key'   => $object_key,
-						'error' => $delete_result->get_error_message()
+						'error' => $delete_result->get_error_message(),
 					];
 				} else {
-					$deleted_count ++;
+					++$deleted_count;
 				}
 			}
 
@@ -316,10 +316,10 @@ trait Folder {
 					$subfolder_result = $this->delete_folder( $bucket, $prefix, true, true );
 
 					if ( ! $subfolder_result->is_successful() ) {
-						$failed_count ++;
+						++$failed_count;
 						$failures[] = [
 							'key'   => $prefix,
-							'error' => $subfolder_result->get_error_message()
+							'error' => $subfolder_result->get_error_message(),
 						];
 					}
 				}
@@ -333,13 +333,13 @@ trait Folder {
 					$delete_result     = $this->delete_object( $bucket, $object->get_key() );
 
 					if ( ! $delete_result->is_successful() ) {
-						$failed_count ++;
+						++$failed_count;
 						$failures[] = [
 							'key'   => $object->get_key(),
-							'error' => $delete_result->get_error_message()
+							'error' => $delete_result->get_error_message(),
 						];
 					} else {
-						$deleted_count ++;
+						++$deleted_count;
 					}
 					break;
 				}
@@ -364,7 +364,7 @@ trait Folder {
 			} else {
 				$this->debug( 'Failed to delete folder placeholder in final cleanup', [
 					'folder' => $normalized_path,
-					'error'  => $final_cleanup_result->get_error_message()
+					'error'  => $final_cleanup_result->get_error_message(),
 				] );
 				// Don't count this as a failure if other deletions succeeded
 			}
@@ -377,7 +377,7 @@ trait Folder {
 			'deleted_count' => $deleted_count,
 			'failed_count'  => $failed_count,
 			'failures'      => $failures,
-			'recursive'     => $recursive
+			'recursive'     => $recursive,
 		];
 
 		// Apply contextual filter to the deletion result
@@ -414,5 +414,4 @@ trait Folder {
 			);
 		}
 	}
-
 }

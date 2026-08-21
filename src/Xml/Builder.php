@@ -112,5 +112,4 @@ final class Builder {
 
 		return $xml;
 	}
-
 }

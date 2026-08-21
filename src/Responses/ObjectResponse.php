@@ -118,5 +118,4 @@ class ObjectResponse extends Response {
 
 		return $array;
 	}
-
 }

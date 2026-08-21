@@ -106,5 +106,4 @@ trait Signing {
 		// verifies the headers named in SignedHeaders.
 		return $request->headers + [ 'Accept' => 'application/xml' ];
 	}
-
 }

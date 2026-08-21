@@ -201,5 +201,4 @@ class Cache {
 
 		return true;
 	}
-
 }

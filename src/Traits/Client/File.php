@@ -44,7 +44,7 @@ trait File {
 			[
 				'bucket'     => $bucket,
 				'object_key' => $object_key,
-				'use_cache'  => $use_cache
+				'use_cache'  => $use_cache,
 			],
 			$bucket,
 			$object_key
@@ -66,7 +66,7 @@ trait File {
 		if ( $use_cache && $this->cache->is_enabled() ) {
 			$cache_key = $this->cache->key( 'object_exists', [
 				'bucket' => $bucket,
-				'key'    => $object_key
+				'key'    => $object_key,
 			] );
 			$cached    = $this->cache->get( $cache_key );
 			if ( $cached !== false ) {
@@ -90,7 +90,7 @@ trait File {
 					'object_key' => $object_key,
 					'exists'     => true,
 					'metadata'   => $metadata,
-					'method'     => 'head_object'
+					'method'     => 'head_object',
 				]
 			);
 
@@ -118,10 +118,10 @@ trait File {
 			$not_found_codes = [ 'NoSuchKey', 'object_not_found', 'not_found', '404' ];
 
 			if ( $status_code === 404 ||
-			     in_array( $error_code, $not_found_codes, true ) ||
-			     strpos( $error_message, 'does not exist' ) !== false ||
-			     strpos( $error_message, 'not found' ) !== false ||
-			     strpos( $error_message, 'NoSuchKey' ) !== false ) {
+				in_array( $error_code, $not_found_codes, true ) ||
+				strpos( $error_message, 'does not exist' ) !== false ||
+				strpos( $error_message, 'not found' ) !== false ||
+				strpos( $error_message, 'NoSuchKey' ) !== false ) {
 
 				$response = new SuccessResponse(
 					/* translators: %1$s: object key, %2$s: bucket name */
@@ -132,7 +132,7 @@ trait File {
 						'object_key' => $object_key,
 						'exists'     => false,
 						'error_code' => $error_code,
-						'method'     => 'head_object'
+						'method'     => 'head_object',
 					]
 				);
 
@@ -165,7 +165,7 @@ trait File {
 					'bucket'           => $bucket,
 					'object_key'       => $object_key,
 					'original_error'   => $error_code,
-					'original_message' => $error_message
+					'original_message' => $error_message,
 				]
 			);
 		}
@@ -178,7 +178,7 @@ trait File {
 			400,
 			[
 				'bucket'     => $bucket,
-				'object_key' => $object_key
+				'object_key' => $object_key,
 			]
 		);
 	}
@@ -198,7 +198,7 @@ trait File {
 			[
 				'bucket'     => $bucket,
 				'object_key' => $object_key,
-				'proceed'    => true // Allow preventing deletion
+				'proceed'    => true, // Allow preventing deletion
 			],
 			$bucket,
 			$object_key
@@ -212,7 +212,7 @@ trait File {
 				403,
 				[
 					'bucket'     => $bucket,
-					'object_key' => $object_key
+					'object_key' => $object_key,
 				]
 			);
 		}
@@ -236,7 +236,7 @@ trait File {
 			$cache_key = $this->cache->key( 'objects_' . $bucket, [
 				'max_keys'  => 1000,
 				'prefix'    => $prefix,
-				'delimiter' => '/'
+				'delimiter' => '/',
 			], $bucket );
 			$this->cache->forget( $cache_key );
 		}
@@ -268,7 +268,7 @@ trait File {
 				'source_bucket' => $source_bucket,
 				'source_key'    => $source_key,
 				'target_bucket' => $target_bucket,
-				'target_key'    => $target_key
+				'target_key'    => $target_key,
 			],
 			$source_bucket,
 			$target_bucket
@@ -294,7 +294,7 @@ trait File {
 			$cache_key = $this->cache->key( 'objects_' . $params['target_bucket'], [
 				'max_keys'  => 1000,
 				'prefix'    => $prefix,
-				'delimiter' => '/'
+				'delimiter' => '/',
 			], $params['target_bucket'] );
 			$this->cache->forget( $cache_key );
 		}
@@ -324,7 +324,7 @@ trait File {
 			[
 				'bucket'     => $bucket,
 				'source_key' => $source_key,
-				'target_key' => $target_key
+				'target_key' => $target_key,
 			],
 			$bucket,
 			$source_key,
@@ -359,7 +359,7 @@ trait File {
 				[
 					'warning'    => __( 'The object was copied but the original could not be deleted', 'arraypress' ),
 					'source_key' => $source_key,
-					'target_key' => $target_key
+					'target_key' => $target_key,
 				]
 			);
 		} else {
@@ -369,7 +369,7 @@ trait File {
 				200,
 				[
 					'source_key' => $source_key,
-					'target_key' => $target_key
+					'target_key' => $target_key,
 				]
 			);
 		}
@@ -413,7 +413,7 @@ trait File {
 				'file_path'         => $file_path,
 				'is_path'           => $is_path,
 				'content_type'      => $content_type,
-				'additional_params' => $additional_params
+				'additional_params' => $additional_params,
 			],
 			$bucket,
 			$target_key
@@ -486,7 +486,7 @@ trait File {
 		// 4. Prepare headers - ALWAYS include Content-Length
 		$headers = array_merge( [
 			'Content-Type'   => $content_type,
-			'Content-Length' => (string) $content_length
+			'Content-Length' => (string) $content_length,
 		], $additional_params );
 
 		// 5. Upload the file using WordPress HTTP API
@@ -494,7 +494,7 @@ trait File {
 			'method'  => 'PUT',
 			'body'    => $file_contents,
 			'headers' => $headers,
-			'timeout' => 300  // 5 minutes for large files
+			'timeout' => 300,  // 5 minutes for large files
 		] );
 
 		// Handle upload errors
@@ -531,7 +531,7 @@ trait File {
 			$cache_key = $this->cache->key( 'objects_' . $bucket, [
 				'max_keys'  => 1000,
 				'prefix'    => $prefix,
-				'delimiter' => '/'
+				'delimiter' => '/',
 			], $bucket );
 			$this->cache->forget( $cache_key );
 		}
@@ -543,7 +543,7 @@ trait File {
 			[
 				'bucket' => $bucket,
 				'key'    => $target_key,
-				'size'   => $content_length
+				'size'   => $content_length,
 			]
 		);
 
@@ -588,5 +588,4 @@ trait File {
 			$object_key
 		);
 	}
-
 }

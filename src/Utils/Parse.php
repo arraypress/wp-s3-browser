@@ -67,8 +67,7 @@ class Parse {
 
 		return [
 			'bucket' => $parts[0],
-			'object' => $parts[1]
+			'object' => $parts[1],
 		];
 	}
-
 }

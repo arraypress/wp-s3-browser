@@ -95,5 +95,4 @@ class SuccessResponse extends Response {
 
 		return $array;
 	}
-
 }

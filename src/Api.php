@@ -82,5 +82,4 @@ class Api implements ApiInterface {
 		$this->access_key = trim( $access_key );
 		$this->secret_key = trim( $secret_key );
 	}
-
 }

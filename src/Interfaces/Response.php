@@ -41,5 +41,4 @@ interface Response {
 	 * @return array
 	 */
 	public function to_array(): array;
-
 }

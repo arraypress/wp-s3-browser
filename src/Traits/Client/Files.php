@@ -55,7 +55,7 @@ trait Files {
 				'prefix'             => $prefix,
 				'delimiter'          => $delimiter,
 				'continuation_token' => $continuation_token,
-				'use_cache'          => $use_cache
+				'use_cache'          => $use_cache,
 			],
 			$bucket,
 			$prefix
@@ -75,7 +75,7 @@ trait Files {
 				'max_keys'           => $max_keys,
 				'prefix'             => $prefix,
 				'delimiter'          => $delimiter,
-				'continuation_token' => $continuation_token
+				'continuation_token' => $continuation_token,
 			], $bucket );
 
 			$cached = $this->cache->get( $cache_key );
@@ -140,7 +140,7 @@ trait Files {
 				'prefix'             => $prefix,
 				'delimiter'          => $delimiter,
 				'continuation_token' => $continuation_token,
-				'use_cache'          => $use_cache
+				'use_cache'          => $use_cache,
 			],
 			$bucket,
 			$prefix
@@ -179,7 +179,7 @@ trait Files {
 			'prefixes'           => $response->to_prefix_models(),
 			'truncated'          => $response->is_truncated(),
 			'continuation_token' => $response->get_continuation_token(),
-			'response_object'    => $response
+			'response_object'    => $response,
 		];
 
 		// Apply contextual filter to final response
@@ -197,5 +197,4 @@ trait Files {
 			$max_keys
 		);
 	}
-
 }

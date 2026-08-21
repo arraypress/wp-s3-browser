@@ -161,7 +161,7 @@ trait Debug {
 		$sensitive_keys = [
 			'authorization',
 			'x-amz-signature',
-			'x-amz-credential'
+			'x-amz-credential',
 		];
 
 		foreach ( $headers as $key => $value ) {
@@ -203,5 +203,4 @@ trait Debug {
 
 		return $this;
 	}
-
 }

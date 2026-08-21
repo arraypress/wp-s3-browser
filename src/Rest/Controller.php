@@ -1067,5 +1067,4 @@ class Controller {
 
 		return __( 'Folder deleted successfully', 'arraypress' );
 	}
-
 }

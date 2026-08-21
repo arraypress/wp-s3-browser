@@ -94,7 +94,7 @@ class File {
 			'application/vnd.openxmlformats-officedocument.presentationml.presentation',
 			'text/plain',
 			'text/csv',
-			'application/rtf'
+			'application/rtf',
 		], true ) ) {
 			return 'document';
 		}
@@ -104,12 +104,11 @@ class File {
 			'application/zip',
 			'application/x-rar-compressed',
 			'application/x-tar',
-			'application/gzip'
+			'application/gzip',
 		], true ) ) {
 			return 'archive';
 		}
 
 		return 'other';
 	}
-
 }

@@ -88,7 +88,7 @@ class Translations {
 				'loadDetailsError'       => __( 'Failed to load bucket details: {message}', 'arraypress' ),
 				'manualCorsSetup'        => __( 'Manual CORS Setup Instructions', 'arraypress' ),
 				'refreshPage'            => __( 'Refresh Page', 'arraypress' ),
-	
+
 				// Basic information
 				'region'                 => __( 'Region:', 'arraypress' ),
 				'created'                => __( 'Created:', 'arraypress' ),
@@ -96,11 +96,11 @@ class Translations {
 				'uploadReady'            => __( 'Upload Ready:', 'arraypress' ),
 				'yes'                    => __( 'Yes', 'arraypress' ),
 				'no'                     => __( 'No', 'arraypress' ),
-	
+
 				// CORS configuration
 				'permissions'            => __( 'Permissions', 'arraypress' ),
 				'recommendations'        => __( 'Recommendations', 'arraypress' ),
-	
+
 				// CORS setup process
 				'corsSetupConfirm'       => implode( "\n", [
 					__( 'Set up CORS (Cross-Origin Resource Sharing) for bucket "{bucket}"?', 'arraypress' ),
@@ -115,7 +115,7 @@ class Translations {
 				'settingUpCors'          => __( 'Setting up CORS configuration...', 'arraypress' ),
 				'corsSetupSuccess'       => __( 'CORS successfully configured for bucket "{bucket}"', 'arraypress' ),
 				'corsSetupError'         => __( 'Failed to setup CORS: {message}', 'arraypress' ),
-	
+
 				// Manual CORS setup
 				's3CompatibleProvider'   => __( 'S3 Compatible Provider', 'arraypress' ),
 				'autoSetupFailed'        => __( 'CORS needs to be set up in your provider\'s console.', 'arraypress' ),
@@ -133,7 +133,7 @@ class Translations {
 				'oneHourCacheDesc'       => __( 'Reduces preflight requests', 'arraypress' ),
 				'note'                   => __( 'Note:', 'arraypress' ),
 				'configOptimized'        => __( 'This configuration is optimized for browser uploads only. All other operations (delete, list, etc.) are handled server-side and don\'t require additional CORS permissions.', 'arraypress' ),
-	
+
 				// CORS revocation
 				'revokeConfirm'          => implode( "\n", [
 					__( 'Are you sure you want to revoke all CORS rules for bucket "{bucket}"?', 'arraypress' ),
@@ -157,7 +157,7 @@ class Translations {
 				'networkError'        => __( 'Network error detected. Please check your internet connection and try again.', 'arraypress' ),
 				'failedPresignedUrl'  => __( 'Failed to get upload URL', 'arraypress' ),
 				'uploadFailedStatus'  => __( 'Upload failed with status', 'arraypress' ),
-				'uploadCancelled'     => __( 'Upload cancelled', 'arraypress' )
+				'uploadCancelled'     => __( 'Upload cancelled', 'arraypress' ),
 			],
 			'validation' => [
 				'validationFailed'    => __( 'File Validation Failed', 'arraypress' ),
@@ -232,5 +232,4 @@ class Translations {
 			],
 		];
 	}
-
 }

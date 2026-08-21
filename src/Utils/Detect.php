@@ -41,5 +41,4 @@ class Detect {
 		// Additional check: Must have file extension
 		return ! empty( pathinfo( basename( $parsed['object'] ), PATHINFO_EXTENSION ) );
 	}
-
 }

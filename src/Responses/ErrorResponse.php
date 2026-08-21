@@ -160,7 +160,7 @@ class ErrorResponse extends Response {
 
 		$array['error'] = [
 			'message' => $this->error_message,
-			'code'    => $this->error_code
+			'code'    => $this->error_code,
 		];
 
 		if ( ! empty( $this->error_data ) ) {
@@ -169,5 +169,4 @@ class ErrorResponse extends Response {
 
 		return $array;
 	}
-
 }

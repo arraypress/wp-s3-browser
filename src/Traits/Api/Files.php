@@ -92,7 +92,7 @@ trait Files {
 	): ResponseInterface {
 		// Prepare query parameters for ListObjectsV2
 		$query_params = [
-			'list-type' => '2' // Use ListObjectsV2 API
+			'list-type' => '2', // Use ListObjectsV2 API
 		];
 
 		if ( $max_keys !== 1000 ) {
@@ -131,7 +131,7 @@ trait Files {
 		// Make the request with appropriate timeout
 		$response = wp_remote_get( $url, [
 			'headers' => $headers,
-			'timeout' => $this->get_operation_timeout( 'list_objects' )
+			'timeout' => $this->get_operation_timeout( 'list_objects' ),
 		] );
 
 		// Handle errors
@@ -170,5 +170,4 @@ trait Files {
 			$prefix
 		);
 	}
-
 }

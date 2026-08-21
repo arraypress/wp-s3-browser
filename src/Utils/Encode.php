@@ -69,5 +69,4 @@ class Encode {
 
 		return str_replace( '%2F', '/', rawurlencode( $decoded ) );
 	}
-
 }

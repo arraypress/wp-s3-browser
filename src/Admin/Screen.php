@@ -125,5 +125,4 @@ class Screen {
 
 		return $screen && $screen->post_type === $post_type && $this->allows_post_type( $post_type );
 	}
-
 }

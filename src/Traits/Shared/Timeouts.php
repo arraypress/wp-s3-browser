@@ -54,7 +54,7 @@ trait Timeouts {
 		'upload_large'       => 180,
 
 		// Default fallback
-		'default'            => 30
+		'default'            => 30,
 	];
 
 	/**
@@ -67,5 +67,4 @@ trait Timeouts {
 	protected function get_operation_timeout( string $operation ): int {
 		return self::$operation_timeouts[ $operation ] ?? self::$operation_timeouts['default'];
 	}
-
 }

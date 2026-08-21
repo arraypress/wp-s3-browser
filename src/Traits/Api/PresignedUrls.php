@@ -94,5 +94,4 @@ trait PresignedUrls {
 
 		return new PresignedUrlResponse( $url, $expires_at );
 	}
-
 }

@@ -106,5 +106,4 @@ class PresignedUrlResponse extends Response {
 
 		return $array;
 	}
-
 }

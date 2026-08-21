@@ -117,5 +117,4 @@ interface Api {
 	 * @return self
 	 */
 	public function set_debug_callback( callable $callback ): self;
-
 }

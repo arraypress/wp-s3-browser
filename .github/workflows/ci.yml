@@ -68,6 +68,10 @@ jobs:
         if: matrix.php == '8.2'
         run: composer lint
 
+      - name: WordPress formatting
+        if: matrix.php == '8.2'
+        run: composer format:check
+
       - name: Tests
         run: vendor/bin/phpunit --colors=always
 

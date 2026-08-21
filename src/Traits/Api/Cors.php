@@ -95,7 +95,7 @@ trait Cors {
 		// Make the request
 		$response = wp_remote_get( $url, [
 			'headers' => $headers,
-			'timeout' => $this->get_operation_timeout( 'get_cors' )
+			'timeout' => $this->get_operation_timeout( 'get_cors' ),
 		] );
 
 		// Handle errors
@@ -123,7 +123,7 @@ trait Cors {
 						'supports_upload' => false,
 						'allowed_origins' => [],
 						'allowed_methods' => [],
-						'has_cors'        => false
+						'has_cors'        => false,
 					]
 				);
 			}
@@ -157,7 +157,7 @@ trait Cors {
 				'allowed_origins' => $allowed_origins,
 				'allowed_methods' => $allowed_methods,
 				'has_cors'        => ! empty( $cors_rules ),
-				'rules_count'     => count( $cors_rules )
+				'rules_count'     => count( $cors_rules ),
 			],
 			$xml
 		);
@@ -276,7 +276,7 @@ trait Cors {
 			'method'  => 'PUT',
 			'headers' => $headers,
 			'body'    => $cors_xml,
-			'timeout' => $this->get_operation_timeout( 'set_cors' )
+			'timeout' => $this->get_operation_timeout( 'set_cors' ),
 		] );
 
 		// Handle errors
@@ -302,7 +302,7 @@ trait Cors {
 			[
 				'bucket'      => $bucket,
 				'rules_count' => count( $cors_rules ),
-				'xml_size'    => strlen( $cors_xml )
+				'xml_size'    => strlen( $cors_xml ),
 			]
 		);
 	}
@@ -357,7 +357,7 @@ trait Cors {
 		$response = wp_remote_request( $url, [
 			'method'  => 'DELETE',
 			'headers' => $headers,
-			'timeout' => $this->get_operation_timeout( 'delete_cors' )
+			'timeout' => $this->get_operation_timeout( 'delete_cors' ),
 		] );
 
 		// Handle errors
@@ -381,7 +381,7 @@ trait Cors {
 					200,
 					[
 						'bucket'      => $bucket,
-						'was_present' => false
+						'was_present' => false,
 					]
 				);
 			}
@@ -395,9 +395,8 @@ trait Cors {
 			$status_code,
 			[
 				'bucket'      => $bucket,
-				'was_present' => true
+				'was_present' => true,
 			]
 		);
 	}
-
 }

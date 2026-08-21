@@ -258,5 +258,4 @@ class Parser {
 			trim( $error->message )
 		);
 	}
-
 }

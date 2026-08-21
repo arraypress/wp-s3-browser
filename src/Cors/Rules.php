@@ -103,5 +103,4 @@ class Rules {
 	public static function scenarios(): array {
 		return array_merge( array_keys( self::SCENARIOS ), [ 'mixed' ] );
 	}
-
 }

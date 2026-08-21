@@ -243,5 +243,4 @@ class Assets {
 			$this->config->provider_id
 		) );
 	}
-
 }

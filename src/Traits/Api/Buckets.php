@@ -135,7 +135,7 @@ trait Buckets {
 		$this->debug_request_details( 'list_buckets', $url, $headers );
 		$response = wp_remote_get( $url, [
 			'headers' => $headers,
-			'timeout' => $this->get_operation_timeout( 'list_buckets' )
+			'timeout' => $this->get_operation_timeout( 'list_buckets' ),
 		] );
 
 		// Handle errors
@@ -172,5 +172,4 @@ trait Buckets {
 			$xml
 		);
 	}
-
 }

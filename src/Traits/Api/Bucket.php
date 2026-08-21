@@ -59,7 +59,7 @@ trait Bucket {
 		// Make request
 		$response = wp_remote_get( $url, [
 			'headers' => $headers,
-			'timeout' => $this->get_operation_timeout( 'get_bucket_location' )
+			'timeout' => $this->get_operation_timeout( 'get_bucket_location' ),
 		] );
 
 		// Handle errors
@@ -93,9 +93,8 @@ trait Bucket {
 			$status_code,
 			[
 				'bucket'   => $bucket,
-				'location' => $location
+				'location' => $location,
 			]
 		);
 	}
-
 }

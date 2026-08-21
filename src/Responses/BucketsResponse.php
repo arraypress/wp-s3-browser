@@ -156,5 +156,4 @@ class BucketsResponse extends Response {
 
 		return $array;
 	}
-
 }

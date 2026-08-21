@@ -34,7 +34,7 @@ class Validate {
 		if ( empty( trim( $filename ) ) ) {
 			return [
 				'valid'   => false,
-				'message' => __( 'Filename cannot be empty', 'arraypress' )
+				'message' => __( 'Filename cannot be empty', 'arraypress' ),
 			];
 		}
 
@@ -42,7 +42,7 @@ class Validate {
 		if ( strlen( $filename ) > 255 ) {
 			return [
 				'valid'   => false,
-				'message' => __( 'Filename is too long (maximum 255 characters)', 'arraypress' )
+				'message' => __( 'Filename is too long (maximum 255 characters)', 'arraypress' ),
 			];
 		}
 
@@ -50,7 +50,7 @@ class Validate {
 		if ( preg_match( '/[<>:"|?*]/', $filename ) ) {
 			return [
 				'valid'   => false,
-				'message' => __( 'Filename contains invalid characters: < > : " | ? *', 'arraypress' )
+				'message' => __( 'Filename contains invalid characters: < > : " | ? *', 'arraypress' ),
 			];
 		}
 
@@ -58,7 +58,7 @@ class Validate {
 		if ( preg_match( '/^[.\-_\s]|[.\s]$/', $filename ) ) {
 			return [
 				'valid'   => false,
-				'message' => __( 'Filename cannot start with dots, dashes, underscores, or spaces, or end with dots or spaces', 'arraypress' )
+				'message' => __( 'Filename cannot start with dots, dashes, underscores, or spaces, or end with dots or spaces', 'arraypress' ),
 			];
 		}
 
@@ -66,7 +66,7 @@ class Validate {
 		if ( str_contains( $filename, '..' ) || str_contains( $filename, '/' ) || str_contains( $filename, '\\' ) ) {
 			return [
 				'valid'   => false,
-				'message' => __( 'Filename cannot contain path separators or relative path indicators', 'arraypress' )
+				'message' => __( 'Filename cannot contain path separators or relative path indicators', 'arraypress' ),
 			];
 		}
 
@@ -74,7 +74,7 @@ class Validate {
 		if ( preg_match( '/[\x00-\x1F\x7F]/', $filename ) ) {
 			return [
 				'valid'   => false,
-				'message' => __( 'Filename cannot contain control characters', 'arraypress' )
+				'message' => __( 'Filename cannot contain control characters', 'arraypress' ),
 			];
 		}
 
@@ -101,14 +101,14 @@ class Validate {
 			'LPT6',
 			'LPT7',
 			'LPT8',
-			'LPT9'
+			'LPT9',
 		];
 
 		$base_name = pathinfo( $filename, PATHINFO_FILENAME );
 		if ( in_array( strtoupper( $base_name ), $reserved_names, true ) ) {
 			return [
 				'valid'   => false,
-				'message' => __( 'Filename cannot be a reserved system name', 'arraypress' )
+				'message' => __( 'Filename cannot be a reserved system name', 'arraypress' ),
 			];
 		}
 
@@ -116,13 +116,13 @@ class Validate {
 		if ( $filename[0] === '.' && strlen( trim( $base_name ) ) === 0 ) {
 			return [
 				'valid'   => false,
-				'message' => __( 'Filename cannot be just an extension', 'arraypress' )
+				'message' => __( 'Filename cannot be just an extension', 'arraypress' ),
 			];
 		}
 
 		return [
 			'valid'   => true,
-			'message' => ''
+			'message' => '',
 		];
 	}
 
@@ -138,14 +138,14 @@ class Validate {
 		if ( strlen( $folder_name ) === 0 ) {
 			return [
 				'valid'   => false,
-				'message' => __( 'Folder name cannot be empty', 'arraypress' )
+				'message' => __( 'Folder name cannot be empty', 'arraypress' ),
 			];
 		}
 
 		if ( strlen( $folder_name ) > 63 ) {
 			return [
 				'valid'   => false,
-				'message' => __( 'Folder name cannot exceed 63 characters', 'arraypress' )
+				'message' => __( 'Folder name cannot exceed 63 characters', 'arraypress' ),
 			];
 		}
 
@@ -153,7 +153,7 @@ class Validate {
 		if ( ! preg_match( '/^[a-zA-Z0-9._\s-]+$/', $folder_name ) ) {
 			return [
 				'valid'   => false,
-				'message' => __( 'Folder name can only contain letters, numbers, spaces, dots, hyphens, and underscores', 'arraypress' )
+				'message' => __( 'Folder name can only contain letters, numbers, spaces, dots, hyphens, and underscores', 'arraypress' ),
 			];
 		}
 
@@ -161,10 +161,10 @@ class Validate {
 		$first_char = $folder_name[0];
 		$last_char  = $folder_name[ strlen( $folder_name ) - 1 ];
 
-		if ( in_array( $first_char, [ '.', '-', ' ' ] ) || in_array( $last_char, [ '.', '-', ' ' ] ) ) {
+		if ( in_array( $first_char, [ '.', '-', ' ' ], true ) || in_array( $last_char, [ '.', '-', ' ' ], true ) ) {
 			return [
 				'valid'   => false,
-				'message' => __( 'Folder name cannot start or end with dots, hyphens, or spaces', 'arraypress' )
+				'message' => __( 'Folder name cannot start or end with dots, hyphens, or spaces', 'arraypress' ),
 			];
 		}
 
@@ -172,7 +172,7 @@ class Validate {
 		if ( str_contains( $folder_name, '..' ) ) {
 			return [
 				'valid'   => false,
-				'message' => __( 'Folder name cannot contain consecutive dots', 'arraypress' )
+				'message' => __( 'Folder name cannot contain consecutive dots', 'arraypress' ),
 			];
 		}
 
@@ -180,7 +180,7 @@ class Validate {
 		if ( preg_match( '/\s{2,}/', $folder_name ) ) {
 			return [
 				'valid'   => false,
-				'message' => __( 'Folder name cannot contain multiple consecutive spaces', 'arraypress' )
+				'message' => __( 'Folder name cannot contain multiple consecutive spaces', 'arraypress' ),
 			];
 		}
 
@@ -207,19 +207,19 @@ class Validate {
 			'LPT6',
 			'LPT7',
 			'LPT8',
-			'LPT9'
+			'LPT9',
 		];
 
 		if ( in_array( strtoupper( $folder_name ), $reserved, true ) ) {
 			return [
 				'valid'   => false,
-				'message' => __( 'Folder name cannot be a reserved system name', 'arraypress' )
+				'message' => __( 'Folder name cannot be a reserved system name', 'arraypress' ),
 			];
 		}
 
 		return [
 			'valid'   => true,
-			'message' => ''
+			'message' => '',
 		];
 	}
 
@@ -235,7 +235,7 @@ class Validate {
 			return [
 				'valid'   => false,
 				'message' => __( 'Maximum 100 CORS rules allowed per bucket', 'arraypress' ),
-				'code'    => 'too_many_rules'
+				'code'    => 'too_many_rules',
 			];
 		}
 
@@ -245,7 +245,7 @@ class Validate {
 					'valid'   => false,
 					/* translators: %1$d: rule index */
 					'message' => sprintf( __( 'CORS rule at index %d must be an array', 'arraypress' ), $index ),
-					'code'    => 'invalid_rule_format'
+					'code'    => 'invalid_rule_format',
 				];
 			}
 
@@ -255,7 +255,7 @@ class Validate {
 					'valid'   => false,
 					/* translators: %1$d: rule index */
 					'message' => sprintf( __( 'CORS rule at index %d must have AllowedMethods', 'arraypress' ), $index ),
-					'code'    => 'missing_allowed_methods'
+					'code'    => 'missing_allowed_methods',
 				];
 			}
 
@@ -264,7 +264,7 @@ class Validate {
 					'valid'   => false,
 					/* translators: %1$d: rule index */
 					'message' => sprintf( __( 'CORS rule at index %d must have AllowedOrigins', 'arraypress' ), $index ),
-					'code'    => 'missing_allowed_origins'
+					'code'    => 'missing_allowed_origins',
 				];
 			}
 
@@ -276,7 +276,7 @@ class Validate {
 						'valid'   => false,
 						/* translators: %1$s: HTTP method, %2$d: rule index */
 						'message' => sprintf( __( 'Invalid HTTP method "%1$s" in CORS rule at index %2$d', 'arraypress' ), $method, $index ),
-						'code'    => 'invalid_http_method'
+						'code'    => 'invalid_http_method',
 					];
 				}
 			}
@@ -287,15 +287,14 @@ class Validate {
 					'valid'   => false,
 					/* translators: %1$d: rule index */
 					'message' => sprintf( __( 'CORS rule ID at index %d exceeds 255 characters', 'arraypress' ), $index ),
-					'code'    => 'rule_id_too_long'
+					'code'    => 'rule_id_too_long',
 				];
 			}
 		}
 
 		return [
 			'valid'   => true,
-			'message' => ''
+			'message' => '',
 		];
 	}
-
 }

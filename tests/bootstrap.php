@@ -499,3 +499,9 @@ if ( ! function_exists( 'wp_unslash' ) ) {
 		return is_string( $value ) ? stripslashes( $value ) : $value;
 	}
 }
+
+if ( ! function_exists( 'wp_date' ) ) {
+	function wp_date( string $format, ?int $timestamp = null, $timezone = null ) {
+		return gmdate( $format, $timestamp ?? time() );
+	}
+}

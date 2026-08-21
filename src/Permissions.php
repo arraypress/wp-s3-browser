@@ -62,7 +62,10 @@ class Permissions {
 	 * @return array Read, write and delete flags, plus any errors.
 	 */
 	public function check( string $bucket, bool $use_cache = true, bool $probe_writes = true ): array {
-		$key = $this->cache->key( 'key_permissions', [ 'bucket' => $bucket, 'writes' => $probe_writes ], $bucket );
+		$key = $this->cache->key( 'key_permissions', [
+			'bucket' => $bucket,
+			'writes' => $probe_writes,
+		], $bucket );
 
 		if ( $use_cache ) {
 			$cached = $this->cache->get( $key );
@@ -195,5 +198,4 @@ class Permissions {
 			gmdate( 'Y-m-d H:i:s' ) . ' UTC'
 		);
 	}
-
 }

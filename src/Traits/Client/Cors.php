@@ -43,7 +43,7 @@ trait Cors {
 			'arraypress_s3_get_cors_configuration_params',
 			[
 				'bucket'    => $bucket,
-				'use_cache' => $use_cache
+				'use_cache' => $use_cache,
 			],
 			$bucket
 		);
@@ -104,7 +104,7 @@ trait Cors {
 				'bucket'      => $bucket,
 				'cors_rules'  => $cors_rules,
 				'clear_cache' => $clear_cache,
-				'proceed'     => true
+				'proceed'     => true,
 			],
 			$bucket
 		);
@@ -116,7 +116,7 @@ trait Cors {
 				'update_prevented',
 				403,
 				[
-					'bucket' => $bucket
+					'bucket' => $bucket,
 				]
 			);
 		}
@@ -160,7 +160,7 @@ trait Cors {
 			[
 				'bucket'      => $bucket,
 				'clear_cache' => $clear_cache,
-				'proceed'     => true
+				'proceed'     => true,
 			],
 			$bucket
 		);
@@ -172,7 +172,7 @@ trait Cors {
 				'deletion_prevented',
 				403,
 				[
-					'bucket' => $bucket
+					'bucket' => $bucket,
 				]
 			);
 		}
@@ -245,7 +245,11 @@ trait Cors {
 	public function generate_cors_rules( string $scenario = 'public_read', array $origins = [ '*' ], array $extra = [] ): array {
 		$params = $this->apply_contextual_filters(
 			'arraypress_s3_generate_cors_rules_params',
-			[ 'scenario' => $scenario, 'origins' => $origins, 'extra_config' => $extra ]
+			[
+				'scenario' => $scenario,
+				'origins' => $origins,
+				'extra_config' => $extra,
+			]
 		);
 
 		return $this->apply_contextual_filters(
@@ -326,5 +330,4 @@ trait Cors {
 
 		return $this->cache->forget( $cache_key );
 	}
-
 }

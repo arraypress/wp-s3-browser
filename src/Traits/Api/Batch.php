@@ -77,7 +77,7 @@ trait Batch {
 		// Enhanced error handling
 		if ( is_wp_error( $response ) ) {
 			$error_code = $response->get_error_code();
-			if ( in_array( $error_code, [ 'http_request_timeout', 'http_request_failed' ] ) ) {
+			if ( in_array( $error_code, [ 'http_request_timeout', 'http_request_failed' ], true ) ) {
 				return new ErrorResponse(
 					__( 'Request timeout - try reducing batch size or use individual deletes', 'arraypress' ),
 					'batch_delete_timeout',
@@ -129,9 +129,8 @@ trait Batch {
 				'success_count'   => $results['success_count'],
 				'error_count'     => $results['error_count'],
 				'deleted_objects' => $results['deleted'],
-				'failed_objects'  => $results['errors']
+				'failed_objects'  => $results['errors'],
 			]
 		);
 	}
-
 }

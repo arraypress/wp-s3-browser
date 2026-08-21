@@ -82,8 +82,7 @@ abstract class Response implements ResponseInterface {
 	public function to_array(): array {
 		return [
 			'success'     => $this->success,
-			'status_code' => $this->status_code
+			'status_code' => $this->status_code,
 		];
 	}
-
 }

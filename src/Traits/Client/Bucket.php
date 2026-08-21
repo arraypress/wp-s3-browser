@@ -40,7 +40,7 @@ trait Bucket {
 			'arraypress_s3_bucket_exists_params',
 			[
 				'bucket'    => $bucket,
-				'use_cache' => $use_cache
+				'use_cache' => $use_cache,
 			],
 			$bucket
 		);
@@ -77,7 +77,7 @@ trait Bucket {
 				[
 					'bucket' => $bucket,
 					'exists' => true,
-					'method' => 'list_objects'
+					'method' => 'list_objects',
 				]
 			);
 
@@ -103,8 +103,8 @@ trait Bucket {
 			$not_found_codes = [ 'NoSuchBucket', 'bucket_not_found', 'not_found' ];
 
 			if ( in_array( $error_code, $not_found_codes, true ) ||
-			     strpos( $error_message, 'does not exist' ) !== false ||
-			     strpos( $error_message, 'not found' ) !== false ) {
+				strpos( $error_message, 'does not exist' ) !== false ||
+				strpos( $error_message, 'not found' ) !== false ) {
 
 				$response = new SuccessResponse(
 					/* translators: %1$s: value */
@@ -114,7 +114,7 @@ trait Bucket {
 						'bucket'     => $bucket,
 						'exists'     => false,
 						'error_code' => $error_code,
-						'method'     => 'list_objects'
+						'method'     => 'list_objects',
 					]
 				);
 
@@ -140,7 +140,7 @@ trait Bucket {
 				[
 					'bucket'           => $bucket,
 					'original_error'   => $error_code,
-					'original_message' => $error_message
+					'original_message' => $error_message,
 				]
 			);
 		}
@@ -169,7 +169,7 @@ trait Bucket {
 			'arraypress_s3_get_bucket_location_params',
 			[
 				'bucket'    => $bucket,
-				'use_cache' => $use_cache
+				'use_cache' => $use_cache,
 			],
 			$bucket
 		);
@@ -247,10 +247,10 @@ trait Bucket {
 				'analysis'       => null,
 				'upload_ready'   => false,
 				'current_origin' => $current_origin,
-				'details'        => __( 'CORS not configured', 'arraypress' )
+				'details'        => __( 'CORS not configured', 'arraypress' ),
 			],
 			'permissions' => null,
-			'debug'       => [] // Add debug info
+			'debug'       => [], // Add debug info
 		];
 
 		// Get CORS analysis first (without cache to ensure fresh data)
@@ -324,5 +324,4 @@ trait Bucket {
 			$details
 		);
 	}
-
 }

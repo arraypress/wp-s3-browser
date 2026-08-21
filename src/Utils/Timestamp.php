@@ -32,5 +32,4 @@ class Timestamp {
 	public static function in_minutes( int $minutes ): int {
 		return time() + ( $minutes * 60 );
 	}
-
 }

@@ -271,12 +271,12 @@ class MediaLibrary {
 	*/
 	private function display_breadcrumbs( string $bucket, string $prefix = '' ): void {
 		$breadcrumbs = Breadcrumbs::create( [
-				'separator'       => '›',
-				'nav_class'       => 's3-browser-breadcrumbs',
-				'list_class'      => 'breadcrumb',
-				'item_class'      => '',
-				'separator_class' => 'separator',
-				'active_class'    => 'active',
+			'separator'       => '›',
+			'nav_class'       => 's3-browser-breadcrumbs',
+			'list_class'      => 'breadcrumb',
+			'item_class'      => '',
+			'separator_class' => 'separator',
+			'active_class'    => 'active',
 		] );
 
 		// Add root buckets link
@@ -288,8 +288,8 @@ class MediaLibrary {
 
 		// Add bucket link
 		$base_url = add_query_arg( [
-				'tab'    => $this->config->tab_id(),
-				'bucket' => $bucket
+			'tab'    => $this->config->tab_id(),
+			'bucket' => $bucket,
 		], remove_query_arg( [ 'prefix', 's', 'continuation_token' ] ) );
 
 		$breadcrumbs->add( $bucket, $base_url, 'dashicons-category' );
@@ -310,9 +310,9 @@ class MediaLibrary {
 					$breadcrumbs->add_current( $part );
 				} else {
 					$url = add_query_arg( [
-							'tab'    => $this->config->tab_id(),
-							'bucket' => $bucket,
-							'prefix' => $current_path
+						'tab'    => $this->config->tab_id(),
+						'bucket' => $bucket,
+						'prefix' => $current_path,
 					] );
 					$breadcrumbs->add( $part, $url, 'dashicons-category' );
 				}
@@ -330,8 +330,8 @@ class MediaLibrary {
 	private function get_buckets_url(): string {
 		return add_query_arg(
 				[
-						'tab'  => $this->config->tab_id(),
-						'view' => 'buckets'
+					'tab'  => $this->config->tab_id(),
+					'view' => 'buckets',
 				],
 				remove_query_arg( [ 'bucket', 'prefix', 's', 'continuation_token' ] )
 		);
@@ -345,8 +345,8 @@ class MediaLibrary {
 	private function display_buckets_list(): void {
 		// Create and prepare the list table
 		$list_table = new Buckets( [
-				'client'      => $this->client,
-				'provider_id' => $this->config->provider_id
+			'client'      => $this->client,
+			'provider_id' => $this->config->provider_id,
 		] );
 
 		// Prepare items
@@ -375,10 +375,10 @@ class MediaLibrary {
 	private function display_objects_list( string $bucket, string $prefix = '' ): void {
 		// Create and prepare the list table
 		$list_table = new Objects( [
-				'client'      => $this->client,
-				'bucket'      => $bucket,
-				'prefix'      => $prefix,
-				'provider_id' => $this->config->provider_id,
+			'client'      => $this->client,
+			'bucket'      => $bucket,
+			'prefix'      => $prefix,
+			'provider_id' => $this->config->provider_id,
 		] );
 
 		// Prepare items
@@ -395,5 +395,4 @@ class MediaLibrary {
 		// Display the list table
 		$list_table->display();
 	}
-
 }

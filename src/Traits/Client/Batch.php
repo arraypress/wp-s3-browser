@@ -39,7 +39,7 @@ trait Batch {
 				'bucket'      => $bucket,
 				'object_keys' => $object_keys,
 				'batch_size'  => $batch_size,
-				'proceed'     => true
+				'proceed'     => true,
 			],
 			$bucket
 		);
@@ -68,7 +68,7 @@ trait Batch {
 		$this->debug( 'Starting batch delete', [
 			'total_objects' => count( $object_keys ),
 			'batch_size'    => $batch_size,
-			'provider'      => get_class( $this->provider )
+			'provider'      => get_class( $this->provider ),
 		] );
 
 		// Use smart deletion strategy based on object count
@@ -100,7 +100,7 @@ trait Batch {
 				'folder_path' => $folder_path,
 				'recursive'   => $recursive,
 				'use_batch'   => $use_batch,
-				'proceed'     => true
+				'proceed'     => true,
 			],
 			$bucket,
 			$folder_path
@@ -114,7 +114,7 @@ trait Batch {
 				403,
 				[
 					'bucket'      => $bucket,
-					'folder_path' => $folder_path
+					'folder_path' => $folder_path,
 				]
 			);
 		}
@@ -153,14 +153,18 @@ trait Batch {
 				/* translators: %1$s: folder name */
 				sprintf( __( 'Folder "%s" is already empty or does not exist', 'arraypress' ), $normalized_path ),
 				200,
-				[ 'folder_path' => $normalized_path, 'success_count' => 0, 'error_count' => 0 ]
+				[
+					'folder_path' => $normalized_path,
+					'success_count' => 0,
+					'error_count' => 0,
+				]
 			);
 		}
 
 		$this->debug( 'Delete Folder Batch - Final object list', [
 			'folder_path' => $normalized_path,
 			'object_keys' => $object_keys,
-			'total_count' => count( $object_keys )
+			'total_count' => count( $object_keys ),
 		] );
 
 		// Use the same smart deletion strategy as batch_delete_objects
@@ -246,7 +250,7 @@ trait Batch {
 		$all_errors    = [];
 
 		foreach ( $batches as $batch_index => $batch ) {
-			$this->debug( "Processing batch", ( $batch_index + 1 ) . '/' . count( $batches ) );
+			$this->debug( 'Processing batch', ( $batch_index + 1 ) . '/' . count( $batches ) );
 
 			// Try batch delete first
 			$result = $this->api->batch_delete_objects( $bucket, $batch );
@@ -262,7 +266,7 @@ trait Batch {
 				// Batch delete failed - fallback to individual deletes
 				$this->debug( 'Batch delete failed, falling back to individual deletes', [
 					'error'      => $result->get_error_message(),
-					'batch_size' => count( $batch )
+					'batch_size' => count( $batch ),
 				] );
 
 				$fallback_result = $this->individual_delete_objects( $bucket, $batch );
@@ -278,7 +282,7 @@ trait Batch {
 						$all_errors[] = [
 							'key'     => $key,
 							'code'    => $fallback_result->get_error_code(),
-							'message' => $fallback_result->get_error_message()
+							'message' => $fallback_result->get_error_message(),
 						];
 					}
 					$total_errors += count( $batch );
@@ -314,13 +318,13 @@ trait Batch {
 			if ( $delete_result->is_successful() ) {
 				$deleted[] = [
 					'key'        => $object_key,
-					'version_id' => null
+					'version_id' => null,
 				];
 			} else {
 				$errors[] = [
 					'key'     => $object_key,
 					'code'    => $delete_result->get_error_code(),
-					'message' => $delete_result->get_error_message()
+					'message' => $delete_result->get_error_message(),
 				];
 			}
 		}
@@ -334,7 +338,7 @@ trait Batch {
 				'success_count'   => count( $deleted ),
 				'error_count'     => count( $errors ),
 				'deleted_objects' => $deleted,
-				'failed_objects'  => $errors
+				'failed_objects'  => $errors,
 			]
 		);
 	}
@@ -405,7 +409,7 @@ trait Batch {
 			'success_count'   => $total_success,
 			'error_count'     => $total_errors,
 			'deleted_objects' => $all_deleted,
-			'failed_objects'  => $all_errors
+			'failed_objects'  => $all_errors,
 		];
 
 		$response = $total_errors === 0
@@ -437,7 +441,7 @@ trait Batch {
 		} else {
 			$this->debug( 'Failed to clean up folder placeholder', [
 				'folder' => $normalized_path,
-				'error'  => $placeholder_result->get_error_message()
+				'error'  => $placeholder_result->get_error_message(),
 			] );
 		}
 
@@ -450,10 +454,9 @@ trait Batch {
 					'folder'            => $normalized_path,
 					'remaining_objects' => array_map( function ( $obj ) {
 						return $obj->get_key();
-					}, $check_data['objects'] )
+					}, $check_data['objects'] ),
 				] );
 			}
 		}
 	}
-
 }

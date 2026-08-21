@@ -88,7 +88,7 @@ trait File {
 		// Make the request with appropriate timeout
 		$response = wp_remote_get( $url, [
 			'headers' => $headers,
-			'timeout' => $this->get_operation_timeout( 'get_object' )
+			'timeout' => $this->get_operation_timeout( 'get_object' ),
 		] );
 
 		// Handle errors
@@ -113,7 +113,7 @@ trait File {
 			'content_type'   => wp_remote_retrieve_header( $response, 'content-type' ),
 			'content_length' => (int) wp_remote_retrieve_header( $response, 'content-length' ),
 			'etag'           => trim( wp_remote_retrieve_header( $response, 'etag' ), '"' ),
-			'last_modified'  => wp_remote_retrieve_header( $response, 'last-modified' )
+			'last_modified'  => wp_remote_retrieve_header( $response, 'last-modified' ),
 		];
 
 		// Extract custom metadata
@@ -126,7 +126,7 @@ trait File {
 		return new ObjectResponse( $body, $metadata, $status_code, [
 			'headers' => $response_headers,
 			'bucket'  => $bucket,
-			'key'     => $object_key
+			'key'     => $object_key,
 		] );
 	}
 
@@ -184,7 +184,7 @@ trait File {
 		// Make the request with appropriate timeout
 		$response = wp_remote_head( $url, [
 			'headers' => $headers,
-			'timeout' => $this->get_operation_timeout( 'head_object' )
+			'timeout' => $this->get_operation_timeout( 'head_object' ),
 		] );
 
 		// Handle errors
@@ -208,14 +208,14 @@ trait File {
 			'content_type'   => wp_remote_retrieve_header( $response, 'content-type' ),
 			'content_length' => (int) wp_remote_retrieve_header( $response, 'content-length' ),
 			'etag'           => trim( wp_remote_retrieve_header( $response, 'etag' ), '"' ),
-			'last_modified'  => wp_remote_retrieve_header( $response, 'last-modified' )
+			'last_modified'  => wp_remote_retrieve_header( $response, 'last-modified' ),
 		];
 
 		// Empty content for HEAD request
 		return new ObjectResponse( '', $metadata, $status_code, [
 			'headers' => $response_headers,
 			'bucket'  => $bucket,
-			'key'     => $object_key
+			'key'     => $object_key,
 		] );
 	}
 
@@ -276,7 +276,7 @@ trait File {
 			'method'  => 'DELETE',
 			'headers' => $headers,
 			'timeout' => $this->get_operation_timeout( 'delete_object' ),
-			'body'    => ''
+			'body'    => '',
 		] );
 
 		// Handle WP_Error responses
@@ -305,7 +305,7 @@ trait File {
 			[
 				'bucket'   => $bucket,
 				'key'      => $object_key,
-				'filename' => $filename
+				'filename' => $filename,
 			]
 		);
 	}
@@ -382,7 +382,7 @@ trait File {
 			'method'  => 'PUT',
 			'headers' => $headers,
 			'timeout' => $this->get_operation_timeout( 'copy_object' ),
-			'body'    => '' // Empty body for copy operation
+			'body'    => '', // Empty body for copy operation
 		] );
 
 		// Handle WP_Error responses
@@ -427,7 +427,7 @@ trait File {
 					'source_bucket' => $source_bucket,
 					'source_key'    => $source_key,
 					'target_bucket' => $target_bucket,
-					'target_key'    => $target_key
+					'target_key'    => $target_key,
 				]
 			);
 		}
@@ -450,10 +450,9 @@ trait File {
 				'target_bucket' => $target_bucket,
 				'target_key'    => $target_key,
 				'etag'          => $copy_data['etag'],
-				'last_modified' => $copy_data['last_modified']
+				'last_modified' => $copy_data['last_modified'],
 			],
 			$xml_data
 		);
 	}
-
 }

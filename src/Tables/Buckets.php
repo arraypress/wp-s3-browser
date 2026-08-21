@@ -59,7 +59,7 @@ class Buckets extends WP_List_Table {
 	public function get_columns() {
 		return [
 			'name'    => __( 'Bucket Name', 'arraypress' ),
-			'created' => __( 'Creation Date', 'arraypress' )
+			'created' => __( 'Creation Date', 'arraypress' ),
 		];
 	}
 
@@ -190,10 +190,10 @@ class Buckets extends WP_List_Table {
 	 */
 	public function display_tablenav( $which ) {
 		?>
-        <div class="tablenav <?php echo esc_attr( $which ); ?>">
-			<?php if ( $which === 'top' ): ?>
-                <div class="s3-top-nav">
-                    <div class="s3-actions-container">
+		<div class="tablenav <?php echo esc_attr( $which ); ?>">
+			<?php if ( $which === 'top' ) : ?>
+				<div class="s3-top-nav">
+					<div class="s3-actions-container">
 						<?php
 						// Use WordPress native button classes
 						printf(
@@ -202,44 +202,44 @@ class Buckets extends WP_List_Table {
 							esc_html__( 'Refresh', 'arraypress' )
 						);
 						?>
-                    </div>
-                </div>
-			<?php else: ?>
-                <!-- Bottom navigation with WordPress styling -->
-                <div class="tablenav-pages">
-                <span class="displaying-num">
-                    <?php
-                    $count = count( $this->items );
-                    echo esc_html( sprintf(
-	                    /* translators: %1$s: value */
-	                    _n( '%s bucket', '%s buckets', $count, 'arraypress' ),
-	                    number_format_i18n( $count )
-                    ) );
-                    ?>
-                </span>
-					<?php if ( isset( $this->_pagination_args['marker'] ) && ! empty( $this->_pagination_args['marker'] ) ): ?>
-                        <span class="pagination-links">
-                        <?php
-                        $marker  = $this->_pagination_args['marker'];
-                        $post_id = isset( $_GET['post_id'] ) ? intval( $_GET['post_id'] ) : 0;
-                        $url     = add_query_arg( [
-	                        'chromeless' => 1,
-	                        'post_id'    => $post_id,
-	                        'tab'        => 's3_' . $this->provider_id,
-	                        'view'       => 'buckets',
-	                        'marker'     => urlencode( $marker )
-                        ] );
-                        ?>
-                        <!-- WordPress native pagination button -->
-                        <a class="button button-secondary" href="<?php echo esc_url( $url ); ?>">
-                            <?php esc_html_e( 'Next Page', 'arraypress' ); ?> &raquo;
-                        </a>
-                    </span>
+					</div>
+				</div>
+			<?php else : ?>
+				<!-- Bottom navigation with WordPress styling -->
+				<div class="tablenav-pages">
+				<span class="displaying-num">
+					<?php
+					$count = count( $this->items );
+					echo esc_html( sprintf(
+						/* translators: %1$s: value */
+						_n( '%s bucket', '%s buckets', $count, 'arraypress' ),
+						number_format_i18n( $count )
+					) );
+					?>
+				</span>
+					<?php if ( isset( $this->_pagination_args['marker'] ) && ! empty( $this->_pagination_args['marker'] ) ) : ?>
+						<span class="pagination-links">
+						<?php
+						$marker  = $this->_pagination_args['marker'];
+						$post_id = isset( $_GET['post_id'] ) ? intval( $_GET['post_id'] ) : 0;
+						$url     = add_query_arg( [
+							'chromeless' => 1,
+							'post_id'    => $post_id,
+							'tab'        => 's3_' . $this->provider_id,
+							'view'       => 'buckets',
+							'marker'     => urlencode( $marker ),
+						] );
+						?>
+						<!-- WordPress native pagination button -->
+						<a class="button button-secondary" href="<?php echo esc_url( $url ); ?>">
+							<?php esc_html_e( 'Next Page', 'arraypress' ); ?> &raquo;
+						</a>
+					</span>
 					<?php endif; ?>
-                </div>
+				</div>
 			<?php endif; ?>
-            <br class="clear"/>
-        </div>
+			<br class="clear"/>
+		</div>
 		<?php
 	}
 
@@ -249,5 +249,4 @@ class Buckets extends WP_List_Table {
 	public function no_items() {
 		echo esc_html__( 'No buckets found.', 'arraypress' );
 	}
-
 }

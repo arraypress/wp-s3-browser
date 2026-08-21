@@ -75,7 +75,7 @@ class Directory {
 			$current_path .= $part . '/';
 			$result[]     = [
 				'name' => $part,
-				'path' => $current_path
+				'path' => $current_path,
 			];
 		}
 
@@ -201,5 +201,4 @@ class Directory {
 
 		return substr_count( $path, '/' ) + 1;
 	}
-
 }

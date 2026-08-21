@@ -228,5 +228,4 @@ final class Provider {
 
 		return $url;
 	}
-
 }

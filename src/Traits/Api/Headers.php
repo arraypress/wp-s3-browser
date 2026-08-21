@@ -141,5 +141,4 @@ trait Headers {
 
 		return $headers;
 	}
-
 }

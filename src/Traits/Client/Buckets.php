@@ -49,7 +49,7 @@ trait Buckets {
 				'max_keys'  => $max_keys,
 				'prefix'    => $prefix,
 				'marker'    => $marker,
-				'use_cache' => $use_cache
+				'use_cache' => $use_cache,
 			]
 		);
 
@@ -64,7 +64,7 @@ trait Buckets {
 			$cache_key = $this->cache->key( 'buckets', [
 				'max_keys' => $max_keys,
 				'prefix'   => $prefix,
-				'marker'   => $marker
+				'marker'   => $marker,
 			] );
 
 			$cached = $this->cache->get( $cache_key );
@@ -139,7 +139,7 @@ trait Buckets {
 				'max_keys'  => $max_keys,
 				'prefix'    => $prefix,
 				'marker'    => $marker,
-				'use_cache' => $use_cache
+				'use_cache' => $use_cache,
 			]
 		);
 
@@ -242,7 +242,7 @@ trait Buckets {
 				'truncated'       => $response->is_truncated(),
 				'next_marker'     => $response->get_next_marker(),
 				'owner'           => $response->get_owner(),
-				'response_object' => $response
+				'response_object' => $response,
 			]
 		);
 
@@ -267,7 +267,7 @@ trait Buckets {
 		$params = $this->apply_contextual_filters(
 			'arraypress_s3_get_bucket_count_params',
 			[
-				'use_cache' => $use_cache
+				'use_cache' => $use_cache,
 			]
 		);
 
@@ -312,7 +312,7 @@ trait Buckets {
 				'count'   => $bucket_count,
 				'buckets' => array_map( function ( $bucket ) {
 					return $bucket->get_name();
-				}, $buckets )
+				}, $buckets ),
 			]
 		);
 
@@ -327,5 +327,4 @@ trait Buckets {
 			$response
 		);
 	}
-
 }

@@ -23,7 +23,7 @@ use ArrayPress\S3\Traits\Shared\Debug;
 
 // Load WP_List_Table if not loaded
 if ( ! class_exists( 'WP_List_Table' ) ) {
-	require_once( ABSPATH . 'wp-admin/includes/class-wp-list-table.php' );
+	require_once ABSPATH . 'wp-admin/includes/class-wp-list-table.php';
 }
 
 /**
@@ -339,5 +339,4 @@ class Browser {
 	public function get_provider_id(): string {
 		return $this->config->provider_id;
 	}
-
 }

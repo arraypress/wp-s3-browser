@@ -94,8 +94,7 @@ class S3Prefix {
 			'FolderName'   => $this->get_folder_name(),
 			'ParentPrefix' => $this->get_parent_prefix(),
 			'IsRootLevel'  => $this->is_root_level(),
-			'PathParts'    => $this->get_path_parts()
+			'PathParts'    => $this->get_path_parts(),
 		];
 	}
-
 }
