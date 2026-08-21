@@ -1,6 +1,6 @@
 <?php
 /**
- * Browser Assets Management Trait - Updated with I18n Trait and Cleaned Config
+ * Browser Assets Management Trait
  *
  * Handles asset loading and configuration for the S3 Browser using
  * the new simplified JavaScript file structure and organized translations.
@@ -17,13 +17,13 @@ declare( strict_types=1 );
 namespace ArrayPress\S3\Traits\Browser;
 
 use ArrayPress\S3\Utils\Mime;
+use ArrayPress\S3\Admin\Translations;
 
 /**
  * Trait Assets
  */
 trait Assets {
 
-	use I18n;
 
 	/**
 	 * Store the browser script handles for later reference
@@ -300,7 +300,7 @@ trait Assets {
 		$browser_config = [
 			'postId'   => $post_id,
 			'autoLoad' => apply_filters( 's3_browser_auto_load', false, $this->provider_id ),
-			'i18n'     => $this->get_browser_translations()
+			'i18n'     => $this->apply_contextual_filters( 's3_browser_translations', Translations::all(), $this->provider_id )
 		];
 
 		// Apply contextual filters

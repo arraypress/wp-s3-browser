@@ -21,7 +21,6 @@ use ArrayPress\S3\Traits\Browser\Integrations;
 use ArrayPress\S3\Traits\Browser\MediaLibrary;
 use ArrayPress\S3\Traits\Browser\Hooks;
 use ArrayPress\S3\Traits\Browser\Helpers;
-use ArrayPress\S3\Traits\Browser\I18n;
 use ArrayPress\S3\Traits\Shared\Context;
 use ArrayPress\S3\Traits\Shared\Debug;
 use ArrayPress\S3\Traits\Shared\Config;
@@ -41,7 +40,6 @@ class Browser {
 	use RestApi;
 	use Templates;
 	use Assets;
-	use I18n;
 	use Integrations;
 	use MediaLibrary;
 	use Hooks;
