@@ -139,11 +139,20 @@ class Controller {
 	}
 
 	/**
-	 * Get the route base identifying this browser instance
+	 * Get the path this instance's routes live under
 	 *
-	 * Mirrors the AJAX action naming, so multiple browsers inside one plugin
-	 * (different providers, or the same provider in different contexts) stay
-	 * separated exactly as they already do.
+	 * Namespace and base joined, which is what a caller building a URL wants.
+	 * Both halves separately is how the browser's asset config came to call a
+	 * method that had moved, and to do it in a code path no test covers.
+	 *
+	 * @return string
+	 */
+	public function route_path(): string {
+		return $this->get_rest_namespace() . '/' . $this->get_rest_route_base();
+	}
+
+	/**
+	 * Get the route base identifying this browser instance
 	 *
 	 * @return string
 	 */

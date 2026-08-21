@@ -34,6 +34,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 		. "\t\tpublic \$items = [];\n"
 		. "\t\tprotected \$_pagination_args = [];\n"
 		. "\t\tpublic function __construct( \$args = [] ) {}\n"
+		. "\t\tpublic function set_pagination_args( \$args ) { \$this->_pagination_args = \$args; }\n"
+		. "\t\tpublic function row_actions( \$actions, \$always_visible = false ) { return ''; }\n"
+		. "\t\tpublic function get_pagenum() { return 1; }\n"
+		. "\t\tpublic function display() {}\n"
+		. "\t\tpublic function get_columns() { return []; }\n"
+		. "\t\tpublic function prepare_items() {}\n"
 		. "\t}\n}\n"
 	);
 
