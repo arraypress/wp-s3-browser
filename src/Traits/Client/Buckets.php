@@ -104,6 +104,29 @@ trait Buckets {
 	 *
 	 * @return ResponseInterface Response with bucket models
 	 */
+	/**
+	 * Buckets known to exist without listing them.
+	 *
+	 * A bucket-scoped token cannot call ListBuckets, so the only way to show a
+	 * bucket is to be told its name and confirm it with HeadBucket.
+	 *
+	 * @var string[]
+	 */
+	private array $known_buckets = [];
+
+	/**
+	 * Tell the client which buckets to fall back to when listing is refused.
+	 *
+	 * @param string[] $names Bucket names.
+	 *
+	 * @return self
+	 */
+	public function set_known_buckets( array $names ): self {
+		$this->known_buckets = array_values( array_unique( array_filter( array_map( 'strval', $names ) ) ) );
+
+		return $this;
+	}
+
 	public function get_bucket_models(
 		int $max_keys = 1000,
 		string $prefix = '',
@@ -134,7 +157,17 @@ trait Buckets {
 			// bucket-scoped API tokens). Fall back to a consumer-supplied
 			// bucket list — typically populated from a "Default Bucket"
 			// setting — and verify each via HeadBucket.
-			$fallback_names = (array) apply_filters( 'arraypress_s3_known_buckets_fallback', [], $params['prefix'] );
+			// Buckets this client already knows about, set by whatever configured
+			// it. A global filter cannot serve this: two Browser instances on
+			// one site — an EDD one and a WooCommerce one, say — would overwrite
+			// each other's answer. The filter is still applied afterwards for
+			// consumers that prefer it.
+			$fallback_names = $this->known_buckets;
+			$fallback_names = (array) apply_filters(
+				'arraypress_s3_known_buckets_fallback',
+				$fallback_names,
+				$params['prefix']
+			);
 			$fallback_names = array_values( array_unique( array_filter( array_map( 'strval', $fallback_names ) ) ) );
 
 			if ( ! empty( $fallback_names ) ) {

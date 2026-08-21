@@ -183,6 +183,20 @@ class Browser {
 			$this->get_context()
 		);
 
+		// A scoped token cannot list buckets, so give the client the names we
+		// already know: the allow-list if one is set, otherwise the default
+		// bucket. Without this the browser shows a listing error for what is a
+		// perfectly good, and recommended, configuration.
+		$known = $this->get_allowed_buckets();
+
+		if ( empty( $known ) && '' !== $default_bucket ) {
+			$known = [ $default_bucket ];
+		}
+
+		if ( ! empty( $known ) ) {
+			$this->client->set_known_buckets( $known );
+		}
+
 		// Set debug on Browser instance too
 		$this->set_debug( $debug );
 
@@ -204,6 +218,13 @@ class Browser {
 	 */
 	public function set_allowed_buckets( array $buckets ): self {
 		$this->allowed_buckets = array_values( array_filter( array_map( 'strval', $buckets ) ) );
+
+		// Consumers call this after construction, so the client's fallback list
+		// has to be updated here too — otherwise a scoped token still fails to
+		// list buckets despite the browser knowing exactly which one to show.
+		if ( ! empty( $this->allowed_buckets ) ) {
+			$this->client->set_known_buckets( $this->allowed_buckets );
+		}
 
 		return $this;
 	}
