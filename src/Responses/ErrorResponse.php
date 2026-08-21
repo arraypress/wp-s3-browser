@@ -94,6 +94,46 @@ class ErrorResponse extends Response {
 	}
 
 	/**
+	 * Convert to a WP_Error for returning from a REST callback.
+	 *
+	 * The provider's own code is kept as the WP_Error code. It is the only
+	 * thing that separates "this token cannot list buckets" -- a normal,
+	 * recommended R2 setup -- from "these credentials are wrong", and a caller
+	 * that invents its own code in place of it leaves the admin with no way to
+	 * tell those apart.
+	 *
+	 * @return WP_Error
+	 */
+	public function to_wp_error(): WP_Error {
+		return new WP_Error(
+			$this->get_error_code(),
+			$this->get_error_message(),
+			[ 'status' => $this->rest_status() ] + $this->get_error_data()
+		);
+	}
+
+	/**
+	 * Map the provider's status onto one worth returning over REST.
+	 *
+	 * A status the browser can act on is relayed as-is: 404 tells the UI the
+	 * bucket or key is gone, 403 that the token lacks the permission. Anything
+	 * else becomes 502, because the failure is upstream of WordPress rather
+	 * than a fault in the request that arrived here.
+	 *
+	 * 401 is deliberately not relayed. It is WordPress's own signal that the
+	 * *user* is unauthenticated, and returning it for a storage credential
+	 * problem sends the admin to a login screen that will not help.
+	 *
+	 * @return int
+	 */
+	private function rest_status(): int {
+		$status = $this->get_status_code();
+
+		return in_array( $status, [ 400, 403, 404, 409, 429 ], true ) ? $status : 502;
+	}
+
+
+	/**
 	 * Create from WordPress error
 	 *
 	 * @param WP_Error $wp_error    WordPress error

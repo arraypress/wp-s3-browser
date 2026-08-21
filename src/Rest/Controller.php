@@ -22,6 +22,8 @@ declare( strict_types=1 );
 namespace ArrayPress\S3\Rest;
 
 use ArrayPress\S3\Client;
+use ArrayPress\S3\Interfaces\Response as ResponseInterface;
+use ArrayPress\S3\Responses\ErrorResponse;
 use ArrayPress\S3\Cors\Origin;
 use ArrayPress\S3\Tables\Objects;
 use ArrayPress\S3\Utils\Directory;
@@ -523,6 +525,32 @@ class Controller {
 	}
 
 	/**
+	 * Relay a failed client response to the caller.
+	 *
+	 * Keeps the provider's own code and status rather than inventing one. The
+	 * code is what distinguishes a bucket-scoped token from wrong credentials,
+	 * and replacing it leaves the admin re-entering keys that were never the
+	 * problem.
+	 *
+	 * @param ResponseInterface $response Failed response.
+	 *
+	 * @return WP_Error
+	 */
+	private function rest_relay( ResponseInterface $response ): WP_Error {
+		if ( $response instanceof ErrorResponse ) {
+			return $response->to_wp_error();
+		}
+
+		// is_successful() is a flag rather than a type, so a failure that is
+		// not an ErrorResponse is possible even if nothing produces one today.
+		return new WP_Error(
+			'rest_upstream_failed',
+			__( 'The storage provider rejected the request.', 'arraypress' ),
+			[ 'status' => 502 ]
+		);
+	}
+
+	/**
 	 * Build an error response from a failed S3 operation
 	 *
 	 * @param string $code    Error code.
@@ -644,7 +672,7 @@ class Controller {
 		$result = $this->client->get_bucket_details( $bucket, Origin::current(), false );
 
 		if ( ! $result->is_successful() ) {
-			return $this->rest_fail( 'rest_bucket_details_failed', $result->get_error_message(), 502 );
+			return $this->rest_relay( $result );
 		}
 
 		$data = $result->get_data();
@@ -695,7 +723,7 @@ class Controller {
 		$result = $this->client->delete_object( $bucket, $key );
 
 		if ( ! $result->is_successful() ) {
-			return $this->rest_fail( 'rest_delete_failed', $result->get_error_message(), 502 );
+			return $this->rest_relay( $result );
 		}
 
 		$this->client->clear_bucket_cache( $bucket );
@@ -745,7 +773,7 @@ class Controller {
 		$result = $this->client->rename_object( $bucket, $current_key, $new_key );
 
 		if ( ! $result->is_successful() ) {
-			return $this->rest_fail( 'rest_rename_failed', $result->get_error_message(), 502 );
+			return $this->rest_relay( $result );
 		}
 
 		$this->client->clear_bucket_cache( $bucket );
@@ -783,7 +811,7 @@ class Controller {
 		$result = $this->client->get_presigned_url( $bucket, $key, $minutes );
 
 		if ( ! $result->is_successful() ) {
-			return $this->rest_fail( 'rest_presign_failed', $result->get_error_message(), 502 );
+			return $this->rest_relay( $result );
 		}
 
 		return $this->rest_ok( [
@@ -813,7 +841,7 @@ class Controller {
 		$result = $this->client->get_presigned_upload_url( $bucket, $key );
 
 		if ( ! $result->is_successful() ) {
-			return $this->rest_fail( 'rest_presign_upload_failed', $result->get_error_message(), 502 );
+			return $this->rest_relay( $result );
 		}
 
 		$this->client->clear_bucket_cache( $bucket );
@@ -845,7 +873,7 @@ class Controller {
 		$result     = $this->client->create_folder( $bucket, $folder_key );
 
 		if ( ! $result->is_successful() ) {
-			return $this->rest_fail( 'rest_create_folder_failed', $result->get_error_message(), 502 );
+			return $this->rest_relay( $result );
 		}
 
 		$this->client->clear_bucket_cache( $bucket );
@@ -882,7 +910,7 @@ class Controller {
 		$result = $this->delete_folder_with_fallback( $bucket, $folder_path );
 
 		if ( ! $result->is_successful() ) {
-			return $this->rest_fail( 'rest_delete_folder_failed', $result->get_error_message(), 502 );
+			return $this->rest_relay( $result );
 		}
 
 		$this->client->clear_bucket_cache( $bucket );
@@ -968,7 +996,7 @@ class Controller {
 		$result = $this->client->delete_cors_configuration( $bucket );
 
 		if ( ! $result->is_successful() ) {
-			return $this->rest_fail( 'rest_cors_delete_failed', $result->get_error_message(), 502 );
+			return $this->rest_relay( $result );
 		}
 
 		$this->client->clear_bucket_cache( $bucket );
