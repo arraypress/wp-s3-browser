@@ -340,9 +340,8 @@
             if (!token) return;
             self.isLoading = true;
 
-            $button.prop('disabled', true)
-                .find('.s3-button-text').text(s3BrowserConfig.i18n.loading.loadingText)
-                .end().find('.spinner').show();
+            self.setButtonBusy($button);
+            $button.find('.s3-button-text').text(s3BrowserConfig.i18n.loading.loadingText);
 
             this.makeAjaxRequest('s3_load_more_', {
                 bucket: bucket,
@@ -356,10 +355,9 @@
                     self.totalLoadedItems += response.data.count;
 
                     if (response.data.has_more && response.data.continuation_token) {
-                        $button.data('token', response.data.continuation_token)
-                            .prop('disabled', false)
-                            .find('.s3-button-text').text(s3BrowserConfig.i18n.loading.loadMoreItems)
-                            .end().find('.spinner').hide();
+                        $button.data('token', response.data.continuation_token);
+                        self.clearButtonBusy($button);
+                        $button.find('.s3-button-text').text(s3BrowserConfig.i18n.loading.loadMoreItems);
                         self.updateTotalCount(true);
                     } else {
                         $button.closest('.pagination-links').fadeOut(300);
@@ -375,9 +373,8 @@
                 },
                 error: function (message) {
                     self.showError(message);
-                    $button.prop('disabled', false)
-                        .find('.s3-button-text').text(s3BrowserConfig.i18n.loading.loadMoreItems)
-                        .end().find('.spinner').hide();
+                    self.clearButtonBusy($button);
+                    $button.find('.s3-button-text').text(s3BrowserConfig.i18n.loading.loadMoreItems);
                 },
                 complete: function () {
                     self.isLoading = false;
@@ -391,11 +388,11 @@
         refreshCache: function ($button) {
             var self = this;
 
-            if ($button.hasClass('refreshing')) return;
-
-            // The button carries no icon now, so signal work with the
-            // disabled state WordPress already styles.
-            $button.addClass('refreshing').prop('disabled', true);
+            // setButtonBusy() returns false when the button is already busy,
+            // replacing the bespoke 'refreshing' class guard this used to keep.
+            if (!self.setButtonBusy($button, s3BrowserConfig.i18n.ui.refreshing)) {
+                return;
+            }
 
             this.makeAjaxRequest('s3_clear_cache_', {
                 type: $button.data('type'),
@@ -410,7 +407,7 @@
                 },
                 error: function (message) {
                     self.showNotification(message, 'error');
-                    $button.removeClass('refreshing').prop('disabled', false);
+                    self.clearButtonBusy($button);
                 }
             });
         },
@@ -429,6 +426,65 @@
 
             var queryString = $.param(params);
             window.location.href = window.location.href.split('?')[0] + '?' + queryString;
+        },
+
+        /**
+         * Put a button into its busy state.
+         *
+         * Uses WordPress core's `updating-message` class, which draws a
+         * spinning dashicon through ::before and animates it — the same
+         * treatment core gives plugin-update buttons, and what EDD's licence
+         * handler uses. The icon exists only while work is in flight, which is
+         * precisely why the buttons carry no icon markup of their own.
+         *
+         * The original label is stashed so it can be restored afterwards.
+         *
+         * @param {jQuery} $button Button element.
+         * @param {string} [label] Optional progress label.
+         * @return {boolean} False when the button was already busy.
+         */
+        setButtonBusy: function ($button, label) {
+            if (!$button || !$button.length || $button.prop('disabled')) {
+                return false;
+            }
+
+            if ($button.data('s3-original-label') === undefined) {
+                $button.data('s3-original-label', $button.text());
+            }
+
+            if (label) {
+                $button.text(label);
+            }
+
+            $button
+                .prop('disabled', true)
+                .addClass('updating-message')
+                .attr('aria-busy', 'true');
+
+            return true;
+        },
+
+        /**
+         * Return a button to its resting state, restoring its label.
+         *
+         * @param {jQuery} $button Button element.
+         */
+        clearButtonBusy: function ($button) {
+            if (!$button || !$button.length) {
+                return;
+            }
+
+            var original = $button.data('s3-original-label');
+
+            if (original !== undefined) {
+                $button.text(original);
+                $button.removeData('s3-original-label');
+            }
+
+            $button
+                .prop('disabled', false)
+                .removeClass('updating-message')
+                .removeAttr('aria-busy');
         },
 
         /**

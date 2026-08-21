@@ -61,6 +61,8 @@ trait I18n {
 			'waitForUploads' => __( 'Please wait for uploads to complete before closing', 'arraypress' ),
 			'cancel'         => __( 'Cancel', 'arraypress' ),
 			'close'          => __( 'Close', 'arraypress' ),
+			'deleting'       => __( 'Deleting...', 'arraypress' ),
+			'refreshing'     => __( 'Refreshing...', 'arraypress' ),
 		];
 	}
 

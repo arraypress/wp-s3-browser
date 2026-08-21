@@ -119,6 +119,15 @@ class Browser {
 	/**
 	 * Constructor
 	 *
+	 * Instantiate on 'init', not 'admin_init'.
+	 *
+	 * The browser registers REST routes, and admin_init does not run for REST
+	 * requests — only for wp-admin pages and admin-ajax.php. Building the
+	 * browser on admin_init therefore leaves the routes unregistered for
+	 * exactly the requests that need them, and every call fails with "No route
+	 * was found matching the URL and request method". The browser's own hooks
+	 * are admin-scoped internally, so constructing it on 'init' is safe.
+	 *
 	 * @param Provider          $provider           The storage provider instance
 	 * @param string            $access_key         Access key for the storage provider
 	 * @param string            $secret_key         Secret key for the storage provider

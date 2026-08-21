@@ -17,8 +17,7 @@
 
             // Add loading state to the button
             var originalHtml = $button.html();
-            $button.text(s3BrowserConfig.i18n.folders.opening);
-            $button.prop('disabled', true);
+            window.S3Browser.setButtonBusy($button, s3BrowserConfig.i18n.folders.opening);
 
             // Navigate to the folder
             try {

@@ -74,6 +74,16 @@ trait Hooks {
 	 * @return void
 	 */
 	private function register_rest_handlers(): void {
+		// If rest_api_init has already fired, adding a callback to it now would
+		// never run. That happens whenever a consumer builds the Browser late —
+		// inside rest_api_init itself, or on a hook that fires after it — so
+		// register straight away instead of silently producing 404s.
+		if ( did_action( 'rest_api_init' ) ) {
+			$this->register_rest_routes();
+
+			return;
+		}
+
 		add_action( 'rest_api_init', [ $this, 'register_rest_routes' ] );
 	}
 

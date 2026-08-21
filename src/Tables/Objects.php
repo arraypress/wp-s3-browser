@@ -469,7 +469,6 @@ class Objects extends WP_List_Table {
                                 data-prefix="<?php echo esc_attr( $this->prefix ); ?>"
                                 data-provider="<?php echo esc_attr( $this->provider_id ); ?>">
                             <span class="s3-button-text"><?php esc_html_e( 'Load More Items', 'arraypress' ); ?></span>
-                            <span class="spinner" style="display: none;"></span>
                         </button>
                         <span class="s3-load-status"></span>
                     </span>

@@ -20,7 +20,7 @@
 
             if (!confirm(confirmMessage)) return;
 
-            $button.prop('disabled', true);
+            window.S3Browser.setButtonBusy($button, s3BrowserConfig.i18n.ui.deleting);
 
             this.makeAjaxRequest('s3_delete_object_', {
                 bucket: $button.data('bucket'),
@@ -39,7 +39,7 @@
                 error: function (message) {
                     self.showNotification(message, 'error');
                     $icon.removeClass('spin');
-                    $button.prop('disabled', false);
+                    window.S3Browser.clearButtonBusy($button);
                 }
             });
         },

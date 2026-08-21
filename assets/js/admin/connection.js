@@ -118,7 +118,9 @@
             const strings = this.getTranslationStrings();
             const testingText = strings.testing || 'Testing...';
 
-            $button.prop('disabled', true).text(testingText);
+            // WordPress core's spinner treatment, matching EDD's licence button.
+            $button.prop('disabled', true).addClass('updating-message')
+                .attr('aria-busy', 'true').text(testingText);
             $result.removeClass('success error').addClass('loading').text('');
         },
 
@@ -195,7 +197,8 @@
         handleComplete: function ($button) {
             const strings = this.getTranslationStrings();
             const originalText = $button.data('original-text') || strings.testConnection || 'Test Connection';
-            $button.prop('disabled', false).text(originalText);
+            $button.prop('disabled', false).removeClass('updating-message')
+                .removeAttr('aria-busy').text(originalText);
         },
 
         /**
