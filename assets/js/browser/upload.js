@@ -406,7 +406,6 @@
                         $(this).remove();
                     });
                 }, 3000);
-                console.log('Upload cancelled:', uploadId);
             }
         },
 

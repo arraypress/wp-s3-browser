@@ -195,7 +195,7 @@
                 '</div>'
             ].join('');
 
-            var $modal = this.showModal('s3CopyLinkModal', s3BrowserConfig.i18n.copyLink.copyLink, content, [
+            this.showModal('s3CopyLinkModal', s3BrowserConfig.i18n.copyLink.copyLink, content, [
                 {
                     text: s3BrowserConfig.i18n.ui.cancel,
                     action: 'cancel',
@@ -210,19 +210,8 @@
                     callback: function () {
                         self.generatePresignedUrl(context);
                     }
-                },
-                {
-                    text: s3BrowserConfig.i18n.copyLink.copyToClipboard,
-                    action: 'copy',
-                    classes: 'button-secondary',
-                    callback: function () {
-                        self.copyLinkToClipboard();
-                    }
                 }
             ]);
-
-            // Initially disable copy button
-            $modal.find('button[data-action="copy"]').prop('disabled', true);
 
             // Focus and select the expiry input
             setTimeout(function () {
@@ -254,7 +243,11 @@
                     var expiresAt = new Date(response.data.expires_at * 1000);
 
                     $('#s3GeneratedUrl').val(url);
-                    $('#s3CopyLinkModal button[data-action="copy"]').prop('disabled', false);
+
+                    // Select before copying, so a refused clipboard write
+                    // leaves the URL highlighted and Ctrl/Cmd+C finishes it.
+                    $('#s3GeneratedUrl').trigger('focus').trigger('select');
+                    self.copyLinkToClipboard();
 
                     self.setModalLoading('s3CopyLinkModal', false);
 
@@ -287,7 +280,12 @@
 
             var self = this;
 
-            // Try modern clipboard API first
+            // This runs after the request that generated the link, and a
+            // browser only permits a clipboard write while the click that
+            // started it still counts as user activation. A slow round trip
+            // can outlive that, so a refusal is expected rather than
+            // exceptional: fall back, and failing that the URL is already
+            // selected and the notice says to press Ctrl/Cmd+C.
             if (navigator.clipboard && navigator.clipboard.writeText) {
                 navigator.clipboard.writeText(url).then(function () {
                     self.showNotification(s3BrowserConfig.i18n.copyLink.linkCopied, 'success');
@@ -316,10 +314,10 @@
                 var successful = document.execCommand('copy');
                 this.showNotification(
                     successful ? s3BrowserConfig.i18n.copyLink.linkCopied : s3BrowserConfig.i18n.copyLink.copyFailed,
-                    successful ? 'success' : 'error'
+                    successful ? 'success' : 'info'
                 );
             } catch (err) {
-                this.showNotification(s3BrowserConfig.i18n.copyLink.copyFailed, 'error');
+                this.showNotification(s3BrowserConfig.i18n.copyLink.copyFailed, 'info');
             }
 
             document.body.removeChild(textArea);
@@ -335,13 +333,6 @@
             var key = $button.data('key');
 
             // Debug logging to check data
-            console.log('Rename modal data:', {
-                filename: filename,
-                bucket: bucket,
-                key: key,
-                buttonData: $button.data()
-            });
-
             // Store context
             var context = {filename: filename, bucket: bucket, key: key};
 
@@ -492,12 +483,6 @@
             var self = this;
 
             // Debug logging
-            console.log('Rename request data:', {
-                bucket: context.bucket,
-                current_key: context.key,
-                new_filename: newFilename
-            });
-
             this.setModalLoading('s3RenameModal', true, s3BrowserConfig.i18n.files.renamingFile);
 
             this.makeAjaxRequest('renameObject', {

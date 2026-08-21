@@ -158,9 +158,14 @@
 }
 
 .s3-progress-text {
-    min-width: 40px;
+    /* Wide enough for "100%", so the track does not shrink when a transfer
+       reaches it. tabular-nums keeps every digit the same width, so 11% and
+       88% occupy the same space. */
+    flex: 0 0 auto;
+    min-width: 34px;
     text-align: right;
     font-size: 12px;
+    font-variant-numeric: tabular-nums;
 }
 
 /* Cancel Button */
@@ -200,9 +205,27 @@
 
 /* Transfer Data Display */
 .s3-transfer-data {
+    /* Fixed width, not content width.
+     *
+     * The bar next to this grows to fill whatever is left over, so anything
+     * that changes this element's width moves the end of every bar. The text
+     * inside changes constantly -- "9.5 MB" becomes "128.05 MB", the speed
+     * reading fluctuates every second -- and with content sizing the bars
+     * visibly breathe, and rows sit at different lengths from each other
+     * depending on how far along they are.
+     *
+     * Sized for the longest string this renders, roughly
+     * "1008.3 MB / 1008.3 MB • 8.52 MB/s". Anything longer is clipped rather
+     * than allowed to push the bar. */
+    flex: 0 0 19em;
     color: #666;
     font-size: 11px;
     margin-left: 8px;
+    text-align: right;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-variant-numeric: tabular-nums;
 }
 
 /* Animation */
@@ -231,6 +254,14 @@
 
     .s3-progress-container {
         margin-bottom: 10px;
+    }
+
+    /* The fixed width that keeps the bars aligned on a wide screen would
+       leave almost nothing for the bar itself here. The rows are stacked at
+       this width anyway, so there is no alignment left to protect. */
+    .s3-transfer-data {
+        flex: 0 1 auto;
+        min-width: 0;
     }
 
     .s3-upload-status {
