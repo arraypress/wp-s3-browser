@@ -378,6 +378,46 @@ trait Routes {
 	}
 
 	/**
+	 * Check whether a bucket may be addressed through this browser
+	 *
+	 * Every AJAX endpoint takes the bucket straight from $_POST, so without a
+	 * check here the capability gate ('upload_files' by default — Author and
+	 * up) grants read, write, rename and delete over *every* bucket the
+	 * configured credentials can reach, not just the one the browser is
+	 * pointed at. S3 credentials are usually account-wide, so that is a real
+	 * privilege boundary and not a theoretical one.
+	 *
+	 * An empty allow-list preserves the historical behaviour of permitting any
+	 * bucket. Sites that only ever use one bucket should set it — see
+	 * Browser::set_allowed_buckets() and the 's3_browser_allowed_buckets'
+	 * filter.
+	 *
+	 * @param string $bucket Bucket name from the request
+	 *
+	 * @return bool True if the bucket may be used
+	 */
+	protected function is_bucket_allowed( string $bucket ): bool {
+		if ( '' === $bucket ) {
+			return false;
+		}
+
+		// Reject anything that is not a syntactically valid bucket name before
+		// it reaches URL building — the value ends up in a Host header or a
+		// request path.
+		if ( ! preg_match( '/^[a-z0-9][a-z0-9.\-]{1,61}[a-z0-9]$/i', $bucket ) ) {
+			return false;
+		}
+
+		$allowed = $this->get_allowed_buckets();
+
+		if ( empty( $allowed ) ) {
+			return true;
+		}
+
+		return in_array( $bucket, $allowed, true );
+	}
+
+	/**
 	 * Validate a bucket name argument
 	 *
 	 * @param mixed $value Raw value.
