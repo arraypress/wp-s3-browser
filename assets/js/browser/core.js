@@ -113,8 +113,7 @@
 
             $(document).off('click.s3clearsel').on('click.s3clearsel', '.s3-clear-selection', function (e) {
                 e.preventDefault();
-                $('.s3-select-file, .wp-list-table .check-column input').prop('checked', false);
-                self.updateSelectionBar();
+                self.clearSelection();
             });
 
             $(document).off('click.s3insertsel').on('click.s3insertsel', '.s3-insert-selected', function (e) {
@@ -608,6 +607,21 @@
             'setupCors':              {method: 'PUT',    path: '/buckets/{bucket}/cors'},
             'deleteCors': {method: 'DELETE', path: '/buckets/{bucket}/cors'},
             'connectionTest':         {method: 'GET',    path: '/connection'}
+        },
+
+        /**
+         * Untick everything and hide the bar.
+         *
+         * Called after an insert as well as from the Clear button. EDD keeps
+         * one media frame and reopens it rather than building a new one, so
+         * this document survives the modal closing -- without clearing, the
+         * next open shows the previous selection still ticked and the bar
+         * still offering to insert files that already went in. WooCommerce
+         * builds a fresh frame each time and would not have shown it.
+         */
+        clearSelection: function () {
+            $('.s3-select-file, .wp-list-table .check-column input').prop('checked', false);
+            this.updateSelectionBar();
         },
 
         /**

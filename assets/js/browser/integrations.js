@@ -72,7 +72,9 @@
 
             // No reachable frame: ask the other side to do it.
             if (!parent) {
-                if (!this.requestHostInsert([ file ])) {
+                if (this.requestHostInsert([ file ])) {
+                    this.clearSelection();
+                } else {
                     window.console.warn('S3 Browser: no insert target. ' + this.describeHost());
                     window.prompt(s3BrowserConfig.i18n.files.insertUnavailable, file.bucket + '/' + file.key);
                 }
@@ -88,6 +90,13 @@
             };
 
             var context = this.detectCallingContext(parent);
+
+            // Before the frame closes: this document outlives it wherever the
+            // host reuses one media frame rather than building a new one, and
+            // a stale tick would still be there on the next open.
+            if (context !== 'unknown') {
+                this.clearSelection();
+            }
 
             switch (context) {
                 case 'edd':
@@ -155,7 +164,11 @@
             var parent = this.getHostWindow();
 
             if (!parent) {
-                if (!this.requestHostInsert(files)) {
+                if (this.requestHostInsert(files)) {
+                    // Only once the request is away. A failed insert keeps the
+                    // selection so it can be retried.
+                    this.clearSelection();
+                } else {
                     window.console.warn('S3 Browser: no insert target. ' + this.describeHost());
                     window.prompt(s3BrowserConfig.i18n.files.insertUnavailable, files[0].bucket + '/' + files[0].key);
                 }
@@ -167,7 +180,9 @@
 
             // One file is the ordinary path and needs none of this.
             if (files.length === 1 || context === 'unknown') {
-                if (!this.insertOne(files[0], context, parent, true)) {
+                if (this.insertOne(files[0], context, parent, true)) {
+                    this.clearSelection();
+                } else {
                     window.console.warn('S3 Browser: no insert target. ' + this.describeHost());
                     window.prompt(s3BrowserConfig.i18n.files.insertUnavailable, files[0].bucket + '/' + files[0].key);
                 }
@@ -187,6 +202,10 @@
                     inserted++;
                 }
             });
+
+            if (inserted) {
+                this.clearSelection();
+            }
 
             if (inserted < files.length) {
                 // Something refused to grow. Say so rather than closing and
