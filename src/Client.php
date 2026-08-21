@@ -18,7 +18,6 @@ namespace ArrayPress\S3;
 use ArrayPress\S3\Provider;
 use ArrayPress\S3\Traits\Client\Buckets;
 use ArrayPress\S3\Traits\Client\Bucket;
-use ArrayPress\S3\Traits\Client\Caching;
 use ArrayPress\S3\Traits\Client\Folder;
 use ArrayPress\S3\Traits\Client\Files;
 use ArrayPress\S3\Traits\Client\File;
@@ -36,7 +35,6 @@ use ArrayPress\S3\Api;
  * Class Client
  */
 class Client {
-	use Caching;
 	use Buckets;
 	use Bucket;
 	use Folder;
@@ -66,6 +64,13 @@ class Client {
 	private Api $api;
 
 	/**
+	 * Response cache.
+	 *
+	 * @var Cache
+	 */
+	private Cache $cache;
+
+	/**
 	 * Constructor
 	 *
 	 * @param Provider    $provider   Provider instance
@@ -87,7 +92,7 @@ class Client {
 	) {
 		$this->provider = $provider;
 		$this->api      = new Api( $provider, $access_key, $secret_key );
-		$this->init_cache( $use_cache, $cache_ttl );
+		$this->cache    = new Cache( $use_cache, $cache_ttl );
 
 		// Both objects carry their own debug flag, so setting only this one
 		// left every debug call in the request path silently disabled — the
@@ -100,6 +105,15 @@ class Client {
 		if ( $context !== null ) {
 			$this->set_context( $context );
 		}
+	}
+
+	/**
+	 * Get this client's response cache
+	 *
+	 * @return Cache
+	 */
+	public function cache(): Cache {
+		return $this->cache;
 	}
 
 	/**

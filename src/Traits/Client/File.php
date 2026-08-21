@@ -62,12 +62,12 @@ trait File {
 		}
 
 		// Check cache if enabled
-		if ( $use_cache && $this->is_cache_enabled() ) {
-			$cache_key = $this->get_cache_key( 'object_exists', [
+		if ( $use_cache && $this->cache->is_enabled() ) {
+			$cache_key = $this->cache->key( 'object_exists', [
 				'bucket' => $bucket,
 				'key'    => $object_key
 			] );
-			$cached    = $this->get_from_cache( $cache_key );
+			$cached    = $this->cache->get( $cache_key );
 			if ( $cached !== false ) {
 				return $cached;
 			}
@@ -93,8 +93,8 @@ trait File {
 			);
 
 			// Cache the positive result
-			if ( $use_cache && $this->is_cache_enabled() ) {
-				$this->save_to_cache( $cache_key, $response );
+			if ( $use_cache && $this->cache->is_enabled() ) {
+				$this->cache->set( $cache_key, $response );
 			}
 
 			// Apply contextual filter to final response
@@ -134,8 +134,8 @@ trait File {
 				);
 
 				// Cache the negative result
-				if ( $use_cache && $this->is_cache_enabled() ) {
-					$this->save_to_cache( $cache_key, $response );
+				if ( $use_cache && $this->cache->is_enabled() ) {
+					$this->cache->set( $cache_key, $response );
 				}
 
 				// Apply contextual filter to final response
@@ -223,17 +223,17 @@ trait File {
 		$this->debug( 'Client: Raw result from signer for delete operation:', $result );
 
 		// If we're caching, we need to bust the cache for this bucket/prefix
-		if ( $this->is_cache_enabled() ) {
+		if ( $this->cache->is_enabled() ) {
 			// Extract the directory prefix from the object key
 			$prefix = Directory::prefix( $object_key );
 
 			// Clear cache for this specific prefix
-			$cache_key = $this->get_cache_key( 'objects_' . $bucket, [
+			$cache_key = $this->cache->key( 'objects_' . $bucket, [
 				'max_keys'  => 1000,
 				'prefix'    => $prefix,
 				'delimiter' => '/'
 			], $bucket );
-			$this->clear_cache_item( $cache_key );
+			$this->cache->forget( $cache_key );
 		}
 
 		// Apply contextual filter to final response
@@ -281,17 +281,17 @@ trait File {
 		$this->debug( 'Client: Raw result from signer for copy operation:', $result );
 
 		// Clear cache for target bucket/prefix
-		if ( $this->is_cache_enabled() ) {
+		if ( $this->cache->is_enabled() ) {
 			// Extract the directory prefix from the target object key
 			$prefix = Directory::prefix( $params['target_key'] );
 
 			// Clear cache for this specific prefix
-			$cache_key = $this->get_cache_key( 'objects_' . $params['target_bucket'], [
+			$cache_key = $this->cache->key( 'objects_' . $params['target_bucket'], [
 				'max_keys'  => 1000,
 				'prefix'    => $prefix,
 				'delimiter' => '/'
 			], $params['target_bucket'] );
-			$this->clear_cache_item( $cache_key );
+			$this->cache->forget( $cache_key );
 		}
 
 		// Apply contextual filter to final response
@@ -500,17 +500,17 @@ trait File {
 		}
 
 		// 6. Clear cache for this bucket/prefix
-		if ( $this->is_cache_enabled() ) {
+		if ( $this->cache->is_enabled() ) {
 			// Extract the directory prefix from the object key
 			$prefix = Directory::prefix( $target_key );
 
 			// Clear cache for this specific prefix
-			$cache_key = $this->get_cache_key( 'objects_' . $bucket, [
+			$cache_key = $this->cache->key( 'objects_' . $bucket, [
 				'max_keys'  => 1000,
 				'prefix'    => $prefix,
 				'delimiter' => '/'
 			], $bucket );
-			$this->clear_cache_item( $cache_key );
+			$this->cache->forget( $cache_key );
 		}
 
 		// 7. Return success response

@@ -57,9 +57,9 @@ trait Bucket {
 		}
 
 		// Check cache if enabled
-		if ( $use_cache && $this->is_cache_enabled() ) {
-			$cache_key = $this->get_cache_key( 'bucket_exists', [ 'bucket' => $bucket ] );
-			$cached    = $this->get_from_cache( $cache_key );
+		if ( $use_cache && $this->cache->is_enabled() ) {
+			$cache_key = $this->cache->key( 'bucket_exists', [ 'bucket' => $bucket ] );
+			$cached    = $this->cache->get( $cache_key );
 			if ( $cached !== false ) {
 				return $cached;
 			}
@@ -81,8 +81,8 @@ trait Bucket {
 			);
 
 			// Cache the positive result
-			if ( $use_cache && $this->is_cache_enabled() ) {
-				$this->save_to_cache( $cache_key, $response );
+			if ( $use_cache && $this->cache->is_enabled() ) {
+				$this->cache->set( $cache_key, $response );
 			}
 
 			// Apply contextual filter to final response
@@ -117,8 +117,8 @@ trait Bucket {
 				);
 
 				// Cache the negative result
-				if ( $use_cache && $this->is_cache_enabled() ) {
-					$this->save_to_cache( $cache_key, $response );
+				if ( $use_cache && $this->cache->is_enabled() ) {
+					$this->cache->set( $cache_key, $response );
 				}
 
 				// Apply contextual filter to final response
@@ -182,9 +182,9 @@ trait Bucket {
 		}
 
 		// Check cache if enabled
-		if ( $use_cache && $this->is_cache_enabled() ) {
-			$cache_key = $this->get_cache_key( 'bucket_location', [ 'bucket' => $bucket ] );
-			$cached    = $this->get_from_cache( $cache_key );
+		if ( $use_cache && $this->cache->is_enabled() ) {
+			$cache_key = $this->cache->key( 'bucket_location', [ 'bucket' => $bucket ] );
+			$cached    = $this->cache->get( $cache_key );
 			if ( $cached !== false ) {
 				return $cached;
 			}
@@ -197,8 +197,8 @@ trait Bucket {
 		$this->debug( 'Client: Raw result from signer for bucket location:', $result );
 
 		// Cache the result if successful
-		if ( $use_cache && $this->is_cache_enabled() && $result->is_successful() ) {
-			$this->save_to_cache( $cache_key, $result );
+		if ( $use_cache && $this->cache->is_enabled() && $result->is_successful() ) {
+			$this->cache->set( $cache_key, $result );
 		}
 
 		// Apply contextual filter to final response

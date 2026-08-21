@@ -60,9 +60,9 @@ trait Cors {
 		}
 
 		// Check cache if enabled
-		if ( $use_cache && $this->is_cache_enabled() ) {
-			$cache_key = $this->get_cache_key( 'cors_config', [ 'bucket' => $bucket ] );
-			$cached    = $this->get_from_cache( $cache_key );
+		if ( $use_cache && $this->cache->is_enabled() ) {
+			$cache_key = $this->cache->key( 'cors_config', [ 'bucket' => $bucket ] );
+			$cached    = $this->cache->get( $cache_key );
 			if ( $cached !== false ) {
 				return $cached;
 			}
@@ -75,8 +75,8 @@ trait Cors {
 		$this->debug( 'Client: Raw result from signer for CORS get:', $result );
 
 		// Cache the result if successful
-		if ( $use_cache && $this->is_cache_enabled() && $result->is_successful() ) {
-			$this->save_to_cache( $cache_key, $result );
+		if ( $use_cache && $this->cache->is_enabled() && $result->is_successful() ) {
+			$this->cache->set( $cache_key, $result );
 		}
 
 		// Apply contextual filter to final response
@@ -132,7 +132,7 @@ trait Cors {
 		$this->debug( 'Client: Raw result from signer for CORS set:', $result );
 
 		// Clear cache if successful and requested
-		if ( $clear_cache && $this->is_cache_enabled() && $result->is_successful() ) {
+		if ( $clear_cache && $this->cache->is_enabled() && $result->is_successful() ) {
 			$this->clear_cors_cache( $bucket );
 		}
 
@@ -187,7 +187,7 @@ trait Cors {
 		$this->debug( 'Client: Raw result from signer for CORS delete:', $result );
 
 		// Clear cache if successful and requested
-		if ( $clear_cache && $this->is_cache_enabled() && $result->is_successful() ) {
+		if ( $clear_cache && $this->cache->is_enabled() && $result->is_successful() ) {
 			$this->clear_cors_cache( $bucket );
 		}
 
@@ -315,13 +315,13 @@ trait Cors {
 	 * @return bool Whether cache was cleared
 	 */
 	private function clear_cors_cache( string $bucket ): bool {
-		if ( ! $this->is_cache_enabled() ) {
+		if ( ! $this->cache->is_enabled() ) {
 			return false;
 		}
 
-		$cache_key = $this->get_cache_key( 'cors_config', [ 'bucket' => $bucket ] );
+		$cache_key = $this->cache->key( 'cors_config', [ 'bucket' => $bucket ] );
 
-		return $this->clear_cache_item( $cache_key );
+		return $this->cache->forget( $cache_key );
 	}
 
 }

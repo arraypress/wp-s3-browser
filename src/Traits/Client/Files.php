@@ -70,15 +70,15 @@ trait Files {
 		$use_cache          = $list_params['use_cache'];
 
 		// Check cache if enabled
-		if ( $use_cache && $this->is_cache_enabled() ) {
-			$cache_key = $this->get_cache_key( 'objects_' . $bucket, [
+		if ( $use_cache && $this->cache->is_enabled() ) {
+			$cache_key = $this->cache->key( 'objects_' . $bucket, [
 				'max_keys'           => $max_keys,
 				'prefix'             => $prefix,
 				'delimiter'          => $delimiter,
 				'continuation_token' => $continuation_token
 			], $bucket );
 
-			$cached = $this->get_from_cache( $cache_key );
+			$cached = $this->cache->get( $cache_key );
 			if ( $cached !== false ) {
 				return $cached;
 			}
@@ -97,8 +97,8 @@ trait Files {
 		$this->debug( 'Client: Raw result from signer for objects:', $result );
 
 		// Cache the result if successful
-		if ( $use_cache && $this->is_cache_enabled() && $result->is_successful() ) {
-			$this->save_to_cache( $cache_key, $result );
+		if ( $use_cache && $this->cache->is_enabled() && $result->is_successful() ) {
+			$this->cache->set( $cache_key, $result );
 		}
 
 		// Apply contextual filter to final response

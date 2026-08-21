@@ -653,7 +653,7 @@ class Controller {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function rest_clear_cache() {
-		if ( ! $this->client->clear_all_cache() ) {
+		if ( ! $this->client->cache()->flush() ) {
 			return $this->rest_fail( 'rest_cache_clear_failed', __( 'Failed to clear cache', 'arraypress' ), 500 );
 		}
 
@@ -726,7 +726,7 @@ class Controller {
 			return $this->rest_relay( $result );
 		}
 
-		$this->client->clear_bucket_cache( $bucket );
+		$this->client->cache()->flush_bucket( $bucket );
 
 		return $this->rest_ok( [
 			'message' => __( 'File deleted successfully', 'arraypress' ),
@@ -776,7 +776,7 @@ class Controller {
 			return $this->rest_relay( $result );
 		}
 
-		$this->client->clear_bucket_cache( $bucket );
+		$this->client->cache()->flush_bucket( $bucket );
 
 		return $this->rest_ok( [
 			'message'      => sprintf( __( 'File renamed to "%s" successfully', 'arraypress' ), $new_filename ),
@@ -844,7 +844,7 @@ class Controller {
 			return $this->rest_relay( $result );
 		}
 
-		$this->client->clear_bucket_cache( $bucket );
+		$this->client->cache()->flush_bucket( $bucket );
 
 		return $this->rest_ok( [
 			'url'     => $result->get_url(),
@@ -876,7 +876,7 @@ class Controller {
 			return $this->rest_relay( $result );
 		}
 
-		$this->client->clear_bucket_cache( $bucket );
+		$this->client->cache()->flush_bucket( $bucket );
 
 		return $this->rest_ok( [
 			'message'    => sprintf( __( 'Folder "%s" created successfully', 'arraypress' ), $folder_name ),
@@ -913,7 +913,7 @@ class Controller {
 			return $this->rest_relay( $result );
 		}
 
-		$this->client->clear_bucket_cache( $bucket );
+		$this->client->cache()->flush_bucket( $bucket );
 
 		$data = $result->get_data();
 
@@ -940,7 +940,7 @@ class Controller {
 			return $this->rest_fail( 'rest_origin_required', __( 'Origin is required for CORS setup', 'arraypress' ) );
 		}
 
-		$this->client->clear_bucket_cache( $bucket );
+		$this->client->cache()->flush_bucket( $bucket );
 
 		$result = $this->client->set_cors_scenario( $bucket, 'upload_only', [ $origin ] );
 
@@ -968,7 +968,7 @@ class Controller {
 			);
 		}
 
-		$this->client->clear_bucket_cache( $bucket );
+		$this->client->cache()->flush_bucket( $bucket );
 
 		$verification = $this->client->cors_allows_upload( $bucket, $origin, false );
 		$verified     = $verification->is_successful()
@@ -999,7 +999,7 @@ class Controller {
 			return $this->rest_relay( $result );
 		}
 
-		$this->client->clear_bucket_cache( $bucket );
+		$this->client->cache()->flush_bucket( $bucket );
 
 		return $this->rest_ok( [
 			'bucket'  => $bucket,
