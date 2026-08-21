@@ -1,7 +1,7 @@
 (function ($) {
     'use strict';
 
-    window.S3BrowserWooCommerceIntegration = {
+    window.S3BrowserWCIntegration = {
         frameInstance: null,
         mediaFrame: null,
         originalButtonState: null,
@@ -214,7 +214,7 @@
 
     // Initialize when ready
     $(document).ready(function () {
-        S3BrowserWooCommerceIntegration.init();
+        S3BrowserWCIntegration.init();
     });
 
 })(jQuery);

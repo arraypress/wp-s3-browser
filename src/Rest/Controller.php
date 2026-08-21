@@ -284,6 +284,23 @@ class Controller {
 		] );
 
 		// --- Presigned download URL ------------------------------------------
+		// --- Move ------------------------------------------------------------
+		register_rest_route( $namespace, '/' . $base . '/buckets/(?P<bucket>[^/]+)/objects/move', [
+			[
+				'methods'             => 'POST',
+				'callback'            => [ $this, 'rest_move_object' ],
+				'permission_callback' => [ $this, 'rest_bucket_permission_check' ],
+				'args'                => $bucket_arg + $object_key_arg + [
+					'target_prefix' => [
+						'description'       => __( 'Folder to move the object into. Empty moves it to the bucket root.', 'arraypress' ),
+						'type'              => 'string',
+						'default'           => '',
+						'sanitize_callback' => [ $this, 'rest_sanitize_object_key' ],
+					],
+				],
+			],
+		] );
+
 		// --- What else points at an object -----------------------------------
 		register_rest_route( $namespace, '/' . $base . '/buckets/(?P<bucket>[^/]+)/objects/references', [
 			[
@@ -322,6 +339,18 @@ class Controller {
 
 		// --- Folders ----------------------------------------------------------
 		register_rest_route( $namespace, '/' . $base . '/buckets/(?P<bucket>[^/]+)/folders', [
+			[
+				'methods'             => 'GET',
+				'callback'            => [ $this, 'rest_list_folders' ],
+				'permission_callback' => [ $this, 'rest_bucket_permission_check' ],
+				'args'                => $bucket_arg + [
+					'prefix' => [
+						'type'              => 'string',
+						'default'           => '',
+						'sanitize_callback' => [ $this, 'rest_sanitize_object_key' ],
+					],
+				],
+			],
 			[
 				'methods'             => 'POST',
 				'callback'            => [ $this, 'rest_create_folder' ],
@@ -822,6 +851,73 @@ class Controller {
 	}
 
 	/**
+	 * Move an object into another folder
+	 *
+	 * A move is a rename that keeps the filename and changes the folder, so it
+	 * goes through the same copy-then-delete, the same collision check, and
+	 * fires the same renamed action -- anything holding the old key has to
+	 * follow it here exactly as it does for a rename.
+	 *
+	 * One object at a time, deliberately. A batch of these is a batch of
+	 * non-atomic copy-and-delete pairs, and a failure halfway leaves the admin
+	 * working out which of them moved.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 *
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function rest_move_object( WP_REST_Request $request ) {
+		$bucket        = (string) $request['bucket'];
+		$current_key   = (string) $request['key'];
+		$target_prefix = (string) $request['target_prefix'];
+
+		$new_key = Directory::build_move_key( $current_key, $target_prefix );
+
+		if ( $new_key === $current_key ) {
+			return $this->rest_fail(
+				'rest_move_noop',
+				__( 'The file is already in that folder', 'arraypress' )
+			);
+		}
+
+		$exists = $this->client->object_exists( $bucket, $new_key );
+
+		if ( $exists->is_successful() && ( $exists->get_data()['exists'] ?? false ) ) {
+			return $this->rest_fail(
+				'rest_move_conflict',
+				sprintf(
+					/* translators: %s: name of the destination folder */
+					__( 'A file with this name already exists in "%s"', 'arraypress' ),
+					$target_prefix ?: __( 'the bucket root', 'arraypress' )
+				),
+				409
+			);
+		}
+
+		$result = $this->client->rename_object( $bucket, $current_key, $new_key );
+
+		if ( ! $result->is_successful() ) {
+			return $this->rest_relay( $result );
+		}
+
+		$this->client->cache()->flush_bucket( $bucket );
+
+		/** This action is documented in rest_rename_object(). */
+		do_action( 'arraypress_s3_object_renamed', $bucket, $current_key, $new_key );
+
+		return $this->rest_ok( [
+			'message' => sprintf(
+				/* translators: %s: name of the destination folder */
+				__( 'File moved to "%s"', 'arraypress' ),
+				$target_prefix ?: __( 'the bucket root', 'arraypress' )
+			),
+			'bucket'  => $bucket,
+			'old_key' => $current_key,
+			'new_key' => $new_key,
+		] );
+	}
+
+	/**
 	 * Report what else points at an object
 	 *
 	 * A key stored elsewhere -- a product's download file, a post meta value --
@@ -932,6 +1028,44 @@ class Controller {
 		return $this->rest_ok( [
 			'url'     => $result->get_url(),
 			'expires' => Timestamp::in_minutes( 15 ),
+		] );
+	}
+
+	/**
+	 * List the folders directly inside a prefix
+	 *
+	 * One level, not a tree. A delimited listing returns the immediate child
+	 * prefixes and nothing deeper, so a folder picker can expand a node at a
+	 * time and a bucket with a deep layout costs one request per node the
+	 * admin actually opens, rather than a walk of the whole thing.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 *
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function rest_list_folders( WP_REST_Request $request ) {
+		$bucket = (string) $request['bucket'];
+		$prefix = (string) $request['prefix'];
+
+		$result = $this->client->get_object_models( $bucket, 1000, $prefix, '/' );
+
+		if ( ! $result->is_successful() ) {
+			return $this->rest_relay( $result );
+		}
+
+		$folders = [];
+
+		foreach ( $result->get_data()['prefixes'] ?? [] as $folder ) {
+			$folders[] = [
+				'name'   => $folder->get_folder_name(),
+				'prefix' => $folder->get_prefix(),
+			];
+		}
+
+		return $this->rest_ok( [
+			'bucket'  => $bucket,
+			'prefix'  => $prefix,
+			'folders' => $folders,
 		] );
 	}
 

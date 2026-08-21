@@ -139,6 +139,30 @@ class Directory {
 	}
 
 	/**
+	 * Build the key an object would have inside another folder
+	 *
+	 * Keeps the filename and swaps the folder it sits under, which is the
+	 * whole of what a move is: S3 has no move, only a key that reads
+	 * differently.
+	 *
+	 * @param string $current_key   Object's current key.
+	 * @param string $target_prefix Folder to move it into; '' means the root.
+	 *
+	 * @return string
+	 */
+	public static function build_move_key( string $current_key, string $target_prefix ): string {
+		$filename = self::name( $current_key );
+
+		if ( '' === $filename ) {
+			return $current_key;
+		}
+
+		$target_prefix = trim( $target_prefix, '/' );
+
+		return '' === $target_prefix ? $filename : $target_prefix . '/' . $filename;
+	}
+
+	/**
 	 * Check if rename would result in the same key
 	 *
 	 * Utility method to determine if a rename operation would result in

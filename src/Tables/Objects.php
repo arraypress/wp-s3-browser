@@ -113,6 +113,7 @@ class Objects extends WP_List_Table {
 	 */
 	public function get_columns(): array {
 		return [
+			'cb'       => '<input type="checkbox" />',
 			'name'     => __( 'Name', 'arraypress' ),
 			'type'     => __( 'Type', 'arraypress' ),
 			'size'     => __( 'Size', 'arraypress' ),
@@ -307,6 +308,15 @@ class Objects extends WP_List_Table {
 				esc_html__( 'Rename', 'arraypress' )
 			);
 
+			$actions['move'] = sprintf(
+				'<a href="#" class="s3-move-file" data-filename="%s" data-bucket="%s" data-key="%s" data-prefix="%s">%s</a>',
+				esc_attr( $item['name'] ),
+				esc_attr( $this->bucket ),
+				esc_attr( $item['key'] ),
+				esc_attr( $this->prefix ),
+				esc_html__( 'Move', 'arraypress' )
+			);
+
 			// Copy Link action
 			$actions['copy_link'] = sprintf(
 				'<a href="#" class="s3-copy-link" data-filename="%s" data-bucket="%s" data-key="%s">%s</a>',
@@ -342,6 +352,32 @@ class Objects extends WP_List_Table {
 		}
 
 		return $actions;
+	}
+
+	/**
+	 * Render the row's checkbox
+	 *
+	 * Files only. A folder is a prefix rather than a thing that can be
+	 * inserted into a product, and offering a checkbox that does nothing when
+	 * ticked is worse than offering none.
+	 *
+	 * @param array $item Item data.
+	 *
+	 * @return string
+	 */
+	public function column_cb( $item ): string {
+		if ( 'file' !== $item['type'] ) {
+			return '';
+		}
+
+		return sprintf(
+			'<input type="checkbox" class="s3-select-file" data-filename="%s" data-bucket="%s" data-key="%s" aria-label="%s" />',
+			esc_attr( $item['name'] ),
+			esc_attr( $this->bucket ),
+			esc_attr( $item['key'] ),
+			/* translators: %s: file name */
+			esc_attr( sprintf( __( 'Select %s', 'arraypress' ), $item['name'] ) )
+		);
 	}
 
 	/**

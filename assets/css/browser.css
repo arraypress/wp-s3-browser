@@ -1474,3 +1474,120 @@
         padding: 16px;
     }
 }
+/* Folder Picker
+ *
+ * Used by the move dialog. Nodes load their children when opened, so a node
+ * that has never been expanded is indistinguishable from an empty one until
+ * it is -- the toggle is always shown rather than guessing.
+ */
+.s3-folder-tree {
+    max-height: 260px;
+    overflow-y: auto;
+    border: 1px solid #dcdcde;
+    border-radius: 4px;
+    padding: 8px;
+    background: #fff;
+}
+
+.s3-folder-tree ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.s3-folder-children {
+    margin-left: 18px;
+}
+
+.s3-folder-node > .s3-folder-label {
+    display: inline-block;
+    padding: 3px 6px;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.s3-folder-node > .s3-folder-label:hover {
+    background: #f0f0f1;
+}
+
+.s3-folder-node.is-selected > .s3-folder-label {
+    background: #2271b1;
+    color: #fff;
+}
+
+.s3-folder-toggle {
+    display: inline-block;
+    width: 16px;
+    text-align: center;
+    cursor: pointer;
+    color: #787c82;
+    user-select: none;
+}
+
+.s3-folder-toggle::before {
+    content: '\25B8';
+}
+
+.s3-folder-node.is-open > .s3-folder-toggle::before {
+    content: '\25BE';
+}
+
+.s3-folder-loading,
+.s3-folder-empty {
+    padding: 3px 6px;
+    color: #787c82;
+    font-style: italic;
+}
+
+/* Object References
+ *
+ * Shown in the rename and move dialogs when something else stores the key.
+ */
+.s3-object-references {
+    margin-top: 12px;
+}
+
+.s3-object-references ul {
+    margin: 4px 0 8px 18px;
+    list-style: disc;
+}
+
+/* Selection Bar
+ *
+ * Sits at the foot of the browser once files are ticked. Deliberately not
+ * core's .media-toolbar: that is positioned for the media frame's DOM --
+ * absolutely, inside .media-frame-toolbar, at bottom: -60px -- and this
+ * renders in an iframe tab with no such ancestry, so the rules would apply
+ * and land in the wrong place. The buttons use core's classes, which is
+ * where the look actually comes from.
+ */
+.s3-selection-bar {
+    position: sticky;
+    bottom: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 12px -15px -15px;
+    padding: 12px 16px;
+    background: #fff;
+    border-top: 1px solid #dcdcde;
+    box-shadow: 0 -1px 3px rgba(0, 0, 0, .06);
+}
+
+.s3-selection-count {
+    font-weight: 600;
+}
+
+.s3-selection-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* The list table's checkbox column is narrow by default and the header
+   checkbox needs the same room as the rows. */
+.wp-list-table .column-cb {
+    width: 2.2em;
+}

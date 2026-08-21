@@ -39,9 +39,12 @@ class Assets {
 	/**
 	 * Integration scripts, by the post type whose editor they belong to.
 	 */
+	// Named for the post type rather than the plugin: the handles and
+	// filenames end up in page source and in a distributed ZIP, and neither
+	// needs to carry someone else's trademark.
 	private const INTEGRATIONS = [
-		'product'  => [ 's3-browser-woocommerce', 'js/integrations/woocommerce.js' ],
-		'download' => [ 's3-browser-edd', 'js/integrations/easy-digital-downloads.js' ],
+		'product'  => [ 's3-browser-wc', 'js/integrations/wc.js' ],
+		'download' => [ 's3-browser-edd', 'js/integrations/edd.js' ],
 	];
 
 	/**

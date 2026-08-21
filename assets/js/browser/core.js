@@ -84,6 +84,8 @@
                     self.deleteFolderConfirm($link);
                 } else if ($link.hasClass('s3-rename-file')) {
                     self.openRenameModal($link);
+                } else if ($link.hasClass('s3-move-file')) {
+                    self.openMoveModal($link);
                 } else if ($link.hasClass('s3-copy-link')) {
                     self.openCopyLinkModal($link);
                 } else if ($link.hasClass('s3-show-details')) {
@@ -95,6 +97,29 @@
             $(document).off('click.s3insertfile').on('click.s3insertfile', '.s3-insert-file', function (e) {
                 e.preventDefault();
                 self.handleFileSelection($(this));
+            });
+
+            // Ticking files is additive: the per-row Insert button still works
+            // on its own, so a single file costs no extra clicks.
+            $(document).off('change.s3select').on('change.s3select', '.s3-select-file, .wp-list-table thead .check-column input, .wp-list-table tfoot .check-column input', function () {
+                var $input = $(this);
+
+                if (!$input.hasClass('s3-select-file')) {
+                    $('.s3-select-file').prop('checked', $input.prop('checked'));
+                }
+
+                self.updateSelectionBar();
+            });
+
+            $(document).off('click.s3clearsel').on('click.s3clearsel', '.s3-clear-selection', function (e) {
+                e.preventDefault();
+                $('.s3-select-file, .wp-list-table .check-column input').prop('checked', false);
+                self.updateSelectionBar();
+            });
+
+            $(document).off('click.s3insertsel').on('click.s3insertsel', '.s3-insert-selected', function (e) {
+                e.preventDefault();
+                self.handleMultipleFileSelection(self.selectedFiles());
             });
 
             $(document).off('click.s3openfolder').on('click.s3openfolder', '.s3-open-folder', function (e) {
@@ -574,6 +599,8 @@
             'deleteObject':           {method: 'DELETE', path: '/buckets/{bucket}/objects'},
             'renameObject':           {method: 'PATCH',  path: '/buckets/{bucket}/objects'},
             'objectReferences':       {method: 'GET',    path: '/buckets/{bucket}/objects/references'},
+            'moveObject':             {method: 'POST',   path: '/buckets/{bucket}/objects/move'},
+            'listFolders':            {method: 'GET',    path: '/buckets/{bucket}/folders'},
             'downloadUrl':       {method: 'POST',   path: '/buckets/{bucket}/objects/download-url', rename: {object_key: 'key'}},
             'createFolder':           {method: 'POST',   path: '/buckets/{bucket}/folders'},
             'deleteFolder':           {method: 'DELETE', path: '/buckets/{bucket}/folders'},
@@ -581,6 +608,41 @@
             'setupCors':              {method: 'PUT',    path: '/buckets/{bucket}/cors'},
             'deleteCors': {method: 'DELETE', path: '/buckets/{bucket}/cors'},
             'connectionTest':         {method: 'GET',    path: '/connection'}
+        },
+
+        /**
+         * The files currently ticked, in the order they appear.
+         */
+        selectedFiles: function () {
+            return $('.s3-select-file:checked').map(function () {
+                var $box = $(this);
+
+                return {
+                    fileName: $box.data('filename'),
+                    bucket: $box.data('bucket'),
+                    key: $box.data('key')
+                };
+            }).get();
+        },
+
+        /**
+         * Show the bar once something is ticked, and say how many.
+         */
+        updateSelectionBar: function () {
+            var count = $('.s3-select-file:checked').length;
+            var $bar = $('.s3-selection-bar');
+
+            if (!count) {
+                $bar.prop('hidden', true);
+                return;
+            }
+
+            var label = count === 1
+                ? s3BrowserConfig.i18n.files.oneSelected
+                : s3BrowserConfig.i18n.files.manySelected.replace('%d', count);
+
+            $bar.find('.s3-selection-count').text(label);
+            $bar.prop('hidden', false);
         },
 
         /**

@@ -461,6 +461,181 @@
         },
 
         /**
+         * Open the move dialog for a file.
+         *
+         * The folder list loads a level at a time. A bucket's layout is only
+         * knowable by listing it, and listing all of it to draw a tree costs a
+         * request per folder whether or not the admin ever opens them -- so
+         * nodes fetch their children when expanded, and a deep bucket costs
+         * only the path actually walked.
+         */
+        openMoveModal: function ($button) {
+            var self = this;
+            var context = {
+                filename: $button.data('filename'),
+                bucket: $button.data('bucket'),
+                key: $button.data('key'),
+                currentPrefix: String($button.data('prefix') || '')
+            };
+
+            var i18n = s3BrowserConfig.i18n.files;
+
+            var content = [
+                '<p class="description">' + window.S3Browser.escapeHtml(i18n.moveTo) + '</p>',
+                '<div class="s3-folder-tree" data-selected="">',
+                '  <ul class="s3-folder-tree-root">',
+                '    <li class="s3-folder-node is-root" data-prefix="">',
+                '      <span class="s3-folder-toggle" role="button" tabindex="0"></span>',
+                '      <span class="s3-folder-label">' + window.S3Browser.escapeHtml(i18n.moveRoot) + '</span>',
+                '      <ul class="s3-folder-children" hidden></ul>',
+                '    </li>',
+                '  </ul>',
+                '</div>',
+                '<div class="s3-object-references" hidden></div>'
+            ].join('');
+
+            var $modal = this.showModal('s3MoveModal', i18n.moveFile, content, [
+                {
+                    text: s3BrowserConfig.i18n.ui.cancel,
+                    action: 'cancel',
+                    callback: function () {
+                        self.hideModal('s3MoveModal');
+                    }
+                },
+                {
+                    text: i18n.moveHere,
+                    action: 'submit',
+                    classes: 'button-primary',
+                    callback: function () {
+                        self.submitMove(context, $modal.find('.s3-folder-tree').attr('data-selected') || '');
+                    }
+                }
+            ]);
+
+            // Nothing is selected until a folder is clicked, and the file's
+            // own folder is never a valid destination.
+            $modal.find('button[data-action="submit"]').prop('disabled', true);
+
+            $modal.on('click', '.s3-folder-label', function () {
+                var $node = $(this).closest('.s3-folder-node');
+                var prefix = String($node.attr('data-prefix') || '');
+
+                $modal.find('.s3-folder-node').removeClass('is-selected');
+                $node.addClass('is-selected');
+                $modal.find('.s3-folder-tree').attr('data-selected', prefix);
+
+                $modal.find('button[data-action="submit"]')
+                    .prop('disabled', self.samePrefix(prefix, context.currentPrefix));
+            });
+
+            $modal.on('click keypress', '.s3-folder-toggle', function (e) {
+                if (e.type === 'keypress' && e.which !== 13 && e.which !== 32) {
+                    return;
+                }
+
+                e.preventDefault();
+                self.toggleFolderNode($(this).closest('.s3-folder-node'), context.bucket);
+            });
+
+            this.loadObjectReferences($modal, context);
+
+            // Open the root straight away; a picker showing one collapsed node
+            // asks the admin to click twice to see anything.
+            this.toggleFolderNode($modal.find('.s3-folder-node.is-root'), context.bucket);
+        },
+
+        /**
+         * Whether two prefixes name the same folder.
+         */
+        samePrefix: function (a, b) {
+            return String(a).replace(/^\/+|\/+$/g, '') === String(b).replace(/^\/+|\/+$/g, '');
+        },
+
+        /**
+         * Expand or collapse a folder, fetching its children the first time.
+         */
+        toggleFolderNode: function ($node, bucket) {
+            var self = this;
+            var $children = $node.children('.s3-folder-children');
+
+            if ($node.attr('data-loaded') === '1') {
+                $children.prop('hidden', !$children.prop('hidden'));
+                $node.toggleClass('is-open', !$children.prop('hidden'));
+                return;
+            }
+
+            $node.attr('data-loaded', 'loading').addClass('is-open');
+            $children.prop('hidden', false).html(
+                '<li class="s3-folder-loading">' + window.S3Browser.escapeHtml(s3BrowserConfig.i18n.files.loadingFolders) + '</li>'
+            );
+
+            this.makeAjaxRequest('listFolders', {
+                bucket: bucket,
+                prefix: String($node.attr('data-prefix') || '')
+            }, {
+                success: function (response) {
+                    var folders = (response.data && response.data.folders) || [];
+
+                    $node.attr('data-loaded', '1');
+
+                    if (!folders.length) {
+                        $children.html(
+                            '<li class="s3-folder-empty">' + window.S3Browser.escapeHtml(s3BrowserConfig.i18n.files.noSubfolders) + '</li>'
+                        );
+                        return;
+                    }
+
+                    $children.html(folders.map(function (folder) {
+                        return [
+                            '<li class="s3-folder-node" data-prefix="' + window.S3Browser.escapeHtml(folder.prefix) + '">',
+                            '  <span class="s3-folder-toggle" role="button" tabindex="0"></span>',
+                            '  <span class="s3-folder-label">' + window.S3Browser.escapeHtml(folder.name) + '</span>',
+                            '  <ul class="s3-folder-children" hidden></ul>',
+                            '</li>'
+                        ].join('');
+                    }).join(''));
+                },
+                error: function (message) {
+                    $node.attr('data-loaded', '');
+                    $children.html('<li class="s3-folder-empty">' + window.S3Browser.escapeHtml(message) + '</li>');
+                }
+            });
+        },
+
+        /**
+         * Move the file into the selected folder.
+         */
+        submitMove: function (context, targetPrefix) {
+            var self = this;
+
+            this.setModalLoading('s3MoveModal', true, s3BrowserConfig.i18n.files.movingFile);
+
+            this.makeAjaxRequest('moveObject', {
+                bucket: context.bucket,
+                key: context.key,
+                target_prefix: targetPrefix
+            }, {
+                success: function (response) {
+                    self.hideModal('s3MoveModal');
+                    self.showNotification(
+                        (response.data && response.data.message) || s3BrowserConfig.i18n.files.moveSuccess,
+                        'success'
+                    );
+
+                    // The list table is rendered server-side, so the row only
+                    // leaves this folder on a reload.
+                    setTimeout(function () {
+                        window.location.reload();
+                    }, 1500);
+                },
+                error: function (message) {
+                    self.setModalLoading('s3MoveModal', false);
+                    self.showModalError('s3MoveModal', message);
+                }
+            });
+        },
+
+        /**
          * Warn if anything else refers to this object by its key.
          *
          * A stored key does not follow the object when it is renamed, so a
@@ -552,7 +727,6 @@
                     }, 1500);
                 },
                 error: function (message) {
-                    console.error('Rename error:', message);
                     self.showModalError('s3RenameModal', message);
                 }
             });

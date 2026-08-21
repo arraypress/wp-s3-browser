@@ -170,10 +170,40 @@ class MediaLibrary {
 			$this->display_buckets_list();
 		} else {
 			$this->display_objects_view( $bucket, $prefix );
+			$this->render_selection_bar();
 		}
 
 		echo '</div>';
 	}
+
+	/**
+	 * Print the bar that appears once files are ticked
+	 *
+	 * Its own markup rather than core's .media-toolbar. That class is styled
+	 * for the media frame's DOM -- absolutely positioned inside
+	 * .media-frame-toolbar at bottom: -60px -- and this renders in an iframe
+	 * tab, which has no such ancestry, so the rules would apply and land in
+	 * the wrong place. The buttons still use core's classes, which is where
+	 * the look comes from.
+	 *
+	 * @return void
+	 */
+	private function render_selection_bar(): void {
+		?>
+		<div class="s3-selection-bar" hidden>
+			<div class="s3-selection-count" aria-live="polite"></div>
+			<div class="s3-selection-actions">
+				<button type="button" class="button-link s3-clear-selection">
+					<?php esc_html_e( 'Clear', 'arraypress' ); ?>
+				</button>
+				<button type="button" class="button button-primary s3-insert-selected">
+					<?php esc_html_e( 'Insert Selected', 'arraypress' ); ?>
+				</button>
+			</div>
+		</div>
+		<?php
+	}
+
 
 	/**
 	* Display the objects view with breadcrumbs and navigation
