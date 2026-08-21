@@ -21,6 +21,7 @@ use ArrayPress\S3\Responses\SuccessResponse;
 use ArrayPress\S3\Utils\Directory;
 use ArrayPress\S3\Utils\File as FileUtil;
 use Generator;
+use ArrayPress\S3\Xml\Response;
 
 /**
  * Trait Objects
@@ -422,6 +423,19 @@ trait File {
 		$content_type      = $upload_params['content_type'];
 		$additional_params = $upload_params['additional_params'];
 
+		// A missing path used to fall through to file_get_contents(), which
+		// warns and returns false -- and the check below only catches that
+		// after a presigned URL has already been generated. The guard lived in
+		// upload_file(), a wrapper nothing called.
+		if ( $is_path && ! is_readable( $file_path ) ) {
+			return new ErrorResponse(
+				sprintf( __( 'File not found or unreadable: %s', 'arraypress' ), $file_path ),
+				'file_not_found',
+				404,
+				[ 'file_path' => $file_path ]
+			);
+		}
+
 		// 1. Get a presigned upload URL
 		$upload_url_response = $this->get_presigned_upload_url( $bucket, $target_key, 15 );
 
@@ -491,11 +505,15 @@ trait File {
 		$status_code = wp_remote_retrieve_response_code( $response );
 
 		if ( $status_code < 200 || $status_code >= 300 ) {
-			return new ErrorResponse(
-				sprintf( __( 'Upload failed with status code: %d', 'arraypress' ), $status_code ),
-				'upload_error',
+			// The provider says why -- AccessDenied, EntityTooLarge,
+			// NoSuchBucket. Replacing that with the status code alone leaves
+			// the caller guessing, and the whole $response was previously
+			// attached as error data, carrying headers into anything that
+			// serialised it.
+			return Response::error(
 				$status_code,
-				[ 'response' => $response ]
+				wp_remote_retrieve_body( $response ),
+				__( 'Upload failed.', 'arraypress' )
 			);
 		}
 

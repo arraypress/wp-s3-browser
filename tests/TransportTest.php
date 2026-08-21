@@ -179,4 +179,57 @@ final class TransportTest extends TestCase {
 		$this->assertSame( 'test-bucket', $data['buckets'][0]->get_name() );
 		$this->assertTrue( $data['scoped'] );
 	}
+
+	/**
+	 * Uploading an object server-side.
+	 *
+	 * The browser uploads through a presigned URL from the client, so this
+	 * path had no caller in either plugin and no test -- which in this library
+	 * has repeatedly meant "quietly broken". It is the building block any
+	 * migration of existing files to storage would use.
+	 */
+	public function test_put_object_sends_the_body_and_content_type(): void {
+		$file = tempnam( sys_get_temp_dir(), 's3' );
+		file_put_contents( $file, 'hello world' );
+
+		FakeHttp::queue( 200, '', [ 'etag' => '"abc123"' ] );
+
+		$result = $this->client()->put_object( 'test-bucket', 'docs/hello.txt', $file, true, 'text/plain' );
+
+		unlink( $file );
+
+		$this->assertTrue( $result->is_successful(), $result->is_successful() ? '' : $result->get_error_message() );
+
+		$request = FakeHttp::requests()[0];
+
+		$this->assertSame( 'PUT', strtoupper( $request['args']['method'] ) );
+		$this->assertSame( 'hello world', $request['args']['body'] );
+		$this->assertStringContainsString( 'docs/hello.txt', $request['url'] );
+		$this->assertSame( 'text/plain', $request['args']['headers']['Content-Type'] ?? null );
+	}
+
+	public function test_put_object_accepts_a_body_rather_than_a_path(): void {
+		FakeHttp::queue( 200 );
+
+		$result = $this->client()->put_object( 'test-bucket', 'notes.txt', 'inline content', false, 'text/plain' );
+
+		$this->assertTrue( $result->is_successful() );
+		$this->assertSame( 'inline content', FakeHttp::requests()[0]['args']['body'] );
+	}
+
+	public function test_put_object_reports_a_missing_file(): void {
+		$result = $this->client()->put_object( 'test-bucket', 'gone.txt', '/no/such/file', true );
+
+		$this->assertFalse( $result->is_successful() );
+		$this->assertSame( [], FakeHttp::requests(), 'Nothing should be sent for a file that is not there' );
+	}
+
+	public function test_put_object_relays_a_refusal(): void {
+		FakeHttp::queue_fixture( 'error-access-denied-r2.xml', 403 );
+
+		$result = $this->client()->put_object( 'test-bucket', 'denied.txt', 'content', false );
+
+		$this->assertFalse( $result->is_successful() );
+		$this->assertSame( 'AccessDenied', $result->get_error_code() );
+	}
 }

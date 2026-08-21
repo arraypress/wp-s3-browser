@@ -168,26 +168,13 @@ class Response {
 	}
 
 	/**
-	 * Read a ListObjectsV2 continuation token.
-	 *
-	 * @param array $xml Parsed XML.
-	 *
-	 * @return string|null Token, or null if the listing is complete.
-	 */
-	public static function continuation_token( array $xml ): ?string {
-		$token = Parser::find( $xml, 'NextContinuationToken' );
-
-		return null === $token ? null : Extract::text( $token );
-	}
-
-	/**
 	 * Read a ListBuckets marker.
 	 *
 	 * @param array $xml Parsed XML.
 	 *
 	 * @return string|null Marker, or null if the listing is complete.
 	 */
-	public static function next_marker( array $xml ): ?string {
+	private static function next_marker( array $xml ): ?string {
 		$marker = Parser::find( $xml, 'NextMarker' );
 
 		return null === $marker ? null : Extract::text( $marker );
