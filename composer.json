@@ -12,9 +12,10 @@
     }
   ],
   "require": {
-    "php": ">=8.2",
+    "arraypress/wp-breadcrumbs": "dev-main",
     "arraypress/wp-composer-assets": "dev-main",
-    "arraypress/wp-breadcrumbs": "dev-main"
+    "arraypress/wp-s3-signer": "^1.0",
+    "php": ">=8.2"
   },
   "autoload": {
     "psr-4": {

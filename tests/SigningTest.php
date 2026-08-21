@@ -164,26 +164,30 @@ final class SigningTest extends TestCase {
 
 	/**
 	 * Header-authenticated requests must sign the host they are sent to.
+	 *
+	 * Header names are lowercase: that is the form SigV4 canonicalises to, and
+	 * what arraypress/wp-s3-signer emits. HTTP header names are
+	 * case-insensitive, so the transport is unaffected.
 	 */
 	public function test_auth_headers_sign_the_addressed_host(): void {
 		$spaces  = new DigitalOceanSpaces( 'ams3' );
 		$signer  = new Signer( $spaces, self::ACCESS_KEY, self::SECRET_KEY );
 		$headers = $signer->generate_auth_headers( 'DELETE', 'my-bucket', 'files/song.wav' );
 
-		$this->assertSame( 'my-bucket.ams3.digitaloceanspaces.com', $headers['Host'] );
+		$this->assertSame( 'my-bucket.ams3.digitaloceanspaces.com', $headers['host'] );
 
 		$canonical_request = "DELETE\n"
 		                     . "/files/song.wav\n"
 		                     . "\n"
-		                     . 'host:' . $headers['Host'] . "\n"
-		                     . 'x-amz-content-sha256:' . $headers['X-Amz-Content-SHA256'] . "\n"
-		                     . 'x-amz-date:' . $headers['X-Amz-Date'] . "\n"
+		                     . 'host:' . $headers['host'] . "\n"
+		                     . 'x-amz-content-sha256:' . $headers['x-amz-content-sha256'] . "\n"
+		                     . 'x-amz-date:' . $headers['x-amz-date'] . "\n"
 		                     . "\n"
 		                     . "host;x-amz-content-sha256;x-amz-date\n"
-		                     . $headers['X-Amz-Content-SHA256'];
+		                     . $headers['x-amz-content-sha256'];
 
 		$this->assertStringContainsString(
-			'Signature=' . $this->expected_signature( $canonical_request, $headers['X-Amz-Date'], 'ams3' ),
+			'Signature=' . $this->expected_signature( $canonical_request, $headers['x-amz-date'], 'ams3' ),
 			$headers['Authorization']
 		);
 	}
@@ -193,7 +197,7 @@ final class SigningTest extends TestCase {
 		$headers  = ( new Signer( $provider, self::ACCESS_KEY, self::SECRET_KEY ) )
 			->generate_auth_headers( 'GET', 'my-bucket' );
 
-		$this->assertSame( hash( 'sha256', '' ), $headers['X-Amz-Content-SHA256'] );
+		$this->assertSame( hash( 'sha256', '' ), $headers['x-amz-content-sha256'] );
 	}
 
 	public function test_presign_expiry_is_clamped_to_the_sigv4_maximum(): void {

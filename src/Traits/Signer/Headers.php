@@ -43,13 +43,18 @@ trait Headers {
 		string $target_bucket,
 		string $target_key
 	): array {
-		$encoded_target_key = Encode::object_key( $target_key );
-		$headers = $this->generate_auth_headers( 'PUT', $target_bucket, $encoded_target_key );
-
-		$encoded_source_key = Encode::object_key( $source_key );
-		$headers['x-amz-copy-source'] = $source_bucket . '/' . $encoded_source_key;
-
-		return $headers;
+		// x-amz-copy-source must be part of the signature. S3 requires every
+		// x-amz-* header sent to appear in SignedHeaders, so adding it after
+		// signing — as this did — yields a request AWS rejects. R2 happens to
+		// tolerate it, which is why it went unnoticed.
+		return $this->generate_auth_headers(
+			'PUT',
+			$target_bucket,
+			$target_key,
+			[],
+			'',
+			[ 'x-amz-copy-source' => $source_bucket . '/' . Encode::object_key( $source_key ) ]
+		);
 	}
 
 	/**
@@ -64,8 +69,7 @@ trait Headers {
 	 * @return array Complete headers array for delete operation
 	 */
 	protected function build_delete_headers( string $bucket, string $object_key ): array {
-		$encoded_key = Encode::object_key( $object_key );
-		$headers = $this->generate_auth_headers( 'DELETE', $bucket, $encoded_key );
+		$headers = $this->generate_auth_headers( 'DELETE', $bucket, $object_key );
 
 		// Content-Length header is required for DELETE operations
 		$headers['Content-Length'] = '0';
@@ -84,8 +88,7 @@ trait Headers {
 	 * @return array Complete headers array for HEAD operation
 	 */
 	protected function build_head_headers( string $bucket, string $object_key ): array {
-		$encoded_key = Encode::object_key( $object_key );
-		return $this->generate_auth_headers( 'HEAD', $bucket, $encoded_key );
+		return $this->generate_auth_headers( 'HEAD', $bucket, $object_key );
 	}
 
 	/**

@@ -31,7 +31,11 @@ interface Signer {
 	 * @param string $bucket       Bucket name
 	 * @param string $object_key   Object key (if applicable)
 	 * @param array  $query_params Query parameters
-	 * @param string $payload      Request payload (or empty string)
+	 * @param string $payload       Request payload (or empty string)
+	 * @param array  $extra_headers Additional headers to include in the
+	 *                              signature. Every x-amz-* header sent must
+	 *                              appear in SignedHeaders, so they belong here
+	 *                              rather than being added afterwards.
 	 *
 	 * @return array Headers with AWS signature
 	 */
@@ -40,7 +44,8 @@ interface Signer {
 		string $bucket,
 		string $object_key = '',
 		array $query_params = [],
-		string $payload = ''
+		string $payload = '',
+		array $extra_headers = []
 	): array;
 
 	/**
