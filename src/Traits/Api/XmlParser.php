@@ -15,11 +15,11 @@ declare( strict_types=1 );
 
 namespace ArrayPress\S3\Traits\Api;
 
-use ArrayPress\S3\Traits\XML\{Core, Extract, Parser, Pagination, Builder, ErrorHandler};
+use ArrayPress\S3\Traits\XML\{Core, Extract, Parser, Pagination, ErrorHandler};
 
 /**
  * Trait XmlParser
  */
 trait XmlParser {
-	use Core, Extract, Parser, Pagination, Builder, ErrorHandler;
+	use Core, Extract, Parser, Pagination, ErrorHandler;
 }

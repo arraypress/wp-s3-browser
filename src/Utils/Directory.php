@@ -186,17 +186,6 @@ class Directory {
 	}
 
 	/**
-	 * Extract filename from object key
-	 *
-	 * @param string $object_key Object key/path
-	 *
-	 * @return string Filename only
-	 */
-	public static function filename( string $object_key ): string {
-		return basename( $object_key );
-	}
-
-	/**
 	 * Get the depth level of a path (number of folder levels)
 	 *
 	 * @param string $path Path to analyze

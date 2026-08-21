@@ -1,24 +1,29 @@
 <?php
 /**
- * XML Builder Trait
+ * XML request bodies.
  *
- * Provides XML building functionality for S3 API requests.
- *
- * @package     ArrayPress\S3\Traits\XML
+ * @package     ArrayPress\S3\Utils
  * @copyright   Copyright (c) 2025, ArrayPress Limited
  * @license     GPL2+
- * @version     1.0.0
+ * @version     3.1.0
  * @author      David Sherlock
  */
 
 declare( strict_types=1 );
 
-namespace ArrayPress\S3\Traits\XML;
+namespace ArrayPress\S3\Utils;
 
 /**
- * Trait Builder
+ * Class XmlBuilder
+ *
+ * Builds the XML bodies S3 expects for the handful of operations that take
+ * one. These were a trait composed into the API client, but neither method
+ * touches any state: given the same array they return the same string. As a
+ * trait they could only be exercised by constructing a client and issuing a
+ * request; as static functions they can be tested directly, which matters for
+ * output that has to match a provider's parser exactly.
  */
-trait Builder {
+final class XmlBuilder {
 
 	/**
 	 * Build CORS configuration XML from rules array
@@ -29,7 +34,7 @@ trait Builder {
 	 *
 	 * @return string XML string for CORS configuration
 	 */
-	protected function build_cors_configuration( array $cors_rules ): string {
+	public static function cors_configuration( array $cors_rules ): string {
 		$xml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
 		$xml .= '<CORSConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/">' . "\n";
 
@@ -89,7 +94,7 @@ trait Builder {
 	 *
 	 * @return string XML string
 	 */
-	protected function build_batch_delete( array $object_keys ): string {
+	public static function batch_delete( array $object_keys ): string {
 		$xml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
 
 		// Try without namespace first for R2 compatibility

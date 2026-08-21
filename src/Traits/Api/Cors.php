@@ -16,6 +16,8 @@ declare( strict_types=1 );
 
 namespace ArrayPress\S3\Traits\Api;
 
+use ArrayPress\S3\Utils\XmlBuilder;
+
 use ArrayPress\S3\Interfaces\Response as ResponseInterface;
 use ArrayPress\S3\Responses\SuccessResponse;
 use ArrayPress\S3\Responses\ErrorResponse;
@@ -246,7 +248,7 @@ trait Cors {
 		}
 
 		// Build CORS XML using XmlParser trait
-		$cors_xml = $this->build_cors_configuration( $cors_rules );
+		$cors_xml = XmlBuilder::cors_configuration( $cors_rules );
 
 		// Generate authorization headers for CORS PUT operation
 		$headers = $this->generate_auth_headers( 'PUT', $bucket, '', [ 'cors' => '' ], $cors_xml );
