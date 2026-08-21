@@ -52,7 +52,7 @@
 /renovate.json export-ignore
 
 # Local development files
-/.env export-ignore8
+/.env export-ignore
 /.env.example export-ignore
 /docker-compose.yml export-ignore
 /Dockerfile export-ignore
