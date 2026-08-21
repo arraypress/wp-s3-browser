@@ -21,7 +21,6 @@ use ArrayPress\S3\Traits\Client\Bucket;
 use ArrayPress\S3\Traits\Client\Folder;
 use ArrayPress\S3\Traits\Client\Files;
 use ArrayPress\S3\Traits\Client\File;
-use ArrayPress\S3\Traits\Client\Permissions;
 use ArrayPress\S3\Traits\Client\PresignedUrls;
 use ArrayPress\S3\Traits\Client\Batch;
 use ArrayPress\S3\Traits\Client\Cors;
@@ -40,7 +39,6 @@ class Client {
 	use Folder;
 	use Files;
 	use File;
-	use Permissions;
 	use PresignedUrls;
 	use Batch;
 	use Debug;
@@ -69,6 +67,13 @@ class Client {
 	 * @var Cache
 	 */
 	private Cache $cache;
+
+	/**
+	 * Credential permission probe, built on first use.
+	 *
+	 * @var Permissions|null
+	 */
+	private ?Permissions $permissions = null;
 
 	/**
 	 * Constructor
@@ -114,6 +119,24 @@ class Client {
 	 */
 	public function cache(): Cache {
 		return $this->cache;
+	}
+
+	/**
+	 * Get the signing and transport layer
+	 *
+	 * @return Api
+	 */
+	public function api(): Api {
+		return $this->api;
+	}
+
+	/**
+	 * Get the credential permission probe
+	 *
+	 * @return Permissions
+	 */
+	public function permissions(): Permissions {
+		return $this->permissions ??= new Permissions( $this, $this->cache );
 	}
 
 	/**

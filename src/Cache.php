@@ -86,13 +86,14 @@ class Cache {
 	/**
 	 * Write an entry.
 	 *
-	 * @param string $key   Cache key.
-	 * @param mixed  $value Value to store.
+	 * @param string   $key   Cache key.
+	 * @param mixed    $value Value to store.
+	 * @param int|null $ttl   Lifetime override, in seconds.
 	 *
 	 * @return bool Whether it was stored.
 	 */
-	public function set( string $key, $value ): bool {
-		return $this->enabled && set_transient( $key, $value, $this->ttl );
+	public function set( string $key, $value, ?int $ttl = null ): bool {
+		return $this->enabled && set_transient( $key, $value, $ttl ?? $this->ttl );
 	}
 
 	/**

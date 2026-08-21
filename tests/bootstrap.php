@@ -396,3 +396,35 @@ if ( ! function_exists( 'sanitize_file_name' ) ) {
 }
 
 require_once __DIR__ . '/../vendor/autoload.php';
+
+if ( ! function_exists( 'wp_generate_password' ) ) {
+	function wp_generate_password( int $length = 12, bool $special_chars = true ): string {
+		$alphabet = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+		$password = '';
+
+		for ( $i = 0; $i < $length; $i ++ ) {
+			$password .= $alphabet[ random_int( 0, strlen( $alphabet ) - 1 ) ];
+		}
+
+		return $password;
+	}
+}
+
+if ( ! defined( 'DAY_IN_SECONDS' ) ) {
+	define( 'DAY_IN_SECONDS', 86400 );
+}
+
+if ( ! function_exists( 'get_allowed_mime_types' ) ) {
+	function get_allowed_mime_types( $user = null ): array {
+		return [
+			'jpg|jpeg|jpe' => 'image/jpeg',
+			'png'          => 'image/png',
+			'gif'          => 'image/gif',
+			'pdf'          => 'application/pdf',
+			'txt'          => 'text/plain',
+			'zip'          => 'application/zip',
+			'mp4'          => 'video/mp4',
+			'mp3'          => 'audio/mpeg',
+		];
+	}
+}

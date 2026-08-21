@@ -301,7 +301,7 @@ trait Bucket {
 
 		// Get permissions
 		try {
-			$permissions = $this->check_key_permissions( $bucket );
+			$permissions = $this->permissions()->check( $bucket );
 			if ( is_array( $permissions ) ) {
 				$details['permissions'] = [
 					'read'   => $permissions['read'] ?? false,
