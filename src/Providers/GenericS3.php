@@ -20,9 +20,9 @@ use InvalidArgumentException;
 use ArrayPress\S3\Utils\Encode;
 
 /**
- * Class GenericS3Provider
+ * Class GenericS3
  */
-class GenericS3Provider extends Provider {
+class GenericS3 extends Provider {
 
 	/**
 	 * Provider ID
@@ -363,3 +363,15 @@ class GenericS3Provider extends Provider {
 	}
 
 }
+
+/**
+ * Backwards-compatible alias.
+ *
+ * The class was previously named GenericS3Provider while living in
+ * GenericS3.php, which violates PSR-4: Composer's classmap generator skips such
+ * classes, so the name was never autoloadable in an optimized build. Retained
+ * for any consumer that required the file directly.
+ *
+ * @deprecated Use ArrayPress\S3\Providers\GenericS3 instead.
+ */
+class_alias( GenericS3::class, 'ArrayPress\\S3\\Providers\\GenericS3Provider' );
