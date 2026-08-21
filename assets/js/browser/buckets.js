@@ -206,7 +206,7 @@
 
                     // Show manual setup instructions
                     setTimeout(function () {
-                        self.showManualCORSInstructions(bucket);
+                        self.showManualCORSInstructions(bucket, message);
                     }, 1000);
                 }
             });
@@ -215,25 +215,29 @@
         /**
          * Show manual CORS setup instructions (S3-provider agnostic)
          */
-        showManualCORSInstructions: function (bucket) {
+        showManualCORSInstructions: function (bucket, reason) {
             var i18n = s3BrowserConfig.i18n.buckets;
             var providerName = S3BrowserGlobalConfig.providerName || i18n.s3CompatibleProvider;
 
             var content = [
                 '<div class="s3-cors-setup-content">',
                 '<p><strong>' + i18n.autoSetupFailed + '</strong> ' + i18n.manualSetupInstruction.replace('{provider}', providerName) + '</p>',
+                reason ? '<p class="s3-cors-setup-reason"><code>' + window.S3Browser.escapeHtml(reason) + '</code></p>' : '',
 
                 '<div class="s3-cors-setup-details">',
                 '<h4>' + i18n.requiredCorsConfig + '</h4>',
                 '<p>' + i18n.addCorsRule.replace('{bucket}', bucket) + '</p>',
-                '<textarea readonly class="s3-cors-config-textarea">',
-                '{',
-                '  "ID": "UploadFromBrowser",',
-                '  "AllowedOrigins": ["' + window.location.origin + '"],',
-                '  "AllowedMethods": ["PUT"],',
-                '  "AllowedHeaders": ["Content-Type", "Content-Length"],',
-                '  "MaxAgeSeconds": 3600',
-                '}',
+                // Built separately and joined with newlines: the surrounding
+                // array is joined with '' so the markup has no stray
+                // whitespace, which collapsed this JSON onto a single line.
+                '<textarea readonly rows="8" class="s3-cors-config-textarea">' +
+                    window.S3Browser.escapeHtml(JSON.stringify({
+                        ID: 'UploadFromBrowser',
+                        AllowedOrigins: [window.location.origin],
+                        AllowedMethods: ['PUT'],
+                        AllowedHeaders: ['Content-Type', 'Content-Length'],
+                        MaxAgeSeconds: 3600
+                    }, null, 2)) +
                 '</textarea>',
                 '</div>',
 

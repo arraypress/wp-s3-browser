@@ -73,7 +73,10 @@ trait I18n {
 	 */
 	private function get_file_strings(): array {
 		return [
-			'confirmDelete'    => __( 'Are you sure you want to delete "{filename}"?\n\nThis action cannot be undone.', 'arraypress' ),
+			'confirmDelete'    => implode( "\n\n", [
+				__( 'Are you sure you want to delete "{filename}"?', 'arraypress' ),
+				__( 'This action cannot be undone.', 'arraypress' ),
+			] ),
 			'deleteSuccess'    => __( 'File successfully deleted', 'arraypress' ),
 			'deleteError'      => __( 'Failed to delete file', 'arraypress' ),
 			'renameFile'       => __( 'Rename File', 'arraypress' ),
@@ -109,7 +112,10 @@ trait I18n {
 			'folderNameInvalidChars'    => __( 'Folder name can only contain letters, numbers, spaces, dots, hyphens, and underscores', 'arraypress' ),
 			'folderNameStartEnd'        => __( 'Folder name cannot start or end with dots or hyphens', 'arraypress' ),
 			'folderNameConsecutiveDots' => __( 'Folder name cannot contain consecutive dots', 'arraypress' ),
-			'confirmDeleteFolder'       => __( 'Are you sure you want to delete the folder "{foldername}" and all its contents?\n\nThis action cannot be undone.', 'arraypress' ),
+			'confirmDeleteFolder'       => implode( "\n\n", [
+				__( 'Are you sure you want to delete the folder "{foldername}" and all its contents?', 'arraypress' ),
+				__( 'This action cannot be undone.', 'arraypress' ),
+			] ),
 			'deleteFolderSuccess'       => __( 'Folder successfully deleted', 'arraypress' ),
 			'deletingFolderProgress'    => __( 'Deleting folder "{name}"...', 'arraypress' ),
 			'folderDeletedSuccess'      => __( 'Folder deleted successfully!', 'arraypress' ),
@@ -164,7 +170,16 @@ trait I18n {
 			'recommendations'        => __( 'Recommendations', 'arraypress' ),
 
 			// CORS setup process
-			'corsSetupConfirm'       => __( 'Set up CORS (Cross-Origin Resource Sharing) for bucket "{bucket}"?\n\nThis will:\n• Enable file uploads from web browsers\n• Allow cross-origin access from this domain: {origin}\n• Configure secure upload permissions\n\nThis is required for the upload functionality to work properly.', 'arraypress' ),
+			'corsSetupConfirm'       => implode( "\n", [
+				__( 'Set up CORS (Cross-Origin Resource Sharing) for bucket "{bucket}"?', 'arraypress' ),
+				'',
+				__( 'This will:', 'arraypress' ),
+				__( '• Enable file uploads from web browsers', 'arraypress' ),
+				__( '• Allow cross-origin access from this domain: {origin}', 'arraypress' ),
+				__( '• Configure secure upload permissions', 'arraypress' ),
+				'',
+				__( 'This is required for uploads to work.', 'arraypress' ),
+			] ),
 			'settingUpCors'          => __( 'Setting up CORS configuration...', 'arraypress' ),
 			'corsSetupSuccess'       => __( 'CORS successfully configured for bucket "{bucket}"', 'arraypress' ),
 			'corsSetupError'         => __( 'Failed to setup CORS: {message}', 'arraypress' ),
@@ -188,7 +203,16 @@ trait I18n {
 			'configOptimized'        => __( 'This configuration is optimized for browser uploads only. All other operations (delete, list, etc.) are handled server-side and don\'t require additional CORS permissions.', 'arraypress' ),
 
 			// CORS revocation
-			'revokeConfirm'          => __( 'Are you sure you want to revoke all CORS rules for bucket "{bucket}"?\n\nThis will:\n• Disable file uploads from web browsers\n• Prevent cross-origin access to bucket resources\n• Require manual CORS reconfiguration to restore upload capability\n\nThis action cannot be undone automatically.', 'arraypress' ),
+			'revokeConfirm'          => implode( "\n", [
+				__( 'Are you sure you want to revoke all CORS rules for bucket "{bucket}"?', 'arraypress' ),
+				'',
+				__( 'This will:', 'arraypress' ),
+				__( '• Disable file uploads from web browsers', 'arraypress' ),
+				__( '• Prevent cross-origin access to bucket resources', 'arraypress' ),
+				__( '• Require CORS to be reconfigured before uploads work again', 'arraypress' ),
+				'',
+				__( 'This cannot be undone automatically.', 'arraypress' ),
+			] ),
 			'revokingCors'           => __( 'Revoking CORS rules...', 'arraypress' ),
 			'revokeSuccess'          => __( 'CORS rules successfully revoked for bucket "{bucket}"', 'arraypress' ),
 			'revokeError'            => __( 'Failed to revoke CORS rules: {message}', 'arraypress' ),
