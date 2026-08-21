@@ -113,6 +113,7 @@ trait PresignedUrls {
 		if ( ! Mime::is_allowed_extension( $filename, $this->get_context() ) ) {
 			return new ErrorResponse(
 				sprintf(
+					/* translators: %1$s: value */
 					__( 'File type ".%s" is not allowed for upload', 'arraypress' ),
 					File::extension( $filename )
 				),

@@ -150,6 +150,7 @@ trait Batch {
 
 		if ( empty( $object_keys ) ) {
 			return new SuccessResponse(
+				/* translators: %1$s: folder name */
 				sprintf( __( 'Folder "%s" is already empty or does not exist', 'arraypress' ), $normalized_path ),
 				200,
 				[ 'folder_path' => $normalized_path, 'success_count' => 0, 'error_count' => 0 ]
@@ -171,7 +172,8 @@ trait Batch {
 		$response_data = array_merge( $data, [ 'folder_path' => $normalized_path ] );
 
 		$message = sprintf(
-			__( 'Folder "%s" deleted: %d objects removed, %d failed', 'arraypress' ),
+			/* translators: %1$s: folder name, %2$d: number of objects removed, %3$d: number that failed */
+			__( 'Folder "%1$s" deleted: %2$d objects removed, %3$d failed', 'arraypress' ),
 			$normalized_path,
 			$data['success_count'] ?? 0,
 			$data['error_count'] ?? 0
@@ -324,7 +326,8 @@ trait Batch {
 		}
 
 		return new SuccessResponse(
-			sprintf( __( 'Individual delete completed: %d succeeded, %d failed', 'arraypress' ), count( $deleted ), count( $errors ) ),
+			/* translators: %1$d: number of objects deleted, %2$d: number that failed */
+			sprintf( __( 'Individual delete completed: %1$d succeeded, %2$d failed', 'arraypress' ), count( $deleted ), count( $errors ) ),
 			200,
 			[
 				'total_requested' => count( $object_keys ),
@@ -390,7 +393,8 @@ trait Batch {
 		}
 
 		$message = sprintf(
-			__( 'Batch delete completed: %d objects deleted, %d failed', 'arraypress' ),
+			/* translators: %1$d: number of objects deleted, %2$d: number that failed */
+			__( 'Batch delete completed: %1$d objects deleted, %2$d failed', 'arraypress' ),
 			$total_success,
 			$total_errors
 		);

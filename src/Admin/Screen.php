@@ -21,6 +21,15 @@ namespace ArrayPress\S3\Admin;
  */
 class Screen {
 
+	/*
+	 * $_REQUEST['post_id'] is read to decide whether this browser belongs on
+	 * the screen being rendered. It gates display only, and the media modal is
+	 * the one thing that supplies it -- there is no other signal available
+	 * inside the upload iframe.
+	 *
+	 * phpcs:disable WordPress.Security.NonceVerification.Recommended
+	 */
+
 	/**
 	 * Admin pages that edit a single post.
 	 */

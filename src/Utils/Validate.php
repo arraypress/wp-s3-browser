@@ -243,6 +243,7 @@ class Validate {
 			if ( ! is_array( $rule ) ) {
 				return [
 					'valid'   => false,
+					/* translators: %1$d: rule index */
 					'message' => sprintf( __( 'CORS rule at index %d must be an array', 'arraypress' ), $index ),
 					'code'    => 'invalid_rule_format'
 				];
@@ -252,6 +253,7 @@ class Validate {
 			if ( empty( $rule['AllowedMethods'] ) ) {
 				return [
 					'valid'   => false,
+					/* translators: %1$d: rule index */
 					'message' => sprintf( __( 'CORS rule at index %d must have AllowedMethods', 'arraypress' ), $index ),
 					'code'    => 'missing_allowed_methods'
 				];
@@ -260,6 +262,7 @@ class Validate {
 			if ( empty( $rule['AllowedOrigins'] ) ) {
 				return [
 					'valid'   => false,
+					/* translators: %1$d: rule index */
 					'message' => sprintf( __( 'CORS rule at index %d must have AllowedOrigins', 'arraypress' ), $index ),
 					'code'    => 'missing_allowed_origins'
 				];
@@ -271,7 +274,8 @@ class Validate {
 				if ( ! in_array( $method, $valid_methods, true ) ) {
 					return [
 						'valid'   => false,
-						'message' => sprintf( __( 'Invalid HTTP method "%s" in CORS rule at index %d', 'arraypress' ), $method, $index ),
+						/* translators: %1$s: HTTP method, %2$d: rule index */
+						'message' => sprintf( __( 'Invalid HTTP method "%1$s" in CORS rule at index %2$d', 'arraypress' ), $method, $index ),
 						'code'    => 'invalid_http_method'
 					];
 				}
@@ -281,6 +285,7 @@ class Validate {
 			if ( ! empty( $rule['ID'] ) && strlen( $rule['ID'] ) > 255 ) {
 				return [
 					'valid'   => false,
+					/* translators: %1$d: rule index */
 					'message' => sprintf( __( 'CORS rule ID at index %d exceeds 255 characters', 'arraypress' ), $index ),
 					'code'    => 'rule_id_too_long'
 				];

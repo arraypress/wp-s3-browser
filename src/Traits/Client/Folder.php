@@ -80,6 +80,7 @@ trait Folder {
 
 			if ( $has_objects || $has_prefixes ) {
 				return new SuccessResponse(
+					/* translators: %1$s: folder name */
 					sprintf( __( 'Folder "%s" already exists', 'arraypress' ), $normalized_path ),
 					200,
 					[
@@ -134,6 +135,7 @@ trait Folder {
 			$body = wp_remote_retrieve_body( $response );
 
 			return new ErrorResponse(
+				/* translators: %1$s: folder name */
 				sprintf( __( 'Failed to create folder "%s"', 'arraypress' ), $normalized_path ),
 				'folder_creation_error',
 				$status_code,
@@ -156,6 +158,7 @@ trait Folder {
 		);
 
 		return new SuccessResponse(
+			/* translators: %1$s: folder name */
 			sprintf( __( 'Folder "%s" created successfully', 'arraypress' ), $normalized_path ),
 			201,
 			$success_data
@@ -253,6 +256,7 @@ trait Folder {
 				if ( ! $force ) {
 					return new ErrorResponse(
 						sprintf(
+							/* translators: %1$s: folder name */
 							__( 'Folder "%s" is not empty. Use recursive=true to delete all contents or force=true to delete anyway', 'arraypress' ),
 							$normalized_path
 						),
@@ -343,6 +347,7 @@ trait Folder {
 
 			if ( ! $placeholder_found ) {
 				return new ErrorResponse(
+					/* translators: %1$s: folder name */
 					sprintf( __( 'Folder "%s" not found', 'arraypress' ), $normalized_path ),
 					'folder_not_found',
 					404
@@ -387,18 +392,21 @@ trait Folder {
 		// Return appropriate response
 		if ( $failed_count === 0 ) {
 			return new SuccessResponse(
+				/* translators: %1$s: folder name */
 				sprintf( __( 'Folder "%s" deleted successfully', 'arraypress' ), $normalized_path ),
 				200,
 				$result_data
 			);
 		} elseif ( $deleted_count > 0 ) {
 			return new SuccessResponse(
+				/* translators: %1$s: folder name */
 				sprintf( __( 'Folder "%s" partially deleted with some failures', 'arraypress' ), $normalized_path ),
 				207, // Multi-Status
 				$result_data
 			);
 		} else {
 			return new ErrorResponse(
+				/* translators: %1$s: folder name */
 				sprintf( __( 'Failed to delete folder "%s"', 'arraypress' ), $normalized_path ),
 				'folder_deletion_failed',
 				400,

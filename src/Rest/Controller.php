@@ -588,6 +588,7 @@ class Controller {
 				'status'  => 'ok',
 				'message' => __( 'Connection successful.', 'arraypress' ),
 				'summary' => sprintf(
+					/* translators: %1$d: count */
 					_n( 'Found %d accessible bucket', 'Found %d accessible buckets', $data['count'], 'arraypress' ),
 					$data['count']
 				),
@@ -774,6 +775,7 @@ class Controller {
 		if ( $exists->is_successful() && ( $exists->get_data()['exists'] ?? false ) ) {
 			return $this->rest_fail(
 				'rest_rename_conflict',
+				/* translators: %1$s: value */
 				sprintf( __( 'A file named "%s" already exists in this location', 'arraypress' ), $new_filename ),
 				409
 			);
@@ -788,6 +790,7 @@ class Controller {
 		$this->client->cache()->flush_bucket( $bucket );
 
 		return $this->rest_ok( [
+			/* translators: %1$s: value */
 			'message'      => sprintf( __( 'File renamed to "%s" successfully', 'arraypress' ), $new_filename ),
 			'bucket'       => $bucket,
 			'old_key'      => $current_key,
@@ -830,6 +833,7 @@ class Controller {
 			'bucket'     => $bucket,
 			'key'        => $key,
 			'message'    => sprintf(
+				/* translators: %1$d: count */
 				__( 'Link generated successfully (expires in %d minutes)', 'arraypress' ),
 				$minutes
 			),
@@ -888,6 +892,7 @@ class Controller {
 		$this->client->cache()->flush_bucket( $bucket );
 
 		return $this->rest_ok( [
+			/* translators: %1$s: folder name */
 			'message'    => sprintf( __( 'Folder "%s" created successfully', 'arraypress' ), $folder_name ),
 			'folder_key' => $folder_key,
 			'bucket'     => $bucket,
@@ -1051,10 +1056,12 @@ class Controller {
 	 */
 	private function format_folder_deletion_message( array $data ): string {
 		if ( ! empty( $data['deleted_count'] ) ) {
+			/* translators: %1$d: count */
 			return sprintf( __( 'Folder deleted successfully (%d items removed)', 'arraypress' ), $data['deleted_count'] );
 		}
 
 		if ( ! empty( $data['success_count'] ) ) {
+			/* translators: %1$d: count */
 			return sprintf( __( 'Folder deleted successfully (%d objects removed)', 'arraypress' ), $data['success_count'] );
 		}
 

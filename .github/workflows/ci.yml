@@ -60,6 +60,14 @@ jobs:
           }
           exit($bad ? 1 : 0);'
 
+      - name: WordPress standards
+        # Scoped to the sniffs that catch defects rather than preferences --
+        # see the rationale in phpcs.xml.dist. Runs on one version only; the
+        # rules do not vary by PHP, but PHPCompatibility's target does, and
+        # that is pinned in the ruleset.
+        if: matrix.php == '8.2'
+        run: composer lint
+
       - name: Tests
         run: vendor/bin/phpunit --colors=always
 

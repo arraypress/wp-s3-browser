@@ -20,6 +20,13 @@ use WP_List_Table;
  */
 class Buckets extends WP_List_Table {
 
+	/*
+	 * Paging and search state read from the query string, for display only.
+	 * WP_List_Table works this way throughout core.
+	 *
+	 * phpcs:disable WordPress.Security.NonceVerification.Recommended
+	 */
+
 	/**
 	 * Client instance
 	 */
@@ -62,7 +69,7 @@ class Buckets extends WP_List_Table {
 	public function prepare_items() {
 		$this->_column_headers = [ $this->get_columns(), [], [] ];
 
-		$marker = isset( $_GET['marker'] ) ? sanitize_text_field( $_GET['marker'] ) : '';
+		$marker = isset( $_GET['marker'] ) ? sanitize_text_field( wp_unslash( $_GET['marker'] ) ) : '';
 
 		// Get buckets (1000 is the maximum)
 		$result = $this->client->get_bucket_models( 1000, '', $marker, true );
@@ -204,6 +211,7 @@ class Buckets extends WP_List_Table {
                     <?php
                     $count = count( $this->items );
                     echo esc_html( sprintf(
+	                    /* translators: %1$s: value */
 	                    _n( '%s bucket', '%s buckets', $count, 'arraypress' ),
 	                    number_format_i18n( $count )
                     ) );

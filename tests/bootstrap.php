@@ -346,7 +346,7 @@ if ( ! function_exists( 'get_bloginfo' ) ) {
 
 if ( ! function_exists( 'home_url' ) ) {
 	function home_url( string $path = '' ): string {
-		return 'https://example.test' . $path;
+		return ( $GLOBALS['wp_test_home_url'] ?? 'https://example.test' ) . $path;
 	}
 }
 
@@ -479,5 +479,23 @@ if ( ! function_exists( 'get_post_type' ) ) {
 if ( ! function_exists( 'is_admin' ) ) {
 	function is_admin(): bool {
 		return (bool) ( $GLOBALS['wp_test_is_admin'] ?? true );
+	}
+}
+
+if ( ! function_exists( 'wp_parse_url' ) ) {
+	function wp_parse_url( string $url, int $component = -1 ) {
+		return parse_url( $url, $component );
+	}
+}
+
+if ( ! function_exists( 'is_ssl' ) ) {
+	function is_ssl(): bool {
+		return (bool) ( $GLOBALS['wp_test_is_ssl'] ?? false );
+	}
+}
+
+if ( ! function_exists( 'wp_unslash' ) ) {
+	function wp_unslash( $value ) {
+		return is_string( $value ) ? stripslashes( $value ) : $value;
 	}
 }

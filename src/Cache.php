@@ -187,6 +187,12 @@ class Cache {
 		}
 
 		foreach ( [ '_transient_', '_transient_timeout_' ] as $row_prefix ) {
+			// A direct query is the point of this method: it removes orphaned
+			// transient rows, which no cache API can do by prefix. The guard
+			// above already returns early when an object cache is in play, so
+			// this only runs where the rows genuinely exist. The query is
+			// prepared and the LIKE value escaped.
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$wpdb->query( $wpdb->prepare(
 				"DELETE FROM $wpdb->options WHERE option_name LIKE %s",
 				$wpdb->esc_like( $row_prefix . $this->prefix ) . '%'

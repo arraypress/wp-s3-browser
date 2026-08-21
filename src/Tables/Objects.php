@@ -29,6 +29,13 @@ use ArrayPress\S3\Client;
  */
 class Objects extends WP_List_Table {
 
+	/*
+	 * Paging, search and continuation-token state read from the query string,
+	 * for display only. WP_List_Table works this way throughout core.
+	 *
+	 * phpcs:disable WordPress.Security.NonceVerification.Recommended
+	 */
+
 	/**
 	 * S3 Client instance
 	 *
@@ -125,7 +132,7 @@ class Objects extends WP_List_Table {
 		}
 
 		$continuation_token = isset( $_REQUEST['continuation_token'] )
-			? sanitize_text_field( $_REQUEST['continuation_token'] )
+			? sanitize_text_field( wp_unslash( $_REQUEST['continuation_token'] ) )
 			: '';
 
 		$result = $this->client->get_object_models(
@@ -455,6 +462,7 @@ class Objects extends WP_List_Table {
                     $has_more = isset( $this->_pagination_args['continuation_token'] ) && $this->_pagination_args['continuation_token'];
 
                     echo esc_html( sprintf(
+	                    /* translators: %1$s: value */
 	                    _n( '%s item', '%s items', $count, 'arraypress' ),
 	                    number_format_i18n( $count )
                     ) );
@@ -541,6 +549,7 @@ class Objects extends WP_List_Table {
 		} catch ( Exception $e ) {
 			return new WP_Error(
 				'rest_list_objects_failed',
+				/* translators: %1$s: value */
 				sprintf( __( 'Error loading more items: %s', 'arraypress' ), $e->getMessage() ),
 				[ 'status' => 502 ]
 			);

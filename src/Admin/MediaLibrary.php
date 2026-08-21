@@ -26,6 +26,18 @@ use Exception;
  */
 class MediaLibrary {
 
+	/*
+	 * The nonce warnings below are read-only navigation state. This screen
+	 * renders whatever bucket and prefix the query string names; it changes
+	 * nothing, and every operation that does change something goes through the
+	 * REST controller, which checks a capability and a bucket allow-list on
+	 * every route. A nonce here would protect against a cross-site request
+	 * that causes a listing to be displayed to the person who was already
+	 * looking at listings.
+	 *
+	 * phpcs:disable WordPress.Security.NonceVerification.Recommended
+	 */
+
 	/**
 	 * Build the media tab for one browser instance.
 	 *
@@ -129,9 +141,9 @@ class MediaLibrary {
 		$this->assets->enqueue_browser_assets( 'media-upload-popup' );
 
 		// Get request parameters
-		$view   = isset( $_GET['view'] ) ? sanitize_text_field( $_GET['view'] ) : '';
-		$bucket = isset( $_GET['bucket'] ) ? sanitize_text_field( $_GET['bucket'] ) : '';
-		$prefix = isset( $_GET['prefix'] ) ? sanitize_text_field( $_GET['prefix'] ) : '';
+		$view   = isset( $_GET['view'] ) ? sanitize_text_field( wp_unslash( $_GET['view'] ) ) : '';
+		$bucket = isset( $_GET['bucket'] ) ? sanitize_text_field( wp_unslash( $_GET['bucket'] ) ) : '';
+		$prefix = isset( $_GET['prefix'] ) ? sanitize_text_field( wp_unslash( $_GET['prefix'] ) ) : '';
 
 		// If no bucket is specified, use the default bucket if configured
 		if ( empty( $bucket ) && empty( $view ) ) {

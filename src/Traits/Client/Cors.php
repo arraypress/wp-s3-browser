@@ -224,8 +224,10 @@ trait Cors {
 
 		return new SuccessResponse(
 			$result['allows_upload']
-				? sprintf( __( 'CORS allows uploads from "%s" to bucket "%s"', 'arraypress' ), $origin, $bucket )
-				: sprintf( __( 'CORS does not allow uploads from "%s" to bucket "%s"', 'arraypress' ), $origin, $bucket ),
+				/* translators: %1$s: origin, %2$s: bucket name */
+				? sprintf( __( 'CORS allows uploads from "%1$s" to bucket "%2$s"', 'arraypress' ), $origin, $bucket )
+				/* translators: %1$s: origin, %2$s: bucket name */
+				: sprintf( __( 'CORS does not allow uploads from "%1$s" to bucket "%2$s"', 'arraypress' ), $origin, $bucket ),
 			200,
 			$result
 		);
@@ -300,6 +302,7 @@ trait Cors {
 		);
 
 		return new SuccessResponse(
+			/* translators: %1$s: bucket name */
 			sprintf( __( 'CORS analysis completed for bucket "%s"', 'arraypress' ), $bucket ),
 			200,
 			$analysis

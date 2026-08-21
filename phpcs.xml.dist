@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<ruleset name="wp-s3-browser">
+    <description>
+        The WordPress sniffs worth enforcing here.
+
+        Deliberately not the full WordPress standard. Most of what that adds is
+        formatting this codebase consistently does differently -- short array
+        syntax above all, which it reports 45 times and which is not going to
+        change. Running it would mean a wall of noise that nobody reads, and a
+        real finding lost in it.
+
+        What is left is the part that catches defects rather than preferences:
+        unescaped output, unsanitised input, missing nonces, unprepared SQL,
+        and the i18n rules that decide whether the plugin can be translated at
+        all.
+    </description>
+
+    <file>src</file>
+    <arg name="extensions" value="php"/>
+    <arg name="basepath" value="."/>
+    <arg name="colors"/>
+    <arg value="sp"/>
+
+    <rule ref="WordPress.Security"/>
+    <rule ref="WordPress.DB"/>
+    <rule ref="WordPress.WP.I18n"/>
+
+    <!-- Every translatable string in this package uses this domain. -->
+    <config name="text_domain" value="arraypress"/>
+
+    <rule ref="PHPCompatibilityWP"/>
+    <config name="testVersion" value="8.2-"/>
+</ruleset>

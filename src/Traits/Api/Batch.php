@@ -118,7 +118,8 @@ trait Batch {
 
 		return new SuccessResponse(
 			sprintf(
-				__( 'Batch delete completed: %d succeeded, %d failed', 'arraypress' ),
+				/* translators: %1$d: number of objects deleted, %2$d: number that failed */
+				__( 'Batch delete completed: %1$d succeeded, %2$d failed', 'arraypress' ),
 				$results['success_count'],
 				$results['error_count']
 			),

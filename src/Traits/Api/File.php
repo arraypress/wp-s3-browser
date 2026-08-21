@@ -299,6 +299,7 @@ trait File {
 		$filename = basename( $object_key );
 
 		return new SuccessResponse(
+			/* translators: %1$s: file name */
 			sprintf( __( 'File "%s" deleted successfully', 'arraypress' ), $filename ),
 			$status_code,
 			[
@@ -402,7 +403,8 @@ trait File {
 				$status_code,
 				$body,
 				sprintf(
-					__( 'Failed to copy object from %s to %s', 'arraypress' ),
+					/* translators: %1$s: origin, %2$s: value */
+					__( 'Failed to copy object from %1$s to %2$s', 'arraypress' ),
 					"{$source_bucket}/{$source_key}",
 					"{$target_bucket}/{$target_key}"
 				)
@@ -415,7 +417,8 @@ trait File {
 			// Even if we can't parse the XML, the operation was successful
 			return new SuccessResponse(
 				sprintf(
-					__( 'Object copied from %s to %s', 'arraypress' ),
+					/* translators: %1$s: origin, %2$s: value */
+					__( 'Object copied from %1$s to %2$s', 'arraypress' ),
 					"{$source_bucket}/{$source_key}",
 					"{$target_bucket}/{$target_key}"
 				),
@@ -435,7 +438,8 @@ trait File {
 		// Return success response with metadata
 		return new SuccessResponse(
 			sprintf(
-				__( 'Object copied from %s to %s', 'arraypress' ),
+				/* translators: %1$s: origin, %2$s: value */
+				__( 'Object copied from %1$s to %2$s', 'arraypress' ),
 				"{$source_bucket}/{$source_key}",
 				"{$target_bucket}/{$target_key}"
 			),

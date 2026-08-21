@@ -298,6 +298,7 @@ trait Buckets {
 
 		$response = new SuccessResponse(
 			sprintf(
+				/* translators: %d: number of buckets found */
 				_n(
 					'Found %d bucket',
 					'Found %d buckets',

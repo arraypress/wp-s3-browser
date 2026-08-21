@@ -82,7 +82,8 @@ trait File {
 			$metadata = $head_result->get_metadata();
 
 			$response = new SuccessResponse(
-				sprintf( __( 'Object "%s" exists in bucket "%s"', 'arraypress' ), $object_key, $bucket ),
+				/* translators: %1$s: object key, %2$s: bucket name */
+				sprintf( __( 'Object "%1$s" exists in bucket "%2$s"', 'arraypress' ), $object_key, $bucket ),
 				200,
 				[
 					'bucket'     => $bucket,
@@ -123,7 +124,8 @@ trait File {
 			     strpos( $error_message, 'NoSuchKey' ) !== false ) {
 
 				$response = new SuccessResponse(
-					sprintf( __( 'Object "%s" does not exist in bucket "%s"', 'arraypress' ), $object_key, $bucket ),
+					/* translators: %1$s: object key, %2$s: bucket name */
+					sprintf( __( 'Object "%1$s" does not exist in bucket "%2$s"', 'arraypress' ), $object_key, $bucket ),
 					404,
 					[
 						'bucket'     => $bucket,
@@ -151,7 +153,8 @@ trait File {
 			// For other errors, we can't determine existence
 			return new ErrorResponse(
 				sprintf(
-					__( 'Unable to determine if object "%s" exists in bucket "%s": %s', 'arraypress' ),
+					/* translators: %1$s: object key, %2$s: bucket name, %3$s: value */
+					__( 'Unable to determine if object "%1$s" exists in bucket "%2$s": %3$s', 'arraypress' ),
 					$object_key,
 					$bucket,
 					$error_message
@@ -169,7 +172,8 @@ trait File {
 
 		// Fallback - unable to determine
 		return new ErrorResponse(
-			sprintf( __( 'Unable to determine if object "%s" exists in bucket "%s"', 'arraypress' ), $object_key, $bucket ),
+			/* translators: %1$s: object key, %2$s: bucket name */
+			sprintf( __( 'Unable to determine if object "%1$s" exists in bucket "%2$s"', 'arraypress' ), $object_key, $bucket ),
 			'object_check_failed',
 			400,
 			[
@@ -429,6 +433,7 @@ trait File {
 		// upload_file(), a wrapper nothing called.
 		if ( $is_path && ! is_readable( $file_path ) ) {
 			return new ErrorResponse(
+				/* translators: %1$s: value */
 				sprintf( __( 'File not found or unreadable: %s', 'arraypress' ), $file_path ),
 				'file_not_found',
 				404,

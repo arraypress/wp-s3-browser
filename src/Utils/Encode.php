@@ -58,7 +58,10 @@ class Encode {
 		// in a key, and silently mangling those names is its own bug.
 		foreach ( explode( '/', str_replace( '\\', '/', $decoded ) ) as $segment ) {
 			if ( '.' === $segment || '..' === $segment ) {
+				// Not output: this is an exception message, which reaches a log
+				// or an error response that escapes it there.
 				throw new InvalidArgumentException(
+					// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 					'S3 object key contains a path traversal segment: ' . $object_key
 				);
 			}

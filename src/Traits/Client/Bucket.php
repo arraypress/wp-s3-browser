@@ -71,6 +71,7 @@ trait Bucket {
 		// If we get a successful response, bucket exists
 		if ( $result->is_successful() ) {
 			$response = new SuccessResponse(
+				/* translators: %1$s: value */
 				sprintf( __( 'Bucket "%s" exists', 'arraypress' ), $bucket ),
 				200,
 				[
@@ -106,6 +107,7 @@ trait Bucket {
 			     strpos( $error_message, 'not found' ) !== false ) {
 
 				$response = new SuccessResponse(
+					/* translators: %1$s: value */
 					sprintf( __( 'Bucket "%s" does not exist', 'arraypress' ), $bucket ),
 					404,
 					[
@@ -131,7 +133,8 @@ trait Bucket {
 
 			// For other errors, we can't determine existence
 			return new ErrorResponse(
-				sprintf( __( 'Unable to determine if bucket "%s" exists: %s', 'arraypress' ), $bucket, $error_message ),
+				/* translators: %1$s: bucket name, %2$s: value */
+				sprintf( __( 'Unable to determine if bucket "%1$s" exists: %2$s', 'arraypress' ), $bucket, $error_message ),
 				'bucket_check_failed',
 				400,
 				[
@@ -144,6 +147,7 @@ trait Bucket {
 
 		// Fallback - unable to determine
 		return new ErrorResponse(
+			/* translators: %1$s: bucket name */
 			sprintf( __( 'Unable to determine if bucket "%s" exists', 'arraypress' ), $bucket ),
 			'bucket_check_failed',
 			400,
@@ -314,6 +318,7 @@ trait Bucket {
 		}
 
 		return new SuccessResponse(
+			/* translators: %1$s: bucket name */
 			sprintf( __( 'Complete details retrieved for bucket "%s"', 'arraypress' ), $bucket ),
 			200,
 			$details

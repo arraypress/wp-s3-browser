@@ -114,6 +114,7 @@ trait Cors {
 			// Special handling for "no CORS configuration" case
 			if ( $status_code === 404 ) {
 				return new SuccessResponse(
+					/* translators: %1$s: bucket name */
 					sprintf( __( 'No CORS configuration found for bucket "%s"', 'arraypress' ), $bucket ),
 					200,
 					[
@@ -146,6 +147,7 @@ trait Cors {
 		$supports_upload = (bool) array_intersect( [ 'PUT', 'POST' ], $allowed_methods );
 
 		return new SuccessResponse(
+			/* translators: %1$s: bucket name */
 			sprintf( __( 'CORS configuration retrieved for bucket "%s"', 'arraypress' ), $bucket ),
 			200,
 			[
@@ -294,6 +296,7 @@ trait Cors {
 		}
 
 		return new SuccessResponse(
+			/* translators: %1$s: bucket name */
 			sprintf( __( 'CORS configuration updated for bucket "%s"', 'arraypress' ), $bucket ),
 			$status_code,
 			[
@@ -373,6 +376,7 @@ trait Cors {
 			// Special handling for "no CORS configuration" case
 			if ( $status_code === 404 ) {
 				return new SuccessResponse(
+					/* translators: %1$s: bucket name */
 					sprintf( __( 'No CORS configuration to delete for bucket "%s"', 'arraypress' ), $bucket ),
 					200,
 					[
@@ -386,6 +390,7 @@ trait Cors {
 		}
 
 		return new SuccessResponse(
+			/* translators: %1$s: bucket name */
 			sprintf( __( 'CORS configuration deleted for bucket "%s"', 'arraypress' ), $bucket ),
 			$status_code,
 			[
