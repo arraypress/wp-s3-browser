@@ -10,8 +10,34 @@
 
 declare( strict_types=1 );
 
+/*
+ * A throwaway WordPress root.
+ *
+ * Browser.php does `require_once ABSPATH . 'wp-admin/includes/class-wp-list-table.php'`
+ * at file scope, so the class cannot be loaded — and therefore its traits
+ * cannot be linked — without that file existing. Providing a stub lets the
+ * suite assert that every trait a class composes actually resolves, which
+ * neither `php -l` nor an autoloader findFile() check can tell you: both
+ * confirm a file exists without ever executing the class declaration.
+ */
 if ( ! defined( 'ABSPATH' ) ) {
-	define( 'ABSPATH', __DIR__ . '/' );
+	$wp_stub_root = sys_get_temp_dir() . '/wp-s3-browser-tests/';
+
+	if ( ! is_dir( $wp_stub_root . 'wp-admin/includes' ) ) {
+		mkdir( $wp_stub_root . 'wp-admin/includes', 0777, true );
+	}
+
+	file_put_contents(
+		$wp_stub_root . 'wp-admin/includes/class-wp-list-table.php',
+		"<?php\nif ( ! class_exists( 'WP_List_Table' ) ) {\n"
+		. "\tclass WP_List_Table {\n"
+		. "\t\tpublic \$items = [];\n"
+		. "\t\tprotected \$_pagination_args = [];\n"
+		. "\t\tpublic function __construct( \$args = [] ) {}\n"
+		. "\t}\n}\n"
+	);
+
+	define( 'ABSPATH', $wp_stub_root );
 }
 
 if ( ! defined( 'HOUR_IN_SECONDS' ) ) {

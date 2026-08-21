@@ -15,6 +15,7 @@ namespace ArrayPress\S3;
 
 use ArrayPress\S3\Abstracts\Provider;
 use ArrayPress\S3\Traits\Browser\AjaxHandlers;
+use ArrayPress\S3\Traits\Browser\RestApi;
 use ArrayPress\S3\Traits\Browser\Assets;
 use ArrayPress\S3\Traits\Browser\Integrations;
 use ArrayPress\S3\Traits\Browser\MediaLibrary;
