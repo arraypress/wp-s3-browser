@@ -311,6 +311,25 @@ trait File {
 	}
 
 	/**
+	 * Whether a failed copy was refused for exceeding the single-request limit
+	 *
+	 * S3 answers with InvalidRequest and a message naming the byte limit; R2
+	 * answers similarly. Neither uses a code that says "too large" on its own,
+	 * so the message is what identifies it.
+	 *
+	 * @param ErrorResponse $error Provider's error.
+	 *
+	 * @return bool
+	 */
+	private static function is_copy_too_large( ErrorResponse $error ): bool {
+		if ( 'EntityTooLarge' === $error->get_error_code() ) {
+			return true;
+		}
+
+		return false !== stripos( $error->get_error_message(), 'larger than the maximum allowable size' );
+	}
+
+	/**
 	 * Copy an object within or between buckets
 	 *
 	 * Creates a copy of an object in S3, either within the same bucket or to a different bucket.
@@ -399,7 +418,7 @@ trait File {
 
 		// Check for error status codes
 		if ( $status_code < 200 || $status_code >= 300 ) {
-			return Response::error(
+			$error = Response::error(
 				$status_code,
 				$body,
 				sprintf(
@@ -409,6 +428,22 @@ trait File {
 					"{$target_bucket}/{$target_key}"
 				)
 			);
+
+			// A single CopyObject request tops out at 5 GB; past that S3 and R2
+			// both refuse it and the caller has to drive a multipart copy
+			// instead, which this library does not do. The provider says so in
+			// terms that read like a bug in the request rather than a size
+			// limit, so translate it.
+			if ( self::is_copy_too_large( $error ) ) {
+				return new ErrorResponse(
+					__( 'This file is larger than 5 GB, which is the most that can be copied in one operation. Copying it has to be done from the provider\'s own console.', 'arraypress' ),
+					'copy_source_too_large',
+					$error->get_status_code(),
+					[ 'source_key' => $source_key ]
+				);
+			}
+
+			return $error;
 		}
 
 		// Parse XML response for metadata using XML trait method
