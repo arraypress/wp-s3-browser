@@ -21,6 +21,11 @@
          * read, or null when there is none.
          */
         getHostWindow: function () {
+            // Ancestors only. The browser renders in an iframe and the fields
+            // to write into belong to the page that opened it, so falling back
+            // to this window would always "succeed" and always find nothing --
+            // which is exactly what it did, leaving every insert reporting an
+            // unknown context and doing nothing.
             var candidates = [];
 
             try {
@@ -28,7 +33,7 @@
                     candidates.push(window.parent);
                 }
             } catch (e) {
-                // Even reading .parent can throw in a sandboxed frame.
+                // Reading .parent can itself throw in a sandboxed frame.
             }
 
             try {
@@ -39,13 +44,11 @@
                 // Same.
             }
 
-            candidates.push(window);
-
             for (var i = 0; i < candidates.length; i++) {
                 try {
-                    // Touching a property is the only way to find out; a
+                    // Touching a property is the only way to find out: a
                     // cross-origin window looks fine until it is read.
-                    if (typeof candidates[i].document !== 'undefined' && candidates[i].jQuery) {
+                    if (candidates[i].document && candidates[i].jQuery) {
                         return candidates[i];
                     }
                 } catch (e) {
@@ -63,6 +66,7 @@
             var parent = this.getHostWindow();
 
             if (!parent) {
+                window.console.warn('S3 Browser: no host window. ' + this.describeHost());
                 window.alert(s3BrowserConfig.i18n.files.insertUnavailable);
 
                 return;
@@ -113,7 +117,11 @@
                     break;
 
                 default:
-                    alert('File URL: ' + fileData.url);
+                    // Nothing here knows where to put it. Give the admin the
+                    // key so the click is not wasted, and say what was found
+                    // so the reason is diagnosable rather than guessable.
+                    window.console.warn('S3 Browser: no insert target. ' + this.describeHost());
+                    window.prompt(s3BrowserConfig.i18n.files.insertUnavailable, fileData.url);
             }
         },
 
@@ -139,6 +147,7 @@
             var parent = this.getHostWindow();
 
             if (!parent) {
+                window.console.warn('S3 Browser: no host window. ' + this.describeHost());
                 window.alert(s3BrowserConfig.i18n.files.insertUnavailable);
 
                 return;
@@ -148,7 +157,11 @@
 
             // One file is the ordinary path and needs none of this.
             if (files.length === 1 || context === 'unknown') {
-                this.insertOne(files[0], context, parent, true);
+                if (!this.insertOne(files[0], context, parent, true)) {
+                    window.console.warn('S3 Browser: no insert target. ' + this.describeHost());
+                    window.prompt(s3BrowserConfig.i18n.files.insertUnavailable, files[0].bucket + '/' + files[0].key);
+                }
+
                 return;
             }
 
@@ -248,6 +261,49 @@
                 // A frame that will not close is not a reason to lose the
                 // files that were just written.
             }
+        },
+
+        /**
+         * Describe why no host could be written to.
+         *
+         * "unknown context" on its own says nothing about which of several
+         * things went wrong -- an unreachable frame, a frame that is reachable
+         * but was not opened from a file field, a plugin whose own script did
+         * not run. Reporting which makes the difference between one look at
+         * the console and a round of guessing.
+         */
+        describeHost: function () {
+            var notes = [];
+
+            try {
+                notes.push('parent reachable: ' + (window.parent !== window ? !!(window.parent.document) : 'not framed'));
+            } catch (e) {
+                notes.push('parent reachable: no (' + e.name + ')');
+            }
+
+            var host = this.getHostWindow();
+
+            if (!host) {
+                notes.push('no readable ancestor window');
+
+                return notes.join(' | ');
+            }
+
+            ['edd_fileurl', 'edd_filename', 'formfield', 'wc_target_input', 'wc_media_frame_context'].forEach(function (name) {
+                try {
+                    notes.push(name + ': ' + (typeof host[name] === 'undefined' ? 'unset' : 'set'));
+                } catch (e) {
+                    notes.push(name + ': unreadable');
+                }
+            });
+
+            try {
+                notes.push('wp.media: ' + (host.wp && host.wp.media ? 'present' : 'absent'));
+            } catch (e) {
+                notes.push('wp.media: unreadable');
+            }
+
+            return notes.join(' | ');
         },
 
         /**
