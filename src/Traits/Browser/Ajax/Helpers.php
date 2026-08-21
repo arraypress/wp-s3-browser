@@ -15,6 +15,8 @@ declare( strict_types=1 );
 
 namespace ArrayPress\S3\Traits\Browser\Ajax;
 
+use WP_REST_Request;
+
 /**
  * Trait Helpers
  *
@@ -102,6 +104,50 @@ trait Helpers {
 		wp_send_json_error( [ 'message' => __( 'You do not have permission to access this bucket', 'arraypress' ) ] );
 
 		return false;
+	}
+
+	/**
+	 * Run a REST handler from a legacy admin-ajax request
+	 *
+	 * The REST routes are the single implementation of every operation; these
+	 * AJAX endpoints remain only so existing front-end code keeps working.
+	 * Rather than duplicate the logic — which is how the signing layer ended up
+	 * with three diverging copies of one canonical request — each AJAX handler
+	 * verifies its nonce and capability, then delegates here.
+	 *
+	 * Note that $params must already be sanitized by the caller: a manually
+	 * constructed WP_REST_Request does not run the route's `args`
+	 * sanitize_callbacks, which only fire during real REST dispatch.
+	 *
+	 * @param string $method REST handler method name on this class.
+	 * @param array  $params Sanitized parameters.
+	 *
+	 * @return void Always terminates via wp_send_json_*().
+	 */
+	private function dispatch_to_rest( string $method, array $params = [] ): void {
+		if ( isset( $params['bucket'] ) && ! $this->verify_bucket( (string) $params['bucket'] ) ) {
+			return;
+		}
+
+		$request = new WP_REST_Request();
+
+		foreach ( $params as $key => $value ) {
+			$request->set_param( $key, $value );
+		}
+
+		$result = $this->{$method}( $request );
+
+		if ( is_wp_error( $result ) ) {
+			wp_send_json_error(
+				[
+					'message' => $result->get_error_message(),
+					'code'    => $result->get_error_code(),
+				],
+				(int) ( $result->get_error_data()['status'] ?? 400 )
+			);
+		}
+
+		wp_send_json_success( $result->get_data() );
 	}
 
 	/**

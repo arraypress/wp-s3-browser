@@ -430,31 +430,103 @@
         },
 
         /**
-         * Generic AJAX request handler
+         * Map of legacy action suffixes to REST routes.
+         *
+         * Kept as a lookup rather than threading routes through every caller,
+         * so the ten existing call sites need no changes.
+         */
+        restRoutes: {
+            's3_load_more_':               {method: 'GET',    path: '/buckets/{bucket}/objects'},
+            's3_clear_cache_':             {method: 'DELETE', path: '/cache'},
+            's3_get_upload_url_':          {method: 'POST',   path: '/buckets/{bucket}/objects/upload-url', rename: {object_key: 'key'}},
+            's3_delete_object_':           {method: 'DELETE', path: '/buckets/{bucket}/objects'},
+            's3_rename_object_':           {method: 'PATCH',  path: '/buckets/{bucket}/objects'},
+            's3_get_presigned_url_':       {method: 'POST',   path: '/buckets/{bucket}/objects/download-url', rename: {object_key: 'key'}},
+            's3_create_folder_':           {method: 'POST',   path: '/buckets/{bucket}/folders'},
+            's3_delete_folder_':           {method: 'DELETE', path: '/buckets/{bucket}/folders'},
+            's3_get_bucket_details_':      {method: 'GET',    path: '/buckets/{bucket}'},
+            's3_setup_cors_':              {method: 'PUT',    path: '/buckets/{bucket}/cors'},
+            's3_delete_cors_configuration_': {method: 'DELETE', path: '/buckets/{bucket}/cors'},
+            's3_connection_test_':         {method: 'GET',    path: '/connection'}
+        },
+
+        /**
+         * Issue a request against the REST API.
+         *
+         * Keeps the historical {success, data} callback shape so existing
+         * callers are unaffected by the move off admin-ajax.
          */
         makeAjaxRequest: function (actionSuffix, data, callbacks) {
-            var requestData = $.extend({
-                action: actionSuffix + S3BrowserGlobalConfig.providerId,
-                nonce: S3BrowserGlobalConfig.nonce
-            }, data);
+            callbacks = callbacks || {};
 
-            $.ajax({
-                url: S3BrowserGlobalConfig.ajaxUrl,
-                type: 'POST',
-                data: requestData,
-                dataType: 'json',
-                success: function (response) {
-                    if (response.success) {
-                        callbacks.success && callbacks.success(response);
-                    } else {
-                        callbacks.error && callbacks.error(response.data.message || 'Unknown error occurred');
+            var route = this.restRoutes[actionSuffix];
+            if (!route) {
+                callbacks.error && callbacks.error('Unknown action: ' + actionSuffix);
+                callbacks.complete && callbacks.complete();
+                return;
+            }
+
+            S3Browser.restRequest(route, data, callbacks);
+        },
+
+        /**
+         * Perform a REST request and normalise the response.
+         */
+        restRequest: function (route, data, callbacks) {
+            callbacks = callbacks || {};
+
+            var params = $.extend({}, data || {});
+
+            // Apply parameter aliases before the path is built.
+            if (route.rename) {
+                for (var from in route.rename) {
+                    if (Object.prototype.hasOwnProperty.call(route.rename, from) && params[from] !== undefined) {
+                        params[route.rename[from]] = params[from];
+                        delete params[from];
                     }
+                }
+            }
+
+            // Substitute path placeholders, consuming those params.
+            var path = route.path.replace(/\{(\w+)}/g, function (match, name) {
+                var value = params[name];
+                delete params[name];
+                return encodeURIComponent(value === undefined || value === null ? '' : value);
+            });
+
+            var url = S3BrowserGlobalConfig.restUrl + path;
+            var settings = {
+                method: route.method,
+                dataType: 'json',
+                headers: {'X-WP-Nonce': S3BrowserGlobalConfig.restNonce},
+                success: function (payload) {
+                    // Callers expect the admin-ajax envelope.
+                    callbacks.success && callbacks.success({success: true, data: payload || {}});
                 },
-                error: function () {
-                    callbacks.error && callbacks.error('Network error occurred');
+                error: function (xhr) {
+                    var message = (xhr && xhr.responseJSON && xhr.responseJSON.message)
+                        ? xhr.responseJSON.message
+                        : 'Network error occurred';
+                    callbacks.error && callbacks.error(message, xhr);
                 },
                 complete: callbacks.complete
-            });
+            };
+
+            // GET and DELETE carry parameters in the query string: some hosts
+            // and proxies drop DELETE request bodies.
+            if (route.method === 'GET' || route.method === 'DELETE') {
+                var query = $.param(params);
+                if (query) {
+                    url += (url.indexOf('?') === -1 ? '?' : '&') + query;
+                }
+            } else {
+                settings.contentType = 'application/json; charset=utf-8';
+                settings.data = JSON.stringify(params);
+            }
+
+            settings.url = url;
+
+            $.ajax(settings);
         },
 
         /**

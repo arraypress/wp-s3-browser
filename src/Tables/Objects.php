@@ -504,8 +504,42 @@ class Objects extends WP_List_Table {
 		$prefix             = sanitize_text_field( wp_unslash( $_POST['prefix'] ?? '' ) );
 		$continuation_token = sanitize_text_field( wp_unslash( $_POST['continuation_token'] ?? '' ) );
 
-		if ( empty( $bucket ) ) {
-			wp_send_json_error( [ 'message' => 'Bucket parameter is required' ] );
+		$result = self::get_page_data( $client, $provider_id, $bucket, $prefix, $continuation_token );
+
+		if ( is_wp_error( $result ) ) {
+			wp_send_json_error( [ 'message' => $result->get_error_message() ] );
+		}
+
+		wp_send_json_success( $result );
+	}
+
+	/**
+	 * Build one page of object listing data
+	 *
+	 * Shared by the REST route and the legacy AJAX handler so both return
+	 * identical payloads from a single implementation.
+	 *
+	 * @param Client $client             S3 client.
+	 * @param string $provider_id        Provider identifier.
+	 * @param string $bucket             Bucket name.
+	 * @param string $prefix             Current prefix.
+	 * @param string $continuation_token Pagination token.
+	 *
+	 * @return array|WP_Error Page payload, or WP_Error on failure.
+	 */
+	public static function get_page_data(
+		Client $client,
+		string $provider_id,
+		string $bucket,
+		string $prefix = '',
+		string $continuation_token = ''
+	) {
+		if ( '' === $bucket ) {
+			return new WP_Error(
+				'rest_bucket_required',
+				__( 'Bucket parameter is required', 'arraypress' ),
+				[ 'status' => 400 ]
+			);
 		}
 
 		$table = new self( [
@@ -513,7 +547,7 @@ class Objects extends WP_List_Table {
 			'bucket'      => $bucket,
 			'prefix'      => $prefix,
 			'provider_id' => $provider_id,
-			'per_page'    => 1000
+			'per_page'    => 1000,
 		] );
 
 		$_REQUEST['continuation_token'] = $continuation_token;
@@ -526,18 +560,19 @@ class Objects extends WP_List_Table {
 				$html .= $table->render_row( $item );
 			}
 
-			wp_send_json_success( [
+			return [
 				'items'              => $table->items,
 				'has_more'           => isset( $table->_pagination_args['continuation_token'] ),
 				'continuation_token' => $table->_pagination_args['continuation_token'] ?? '',
 				'html'               => $html,
-				'count'              => count( $table->items )
-			] );
-
+				'count'              => count( $table->items ),
+			];
 		} catch ( Exception $e ) {
-			wp_send_json_error( [
-				'message' => 'Error loading more items: ' . $e->getMessage()
-			] );
+			return new WP_Error(
+				'rest_list_objects_failed',
+				sprintf( __( 'Error loading more items: %s', 'arraypress' ), $e->getMessage() ),
+				[ 'status' => 502 ]
+			);
 		}
 	}
 

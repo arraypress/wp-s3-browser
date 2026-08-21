@@ -38,6 +38,7 @@ if ( ! class_exists( 'WP_List_Table' ) ) {
  */
 class Browser {
 	use AjaxHandlers;
+	use RestApi;
 	use Assets;
 	use I18n;
 	use Integrations;

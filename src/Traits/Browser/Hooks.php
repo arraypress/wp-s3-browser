@@ -32,7 +32,9 @@ trait Hooks {
 		// Register asset enqueue handlers
 		$this->register_asset_handlers();
 
-		// Register AJAX handlers using consistent action names
+		// Register the REST API routes, plus the legacy AJAX actions that
+		// delegate to them.
+		$this->register_rest_handlers();
 		$this->register_ajax_handlers();
 
 		// Add plugin integrations
@@ -67,7 +69,19 @@ trait Hooks {
 	}
 
 	/**
+	 * Register the REST API routes
+	 *
+	 * @return void
+	 */
+	private function register_rest_handlers(): void {
+		add_action( 'rest_api_init', [ $this, 'register_rest_routes' ] );
+	}
+
+	/**
 	 * Register all AJAX handlers with consistent naming
+	 *
+	 * These remain for backwards compatibility only; each one delegates to the
+	 * matching REST handler.
 	 *
 	 * @return void
 	 */

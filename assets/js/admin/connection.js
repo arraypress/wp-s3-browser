@@ -68,19 +68,20 @@
             // Update UI to loading state
             this.setLoadingState($button, $result);
 
-            // Build the action name dynamically
-            const action = 's3_connection_test_' + S3BrowserGlobalConfig.providerId;
+            const self = this;
 
-            // Make AJAX request
             $.ajax({
-                url: S3BrowserGlobalConfig.ajaxUrl,
-                type: 'POST',
-                data: {
-                    action: action,
-                    nonce: S3BrowserGlobalConfig.nonce
+                url: S3BrowserGlobalConfig.restUrl + '/connection',
+                method: 'GET',
+                dataType: 'json',
+                headers: {'X-WP-Nonce': S3BrowserGlobalConfig.restNonce},
+                success: function (payload) {
+                    // Preserve the admin-ajax envelope the handlers expect.
+                    self.handleSuccess($result, {success: true, data: payload || {}});
                 },
-                success: this.handleSuccess.bind(this, $result),
-                error: this.handleError.bind(this, $result),
+                error: function (xhr, status, error) {
+                    self.handleError($result, xhr, status, error);
+                },
                 complete: this.handleComplete.bind(this, $button)
             });
         },
@@ -163,7 +164,12 @@
             if (xhr.status === 0) {
                 message = strings.networkError || 'Network error occurred';
                 details = 'Please check your internet connection';
+            } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                // REST error shape: {code, message, data: {status}}
+                message = xhr.responseJSON.message;
+                details = '';
             } else if (xhr.responseJSON && xhr.responseJSON.data && xhr.responseJSON.data.message) {
+                // Legacy admin-ajax shape.
                 message = xhr.responseJSON.data.message;
                 details = xhr.responseJSON.data.details || '';
             }

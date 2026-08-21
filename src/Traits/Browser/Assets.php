@@ -59,6 +59,8 @@ trait Assets {
 				'providerName'      => $this->provider_name,
 				'baseUrl'           => admin_url( 'media-upload.php' ),
 				'ajaxUrl'           => admin_url( 'admin-ajax.php' ),
+				'restUrl'           => esc_url_raw( rest_url( $this->get_rest_namespace() . '/' . $this->get_rest_route_base() ) ),
+				'restNonce'         => wp_create_nonce( 'wp_rest' ),
 				'defaultBucket'     => $this->default_bucket,
 				'nonce'             => wp_create_nonce( 's3_browser_nonce_' . $this->provider_id ),
 				'allowedExtensions' => Mime::get_allowed_extensions( $this->get_context() ),

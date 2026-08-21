@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    name: PHP ${{ matrix.php }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        php: [ '8.2', '8.3', '8.4', '8.5' ]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: mbstring, openssl, simplexml
+          coverage: none
+          tools: composer:v2
+
+      - name: Install dependencies
+        run: composer update --prefer-dist --no-progress --no-interaction
+
+      - name: Lint
+        run: find src tests -name '*.php' -print0 | xargs -0 -n1 -P4 php -l > /dev/null
+
+      - name: PSR-4 conformance
+        # A class whose filename does not match its name is silently dropped
+        # from Composer's optimized classmap, making it unloadable in any
+        # classmap-authoritative build. Two such classes shipped undetected.
+        run: |
+          php -r '
+          $cfg  = json_decode(file_get_contents("composer.json"), true);
+          $bad  = 0;
+          foreach ($cfg["autoload"]["psr-4"] as $prefix => $dir) {
+              $base = rtrim($dir, "/");
+              $it   = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($base));
+              foreach ($it as $f) {
+                  if (!$f->isFile() || $f->getExtension() !== "php") continue;
+                  $src = file_get_contents($f->getPathname());
+                  if (!preg_match("/^\s*namespace\s+([^;{\s]+)/m", $src, $ns)) continue;
+                  if (!preg_match("/^\s*(?:final\s+|abstract\s+|readonly\s+)*(?:class|interface|trait|enum)\s+(\w+)/m", $src, $c)) continue;
+                  $fqn  = $ns[1] . "\\" . $c[1];
+                  $want = str_replace("\\", "/", substr($fqn, strlen(rtrim($prefix, "\\")) + 1)) . ".php";
+                  $have = substr($f->getPathname(), strlen($base) + 1);
+                  if ($want !== $have) { fwrite(STDERR, "PSR-4: $fqn is in $have, expected $want\n"); $bad++; }
+              }
+          }
+          exit($bad ? 1 : 0);'
+
+      - name: Tests
+        run: vendor/bin/phpunit --colors=always
+
+  javascript:
+    name: JavaScript syntax
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Check syntax
+        run: find assets/js -name '*.js' -print0 | xargs -0 -n1 node --check

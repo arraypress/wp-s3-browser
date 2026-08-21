@@ -305,19 +305,17 @@
             var self = this;
             return new Promise(function (resolve, reject) {
                 $.ajax({
-                    url: S3BrowserGlobalConfig.ajaxUrl,
-                    type: 'POST',
-                    data: {
-                        action: 's3_get_upload_url_' + S3BrowserGlobalConfig.providerId,
-                        bucket: bucket,
-                        object_key: objectKey,
-                        nonce: S3BrowserGlobalConfig.nonce
-                    },
-                    success: function (response) {
-                        if (response.success && response.data && response.data.url) {
-                            resolve(response.data.url);
+                    url: S3BrowserGlobalConfig.restUrl
+                        + '/buckets/' + encodeURIComponent(bucket) + '/objects/upload-url',
+                    method: 'POST',
+                    contentType: 'application/json; charset=utf-8',
+                    headers: {'X-WP-Nonce': S3BrowserGlobalConfig.restNonce},
+                    data: JSON.stringify({key: objectKey}),
+                    success: function (payload) {
+                        if (payload && payload.url) {
+                            resolve(payload.url);
                         } else {
-                            reject(new Error(response.data && response.data.message || s3BrowserConfig.i18n.upload.failedPresignedUrl));
+                            reject(new Error((payload && payload.message) || s3BrowserConfig.i18n.upload.failedPresignedUrl));
                         }
                     },
                     error: function (xhr, status, error) {
