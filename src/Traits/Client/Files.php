@@ -157,8 +157,17 @@ trait Files {
 		);
 
 		if ( ! ( $response instanceof ObjectsResponse ) ) {
+			// Pass the provider's own code and message through. Replacing them
+			// with advice to check the credentials is wrong whenever the
+			// credentials are fine — a missing bucket, a denied prefix, a
+			// scoped token — and it discards the one detail that identifies
+			// which.
+			if ( $response instanceof ErrorResponse ) {
+				return $response;
+			}
+
 			return new ErrorResponse(
-				__( 'Unable to retrieve objects. Please verify your access key, secret key, and region settings are correct.', 'arraypress' ),
+				__( 'Unable to retrieve objects.', 'arraypress' ),
 				'object_retrieval_failed',
 				400
 			);

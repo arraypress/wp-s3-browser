@@ -15,6 +15,7 @@ declare( strict_types=1 );
 
 namespace ArrayPress\S3\Models;
 
+use ArrayPress\S3\Utils\File;
 use WP_Error;
 
 /**
@@ -190,6 +191,152 @@ class S3Object {
 			'IsMultipart'   => $this->is_multipart(),
 			'MD5Checksum'   => $this->get_md5_checksum()
 		];
+	}
+
+	/**
+	 * Get object filename (without path)
+	 *
+	 * @return string
+	 */
+	public function get_filename(): string {
+		return File::name( $this->key );
+	}
+	/**
+	 * Get object key
+	 *
+	 * @return string
+	 */
+	public function get_key(): string {
+		return $this->key;
+	}
+	/**
+	 * Get object size
+	 *
+	 * @param bool $formatted Whether to return formatted size or raw bytes
+	 * @param int  $precision Number of decimal places for formatted size
+	 *
+	 * @return string|int Formatted size string or raw bytes
+	 */
+	public function get_size( bool $formatted = false, int $precision = 2 ) {
+		return $formatted ? size_format( $this->size, $precision ) : $this->size;
+	}
+	/**
+	 * Get last modified date
+	 *
+	 * @param bool   $formatted Whether to return formatted date or raw timestamp
+	 * @param string $format    PHP date format for formatted output
+	 *
+	 * @return string Raw timestamp or formatted date
+	 */
+	public function get_last_modified( bool $formatted = false, string $format = 'Y-m-d H:i:s' ): string {
+		if ( ! $formatted ) {
+			return $this->last_modified;
+		}
+
+		return empty( $this->last_modified ) ? '' : date( $format, strtotime( $this->last_modified ) );
+	}
+	/**
+	 * Get MIME type
+	 *
+	 * @return string
+	 */
+	public function get_mime_type(): string {
+		return File::mime_type( $this->get_filename() );
+	}
+	/**
+	 * Get file category (image, video, audio, document, archive, other)
+	 *
+	 * @return string
+	 */
+	public function get_category(): string {
+		return File::category( $this->get_filename() );
+	}
+	/**
+	 * Get dashicon class for this file type
+	 *
+	 * @return string Dashicon class
+	 */
+	public function get_dashicon_class(): string {
+		$category = $this->get_category();
+
+		switch ( $category ) {
+			case 'image':
+				return 'dashicons-format-image';
+			case 'video':
+				return 'dashicons-media-video';
+			case 'audio':
+				return 'dashicons-media-audio';
+			case 'document':
+				return 'dashicons-media-document';
+			case 'archive':
+				return 'dashicons-media-archive';
+			default:
+				return 'dashicons-media-default';
+		}
+	}
+	/**
+	 * Get ETag (already cleaned of quotes)
+	 *
+	 * @return string
+	 */
+	public function get_etag(): string {
+		return $this->etag;
+	}
+	/**
+	 * Get MD5 checksum with caveats
+	 *
+	 * @return string|null MD5 hash if available and reliable, null otherwise
+	 */
+	public function get_md5_checksum(): ?string {
+		if ( empty( $this->etag ) ) {
+			return null;
+		}
+
+		// For multipart uploads, return the composite hash part
+		if ( $this->is_multipart() ) {
+			$parts = explode( '-', $this->etag );
+			return $parts[0] ?? null;
+		}
+
+		// For single-part uploads, ETag IS the MD5 (unless encrypted)
+		return $this->etag;
+	}
+	/**
+	 * Get storage class
+	 *
+	 * @return string
+	 */
+	public function get_storage_class(): string {
+		return $this->storage_class;
+	}
+	/**
+	 * Check if this is a multipart upload
+	 *
+	 * @return bool
+	 */
+	public function is_multipart(): bool {
+		return ! empty( $this->etag ) && strpos( $this->etag, '-' ) !== false;
+	}
+	/**
+	 * Get multipart information if applicable
+	 *
+	 * @return array|null Array with parts info if multipart, null otherwise
+	 */
+	public function get_multipart_info(): ?array {
+		if ( ! $this->is_multipart() ) {
+			return null;
+		}
+
+		$parts = explode( '-', $this->etag );
+		if ( count( $parts ) === 2 && is_numeric( $parts[1] ) ) {
+			return [
+				'composite_hash' => $parts[0],
+				'part_count'     => (int) $parts[1],
+				'full_etag'      => $this->etag
+			];
+		}
+
+		return null;
 	}
 
 }

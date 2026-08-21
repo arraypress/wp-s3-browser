@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+  <Name>test-bucket</Name>
+  <KeyCount>1</KeyCount>
+  <MaxKeys>1</MaxKeys>
+  <IsTruncated>true</IsTruncated>
+  <NextContinuationToken>1ueGcxLPRx1Tr/XYExHnhbYLgveDs2J/wm36Hy4vbOwM=</NextContinuationToken>
+  <Contents>
+    <Key>a.txt</Key>
+    <LastModified>2026-08-01T00:00:00.000Z</LastModified>
+    <ETag>&quot;d41d8cd98f00b204e9800998ecf8427e&quot;</ETag>
+    <Size>0</Size>
+    <StorageClass>STANDARD</StorageClass>
+  </Contents>
+</ListBucketResult>
