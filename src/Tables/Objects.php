@@ -112,8 +112,16 @@ class Objects extends WP_List_Table {
 	 * @return array Column definitions
 	 */
 	public function get_columns(): array {
-		return [
-			'cb'       => '<input type="checkbox" />',
+		$columns = [];
+
+		// Only when there is something to tick. A folder cannot be inserted
+		// into a product, so a listing of nothing but folders would show a
+		// select-all that selects nothing.
+		if ( $this->has_files() ) {
+			$columns['cb'] = '<input type="checkbox" />';
+		}
+
+		return $columns + [
 			'name'     => __( 'Name', 'arraypress' ),
 			'type'     => __( 'Type', 'arraypress' ),
 			'size'     => __( 'Size', 'arraypress' ),
@@ -159,16 +167,12 @@ class Objects extends WP_List_Table {
 	 * @return void
 	 */
 	public function prepare_items(): void {
-		$this->_column_headers = [
-			$this->get_columns(),
-			[],
-			[],
-		];
-
 		$result = $this->get_api_results();
 
 		if ( is_wp_error( $result ) ) {
-			$this->items = [];
+			$this->items           = [];
+			$this->_column_headers = [ $this->get_columns(), [], [] ];
+
 			return;
 		}
 
@@ -202,6 +206,10 @@ class Objects extends WP_List_Table {
 		}
 
 		$this->items = $items;
+
+		// After the items, not before: get_columns() only offers a checkbox
+		// column when the listing holds something selectable.
+		$this->_column_headers = [ $this->get_columns(), [], [] ];
 
 		$this->set_pagination_args( [
 			'total_items' => count( $items ),
@@ -352,6 +360,21 @@ class Objects extends WP_List_Table {
 		}
 
 		return $actions;
+	}
+
+	/**
+	 * Whether the current listing contains anything selectable
+	 *
+	 * @return bool
+	 */
+	private function has_files(): bool {
+		foreach ( $this->items as $item ) {
+			if ( 'file' === ( $item['type'] ?? '' ) ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**

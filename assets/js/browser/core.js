@@ -632,6 +632,10 @@
             var count = $('.s3-select-file:checked').length;
             var $bar = $('.s3-selection-bar');
 
+            // The class reserves room at the foot of the page; the bar is
+            // fixed, so without it the last row sits underneath.
+            $('body').toggleClass('s3-has-selection', count > 0);
+
             if (!count) {
                 $bar.prop('hidden', true);
                 return;

@@ -1490,51 +1490,82 @@
 }
 
 .s3-folder-tree ul {
-    margin: 0;
     padding: 0;
     list-style: none;
 }
 
-.s3-folder-children {
-    margin-left: 18px;
+.s3-folder-tree > ul {
+    margin: 0;
 }
 
-.s3-folder-node > .s3-folder-label {
-    display: inline-block;
+/* Indent each level. This needs to out-specify ".s3-folder-tree ul" above,
+   which is one class plus one element and so beats a lone class -- setting
+   margin: 0 there and margin-left here flattened the whole tree. */
+.s3-folder-tree ul.s3-folder-children {
+    margin: 0 0 0 20px;
+}
+
+.s3-folder-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
     padding: 3px 6px;
     border-radius: 3px;
     cursor: pointer;
 }
 
-.s3-folder-node > .s3-folder-label:hover {
+.s3-folder-row:hover {
     background: #f0f0f1;
 }
 
-.s3-folder-node.is-selected > .s3-folder-label {
+.s3-folder-node.is-selected > .s3-folder-row {
     background: #2271b1;
     color: #fff;
 }
 
+.s3-folder-node.is-selected > .s3-folder-row .s3-folder-icon,
+.s3-folder-node.is-selected > .s3-folder-row .s3-folder-toggle {
+    color: #fff;
+}
+
+.s3-folder-icon {
+    color: #dba617;
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    flex: 0 0 18px;
+}
+
 .s3-folder-toggle {
-    display: inline-block;
+    flex: 0 0 16px;
     width: 16px;
     text-align: center;
-    cursor: pointer;
     color: #787c82;
     user-select: none;
+    border-radius: 2px;
 }
 
 .s3-folder-toggle::before {
     content: '\25B8';
 }
 
-.s3-folder-node.is-open > .s3-folder-toggle::before {
+.s3-folder-node.is-open > .s3-folder-row .s3-folder-toggle::before {
     content: '\25BE';
+}
+
+/* A leaf keeps the toggle's width so labels stay aligned, without offering a
+   control that does nothing. */
+.s3-folder-node.is-leaf > .s3-folder-row .s3-folder-toggle {
+    visibility: hidden;
+}
+
+.s3-folder-label {
+    flex: 1 1 auto;
 }
 
 .s3-folder-loading,
 .s3-folder-empty {
-    padding: 3px 6px;
+    padding: 3px 6px 3px 26px;
     color: #787c82;
     font-style: italic;
 }
@@ -1554,26 +1585,37 @@
 
 /* Selection Bar
  *
- * Sits at the foot of the browser once files are ticked. Deliberately not
- * core's .media-toolbar: that is positioned for the media frame's DOM --
- * absolutely, inside .media-frame-toolbar, at bottom: -60px -- and this
- * renders in an iframe tab with no such ancestry, so the rules would apply
- * and land in the wrong place. The buttons use core's classes, which is
- * where the look actually comes from.
+ * Pinned to the foot of the browser once files are ticked, matching where the
+ * media modal puts its own. Fixed rather than sticky: sticky pins within the
+ * scrolling ancestor, and with a short listing that ancestor ends just below
+ * the table, so the bar sat under the last row instead of at the bottom.
+ *
+ * Deliberately not core's .media-toolbar. That is styled for the media frame's
+ * DOM -- absolutely positioned inside .media-frame-toolbar at bottom: -60px --
+ * and this renders in an iframe tab with no such ancestry, so the rules apply
+ * and land in the wrong place. The buttons use core's classes, which is where
+ * the look comes from.
  */
 .s3-selection-bar {
-    position: sticky;
+    position: fixed;
+    left: 0;
+    right: 0;
     bottom: 0;
-    z-index: 20;
+    z-index: 100;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    margin: 12px -15px -15px;
     padding: 12px 16px;
     background: #fff;
     border-top: 1px solid #dcdcde;
     box-shadow: 0 -1px 3px rgba(0, 0, 0, .06);
+}
+
+/* display:flex above would otherwise beat the [hidden] attribute, which is
+   why the bar appeared with nothing selected and no count in it. */
+.s3-selection-bar[hidden] {
+    display: none;
 }
 
 .s3-selection-count {
@@ -1584,6 +1626,11 @@
     display: flex;
     align-items: center;
     gap: 12px;
+}
+
+/* Room for the bar, so it never covers the last row. */
+body.s3-has-selection .s3-browser-container {
+    padding-bottom: 60px;
 }
 
 /* The list table's checkbox column is narrow by default and the header

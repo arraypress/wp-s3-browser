@@ -483,10 +483,13 @@
             var content = [
                 '<p class="description">' + window.S3Browser.escapeHtml(i18n.moveTo) + '</p>',
                 '<div class="s3-folder-tree" data-selected="">',
-                '  <ul class="s3-folder-tree-root">',
+                '  <ul>',
                 '    <li class="s3-folder-node is-root" data-prefix="">',
-                '      <span class="s3-folder-toggle" role="button" tabindex="0"></span>',
-                '      <span class="s3-folder-label">' + window.S3Browser.escapeHtml(i18n.moveRoot) + '</span>',
+                '      <div class="s3-folder-row" role="button" tabindex="0">',
+                '        <span class="s3-folder-toggle"></span>',
+                '        <span class="dashicons dashicons-database s3-folder-icon"></span>',
+                '        <span class="s3-folder-label">' + window.S3Browser.escapeHtml(i18n.moveRoot) + '</span>',
+                '      </div>',
                 '      <ul class="s3-folder-children" hidden></ul>',
                 '    </li>',
                 '  </ul>',
@@ -516,7 +519,13 @@
             // own folder is never a valid destination.
             $modal.find('button[data-action="submit"]').prop('disabled', true);
 
-            $modal.on('click', '.s3-folder-label', function () {
+            $modal.on('click keypress', '.s3-folder-row', function (e) {
+                if (e.type === 'keypress' && e.which !== 13 && e.which !== 32) {
+                    return;
+                }
+
+                e.preventDefault();
+
                 var $node = $(this).closest('.s3-folder-node');
                 var prefix = String($node.attr('data-prefix') || '');
 
@@ -528,11 +537,10 @@
                     .prop('disabled', self.samePrefix(prefix, context.currentPrefix));
             });
 
-            $modal.on('click keypress', '.s3-folder-toggle', function (e) {
-                if (e.type === 'keypress' && e.which !== 13 && e.which !== 32) {
-                    return;
-                }
-
+            $modal.on('click', '.s3-folder-toggle', function (e) {
+                // Expanding is not selecting; without this the row handler
+                // below also fires and the folder gets picked on every twirl.
+                e.stopPropagation();
                 e.preventDefault();
                 self.toggleFolderNode($(this).closest('.s3-folder-node'), context.bucket);
             });
@@ -579,6 +587,7 @@
                     $node.attr('data-loaded', '1');
 
                     if (!folders.length) {
+                        $node.addClass('is-leaf');
                         $children.html(
                             '<li class="s3-folder-empty">' + window.S3Browser.escapeHtml(s3BrowserConfig.i18n.files.noSubfolders) + '</li>'
                         );
@@ -588,8 +597,11 @@
                     $children.html(folders.map(function (folder) {
                         return [
                             '<li class="s3-folder-node" data-prefix="' + window.S3Browser.escapeHtml(folder.prefix) + '">',
-                            '  <span class="s3-folder-toggle" role="button" tabindex="0"></span>',
-                            '  <span class="s3-folder-label">' + window.S3Browser.escapeHtml(folder.name) + '</span>',
+                            '  <div class="s3-folder-row" role="button" tabindex="0">',
+                            '    <span class="s3-folder-toggle"></span>',
+                            '    <span class="dashicons dashicons-category s3-folder-icon"></span>',
+                            '    <span class="s3-folder-label">' + window.S3Browser.escapeHtml(folder.name) + '</span>',
+                            '  </div>',
                             '  <ul class="s3-folder-children" hidden></ul>',
                             '</li>'
                         ].join('');
