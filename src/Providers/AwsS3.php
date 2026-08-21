@@ -212,86 +212,6 @@ class AwsS3 extends Provider {
 	}
 
 	/**
-	 * Get alternative endpoints for AWS CloudFront and legacy endpoints
-	 *
-	 * @return array Array of alternative endpoint patterns
-	 */
-	protected function get_alternative_endpoints(): array {
-		$alternatives = [];
-
-		// Legacy S3 endpoint
-		$alternatives[] = 's3.amazonaws.com';
-
-		// Virtual-hosted style endpoints for all regions
-		foreach ( $this->regions as $region_code => $region_data ) {
-			if ( $region_code !== $this->region ) {
-				$alternatives[] = str_replace( '{region}', $region_code, $this->endpoint_pattern );
-			}
-		}
-
-		// Check for CloudFront domains
-		foreach ( $this->params as $key => $value ) {
-			if ( str_starts_with( $key, 'cloudfront_domain_' ) && ! empty( $value ) ) {
-				$alternatives[] = $value;
-			}
-		}
-
-		return $alternatives;
-	}
-
-	/**
-	 * Override URL matching to handle CloudFront and legacy URLs
-	 *
-	 * @param string $url_without_protocol URL without protocol
-	 * @param string $endpoint             Endpoint to match against
-	 *
-	 * @return bool
-	 */
-	protected function url_matches_endpoint( string $url_without_protocol, string $endpoint ): bool {
-		// Handle CloudFront domains (custom domains)
-		if ( ! str_contains( $endpoint, 'amazonaws.com' ) ) {
-			return str_starts_with( $url_without_protocol, $endpoint );
-		}
-
-		// Use parent logic for AWS endpoints
-		return parent::url_matches_endpoint( $url_without_protocol, $endpoint );
-	}
-
-	/**
-	 * Parse custom domain URLs (including CloudFront)
-	 *
-	 * @param string $url_without_protocol URL without protocol
-	 *
-	 * @return array|null
-	 */
-	protected function parse_custom_domain_url( string $url_without_protocol ): ?array {
-		// First try parent method for configured custom domains
-		$result = parent::parse_custom_domain_url( $url_without_protocol );
-		if ( $result ) {
-			return $result;
-		}
-
-		// Check CloudFront domains specifically
-		foreach ( $this->params as $key => $domain ) {
-			if ( str_starts_with( $key, 'cloudfront_domain_' ) && str_starts_with( $url_without_protocol, $domain ) ) {
-				$bucket = str_replace( 'cloudfront_domain_', '', $key );
-
-				// Extract object path
-				$domain_length = strlen( $domain );
-				$remaining     = substr( $url_without_protocol, $domain_length );
-				$object        = ltrim( $remaining, '/' );
-
-				return [
-					'bucket' => $bucket,
-					'object' => $object ?: ''
-				];
-			}
-		}
-
-		return null;
-	}
-
-	/**
 	 * Check if account ID is required
 	 *
 	 * @return bool
@@ -321,40 +241,6 @@ class AwsS3 extends Provider {
 	 */
 	public function set_cloudfront_domain( string $bucket, string $domain ): self {
 		return $this->set_param( 'cloudfront_domain_' . $bucket, $domain );
-	}
-
-	/**
-	 * Check if the provider has integrated CDN
-	 *
-	 * @return bool
-	 */
-	public function has_integrated_cdn(): bool {
-		// Check if any CloudFront domains are configured
-		foreach ( $this->params as $key => $value ) {
-			if ( strpos( $key, 'cloudfront_domain_' ) === 0 && ! empty( $value ) ) {
-				return true;
-			}
-		}
-
-		return false;
-	}
-
-	/**
-	 * Get CDN URL for a bucket (if supported)
-	 *
-	 * @param string $bucket Bucket name
-	 * @param string $object Optional object key
-	 *
-	 * @return string|null CDN URL or null if not supported
-	 */
-	public function get_cdn_url( string $bucket, string $object = '' ): ?string {
-		$cloudfront_domain = $this->get_cloudfront_domain( $bucket );
-
-		if ( empty( $cloudfront_domain ) ) {
-			return null;
-		}
-
-		return 'https://' . $cloudfront_domain . '/' . ltrim( $object, '/' );
 	}
 
 	/**

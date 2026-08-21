@@ -105,13 +105,6 @@ interface Provider {
 	public function requires_account_id(): bool;
 
 	/**
-	 * Get available regions
-	 *
-	 * @return array Associative array of region code => region label
-	 */
-	public function get_available_regions(): array;
-
-	/**
 	 * Check if a region is valid for this provider
 	 *
 	 * @param string $region Region code to check
@@ -119,22 +112,5 @@ interface Provider {
 	 * @return bool True if the region is valid
 	 */
 	public function is_valid_region( string $region ): bool;
-
-	/**
-	 * Check if the provider has integrated CDN
-	 *
-	 * @return bool
-	 */
-	public function has_integrated_cdn(): bool;
-
-	/**
-	 * Get CDN URL for a bucket (if supported)
-	 *
-	 * @param string $bucket Bucket name
-	 * @param string $object Optional object key
-	 *
-	 * @return string|null CDN URL or null if not supported
-	 */
-	public function get_cdn_url( string $bucket, string $object = '' ): ?string;
 
 }

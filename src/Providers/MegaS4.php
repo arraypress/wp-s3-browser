@@ -120,15 +120,6 @@ class MegaS4 extends Provider {
 	}
 
 	/**
-	 * Get alternative endpoints
-	 *
-	 * @return array
-	 */
-	protected function get_alternative_endpoints(): array {
-		return [ 'g.s4.mega.io' ]; // Global endpoint
-	}
-
-	/**
 	 * Check if account ID is required
 	 *
 	 * @return bool
@@ -138,43 +129,12 @@ class MegaS4 extends Provider {
 	}
 
 	/**
-	 * Check if provider supports presigned POST uploads
-	 *
-	 * @return bool
-	 */
-	public function supports_presigned_post(): bool {
-		return false; // Mega S4 does not support presigned POST
-	}
-
-	/**
 	 * Get IAM endpoint for this provider
 	 *
 	 * @return string
 	 */
 	public function get_iam_endpoint(): string {
 		return 'iam.' . $this->get_endpoint();
-	}
-
-	/**
-	 * Override URL matching to handle global endpoint
-	 *
-	 * @param string $url_without_protocol URL without protocol
-	 * @param string $endpoint             Endpoint to match against
-	 *
-	 * @return bool
-	 */
-	protected function url_matches_endpoint( string $url_without_protocol, string $endpoint ): bool {
-		// Handle global endpoint
-		if ( $endpoint === 'g.s4.mega.io' ) {
-			if ( $this->uses_path_style() ) {
-				return str_starts_with( $url_without_protocol, $endpoint );
-			} else {
-				$pattern = '/^[^.]+\.' . preg_quote( $endpoint, '/' ) . '/';
-				return (bool) preg_match( $pattern, $url_without_protocol );
-			}
-		}
-
-		return parent::url_matches_endpoint( $url_without_protocol, $endpoint );
 	}
 
 }

@@ -8,55 +8,16 @@ use ArrayPress\S3\Providers\DigitalOceanSpaces;
 use PHPUnit\Framework\TestCase;
 
 /**
- * URL provenance and canonical URI construction.
+ * Canonical URI and request URL construction.
  *
- * is_provider_url() is documented as a security check on URLs from external
- * sources, so a look-alike host must not pass it.
+ * Note: the domain-provenance tests that used to live here covered
+ * is_provider_url() and parse_provider_url(), which have been removed —
+ * nothing in this library or any consumer called them.
  */
 final class ProviderUrlTest extends TestCase {
 
 	private function r2(): CloudflareR2 {
-		$provider = new CloudflareR2( 'default', [ 'account_id' => 'abc123' ] );
-		$provider->set_custom_domain( 'my-bucket', 'cdn.example.com' );
-
-		return $provider;
-	}
-
-	public function test_accepts_path_style_endpoint_url(): void {
-		$this->assertTrue( $this->r2()->is_provider_url( 'https://abc123.r2.cloudflarestorage.com/b/f.zip' ) );
-	}
-
-	public function test_accepts_virtual_hosted_url(): void {
-		$this->assertTrue( $this->r2()->is_provider_url( 'https://b.abc123.r2.cloudflarestorage.com/f.zip' ) );
-	}
-
-	public function test_accepts_configured_custom_domain(): void {
-		$this->assertTrue( $this->r2()->is_provider_url( 'https://cdn.example.com/f.zip' ) );
-	}
-
-	/**
-	 * A prefix match accepted these. The match must land on a label boundary.
-	 */
-	public function test_rejects_endpoint_used_as_a_domain_prefix(): void {
-		$this->assertFalse(
-			$this->r2()->is_provider_url( 'https://abc123.r2.cloudflarestorage.com.attacker.example/f.zip' )
-		);
-	}
-
-	public function test_rejects_custom_domain_used_as_a_domain_prefix(): void {
-		$this->assertFalse( $this->r2()->is_provider_url( 'https://cdn.example.com.attacker.example/f.zip' ) );
-	}
-
-	public function test_rejects_endpoint_appearing_in_path_or_query(): void {
-		$r2 = $this->r2();
-		$this->assertFalse( $r2->is_provider_url( 'https://attacker.example/abc123.r2.cloudflarestorage.com/f.zip' ) );
-		$this->assertFalse( $r2->is_provider_url( 'https://attacker.example/?x=abc123.r2.cloudflarestorage.com' ) );
-	}
-
-	public function test_rejects_userinfo_spoofing(): void {
-		$this->assertFalse(
-			$this->r2()->is_provider_url( 'https://abc123.r2.cloudflarestorage.com@attacker.example/f.zip' )
-		);
+		return new CloudflareR2( 'default', [ 'account_id' => 'abc123' ] );
 	}
 
 	/**
@@ -72,7 +33,16 @@ final class ProviderUrlTest extends TestCase {
 
 	public function test_canonical_uri_virtual_hosted_omits_bucket(): void {
 		$spaces = new DigitalOceanSpaces( 'ams3' );
+
 		$this->assertSame( '/a%20b.txt', $spaces->format_canonical_uri( 'my-bucket', 'a b.txt' ) );
+	}
+
+	public function test_canonical_uri_for_a_bucket_without_a_key(): void {
+		$this->assertSame( '/my-bucket', $this->r2()->format_canonical_uri( 'my-bucket', '' ) );
+	}
+
+	public function test_canonical_uri_for_service_level_operations(): void {
+		$this->assertSame( '/', $this->r2()->format_canonical_uri( '', '' ) );
 	}
 
 	public function test_request_host_matches_addressing_style(): void {
@@ -80,6 +50,12 @@ final class ProviderUrlTest extends TestCase {
 
 		$spaces = new DigitalOceanSpaces( 'ams3' );
 		$this->assertSame( 'my-bucket.ams3.digitaloceanspaces.com', $spaces->get_request_host( 'my-bucket' ) );
+	}
+
+	public function test_service_level_request_host_omits_the_bucket(): void {
+		$spaces = new DigitalOceanSpaces( 'ams3' );
+
+		$this->assertSame( 'ams3.digitaloceanspaces.com', $spaces->get_request_host( '' ) );
 	}
 
 	/**
@@ -92,5 +68,12 @@ final class ProviderUrlTest extends TestCase {
 		$this->assertStringContainsString( 'prefix=my%20photos%2F~2024%2F', $url );
 		$this->assertStringNotContainsString( '+', $url );
 		$this->assertStringNotContainsString( '%7E', $url );
+	}
+
+	public function test_format_url_encodes_the_object_key(): void {
+		$this->assertSame(
+			'https://abc123.r2.cloudflarestorage.com/b/a%20b.txt',
+			$this->r2()->format_url( 'b', 'a b.txt' )
+		);
 	}
 }

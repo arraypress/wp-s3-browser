@@ -157,34 +157,6 @@ class WasabiStorage extends Provider {
 	}
 
 	/**
-	 * Check if provider has integrated CDN
-	 *
-	 * @return bool
-	 */
-	public function has_integrated_cdn(): bool {
-		return true;
-	}
-
-	/**
-	 * Get CDN URL for a bucket
-	 *
-	 * @param string $bucket Bucket name
-	 * @param string $object Optional object key
-	 *
-	 * @return string|null CDN URL or null if not supported
-	 */
-	public function get_cdn_url( string $bucket, string $object = '' ): ?string {
-		$cdn_domain = $this->get_param( 'cdn_domain_' . $bucket );
-
-		if ( ! empty( $cdn_domain ) ) {
-			return 'https://' . $cdn_domain . '/' . ltrim( $object, '/' );
-		}
-
-		// Fall back to standard URL
-		return $this->format_url( $bucket, $object );
-	}
-
-	/**
 	 * Set CDN domain for a bucket
 	 *
 	 * @param string $bucket     Bucket name

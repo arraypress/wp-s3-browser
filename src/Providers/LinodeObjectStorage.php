@@ -210,32 +210,6 @@ class LinodeObjectStorage extends Provider {
 	}
 
 	/**
-	 * Get public URL for a bucket (if configured)
-	 *
-	 * @param string $bucket Bucket name
-	 * @param string $object Optional object key
-	 *
-	 * @return string|null Public URL or null if not configured
-	 */
-	public function get_public_url( string $bucket, string $object = '' ): ?string {
-		// First check if parent method provides a custom domain or public URL
-		$url = parent::get_public_url( $bucket, $object );
-		if ( $url ) {
-			return $url;
-		}
-
-		// Now check if this is a static website enabled bucket
-		$is_website = $this->get_param( 'website_enabled_' . $bucket, false );
-		if ( $is_website ) {
-			$endpoint = $this->get_endpoint();
-
-			return 'https://' . $bucket . '.' . $endpoint . '/' . ltrim( $object, '/' );
-		}
-
-		return null;
-	}
-
-	/**
 	 * Enable static website for a bucket
 	 *
 	 * @param string $bucket  Bucket name
