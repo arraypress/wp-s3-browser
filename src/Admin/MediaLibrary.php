@@ -189,15 +189,28 @@ class MediaLibrary {
 	 * @return void
 	 */
 	private function render_selection_bar(): void {
+		/**
+		 * Filter the label on the insert button.
+		 *
+		 * The host names what it is inserting into, and that name is often
+		 * configurable -- EDD lets a store rename "Download" to whatever it
+		 * sells -- so the wording belongs to the consumer rather than here.
+		 *
+		 * @param string $label Button label.
+		 */
+		$label = $this->config->filter( 's3_browser_insert_label', __( 'Insert Selected', 'arraypress' ) );
+
 		?>
 		<div class="s3-selection-bar" hidden>
-			<div class="s3-selection-count" aria-live="polite"></div>
-			<div class="s3-selection-actions">
+			<div class="s3-selection-info">
+				<span class="count" aria-live="polite"></span>
 				<button type="button" class="button-link s3-clear-selection">
 					<?php esc_html_e( 'Clear', 'arraypress' ); ?>
 				</button>
+			</div>
+			<div class="s3-selection-actions">
 				<button type="button" class="button button-primary s3-insert-selected">
-					<?php esc_html_e( 'Insert Selected', 'arraypress' ); ?>
+					<?php echo esc_html( $label ); ?>
 				</button>
 			</div>
 		</div>

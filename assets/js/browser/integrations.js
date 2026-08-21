@@ -9,10 +9,65 @@
     $.extend(window.S3Browser, {
 
         /**
+         * Find the window holding the fields to write into.
+         *
+         * Reading any property of a cross-origin frame throws, and window.parent
+         * is not reliably reachable: the block editor renders its canvas in an
+         * iframe with an opaque origin, so a browser opened from inside it has
+         * a parent that cannot be touched at all -- not a parent missing the
+         * property, a parent that throws on the attempt.
+         *
+         * So this walks outward and returns the first window it can actually
+         * read, or null when there is none.
+         */
+        getHostWindow: function () {
+            var candidates = [];
+
+            try {
+                if (window.parent && window.parent !== window) {
+                    candidates.push(window.parent);
+                }
+            } catch (e) {
+                // Even reading .parent can throw in a sandboxed frame.
+            }
+
+            try {
+                if (window.top && window.top !== window && candidates.indexOf(window.top) === -1) {
+                    candidates.push(window.top);
+                }
+            } catch (e) {
+                // Same.
+            }
+
+            candidates.push(window);
+
+            for (var i = 0; i < candidates.length; i++) {
+                try {
+                    // Touching a property is the only way to find out; a
+                    // cross-origin window looks fine until it is read.
+                    if (typeof candidates[i].document !== 'undefined' && candidates[i].jQuery) {
+                        return candidates[i];
+                    }
+                } catch (e) {
+                    // Not this one.
+                }
+            }
+
+            return null;
+        },
+
+        /**
          * Handle file selection and integration with WordPress
          */
         handleFileSelection: function ($button) {
-            var parent = window.parent;
+            var parent = this.getHostWindow();
+
+            if (!parent) {
+                window.alert(s3BrowserConfig.i18n.files.insertUnavailable);
+
+                return;
+            }
+
             var fileData = {
                 fileName: $button.data('filename'),
                 bucket: $button.data('bucket'),
@@ -81,7 +136,14 @@
                 return;
             }
 
-            var parent = window.parent;
+            var parent = this.getHostWindow();
+
+            if (!parent) {
+                window.alert(s3BrowserConfig.i18n.files.insertUnavailable);
+
+                return;
+            }
+
             var context = this.detectCallingContext(parent);
 
             // One file is the ordinary path and needs none of this.
@@ -192,13 +254,24 @@
          * Detect which context called the browser
          */
         detectCallingContext: function (parent) {
-            if (parent.edd_fileurl && parent.edd_filename) {
-                return 'edd';
-            } else if (parent.wc_target_input && parent.wc_media_frame_context === 'product_file') {
-                return 'woocommerce_file';
-            } else if (parent.wp && parent.wp.media && parent.wp.media.editor) {
-                return 'wp_editor';
+            try {
+                if (parent.edd_fileurl && parent.edd_filename) {
+                    return 'edd';
+                }
+
+                if (parent.wc_target_input && parent.wc_media_frame_context === 'product_file') {
+                    return 'woocommerce_file';
+                }
+
+                if (parent.wp && parent.wp.media && parent.wp.media.editor) {
+                    return 'wp_editor';
+                }
+            } catch (e) {
+                // A frame that refuses to be read is one this cannot write to
+                // either, and saying so beats an uncaught SecurityError.
+                return 'unknown';
             }
+
             return 'unknown';
         },
 

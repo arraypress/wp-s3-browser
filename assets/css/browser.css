@@ -1618,14 +1618,32 @@
     display: none;
 }
 
-.s3-selection-count {
-    font-weight: 600;
-}
-
-.s3-selection-actions {
+/* Typography lifted from core's .media-selection, which is where the media
+   modal's own bar gets its look. Only the typography: that class is
+   positioned absolutely inside the media frame and would land wrong here. */
+.s3-selection-info {
     display: flex;
     align-items: center;
     gap: 12px;
+}
+
+.s3-selection-bar .count {
+    font-size: 14px;
+    line-height: 1.42857142;
+    font-weight: 600;
+}
+
+.s3-selection-bar .button-link {
+    padding: 1px 8px;
+    line-height: 1.4;
+    color: var(--wp-admin-theme-color, #3858e9);
+    text-decoration: none;
+}
+
+.s3-selection-bar .button-link:hover,
+.s3-selection-bar .button-link:focus {
+    color: var(--wp-admin-theme-color-darker-20, #2145e6);
+    text-decoration: underline;
 }
 
 /* Room for the bar, so it never covers the last row. */

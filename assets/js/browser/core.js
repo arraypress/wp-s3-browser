@@ -645,7 +645,7 @@
                 ? s3BrowserConfig.i18n.files.oneSelected
                 : s3BrowserConfig.i18n.files.manySelected.replace('%d', count);
 
-            $bar.find('.s3-selection-count').text(label);
+            $bar.find('.count').text(label);
             $bar.prop('hidden', false);
         },
 

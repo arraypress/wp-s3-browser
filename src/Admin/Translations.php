@@ -48,6 +48,7 @@ class Translations {
 				'deleteSuccess'    => __( 'File successfully deleted', 'arraypress' ),
 				'renameFile'       => __( 'Rename File', 'arraypress' ),
 				'moveFile'         => __( 'Move File', 'arraypress' ),
+				'insertUnavailable' => __( 'This browser cannot reach the page that opened it, so the file cannot be inserted. Copy the link instead.', 'arraypress' ),
 				'oneSelected'      => __( '1 file selected', 'arraypress' ),
 				/* translators: %d: number of files selected */
 				'manySelected'     => __( '%d files selected', 'arraypress' ),
