@@ -95,11 +95,20 @@
         /**
          * The object paths already listed on this product.
          */
-        existingPaths: function () {
+        existingPaths: function ($ignore) {
             var paths = [];
 
             $('.edd_repeatable_upload_field').each(function () {
-                var value = $.trim($(this).val() || '');
+                var $field = $(this);
+
+                // The clicked row is about to be replaced, so what it holds is
+                // not "already there". Counting it skipped the file as a
+                // duplicate and then overwrote it anyway, losing it.
+                if ($ignore && $ignore.length && $field.closest('.edd_repeatable_row').is($ignore)) {
+                    return;
+                }
+
+                var value = $.trim($field.val() || '');
 
                 if (value) {
                     paths.push(value.replace(/^s3:\/\//, '').replace(/^\/+|\/+$/g, ''));
@@ -127,7 +136,8 @@
                 return;
             }
 
-            var existing = this.existingPaths();
+            var $target = window.edd_row && window.edd_row.length ? window.edd_row : null;
+            var existing = this.existingPaths($target);
             var wanted = files.filter(function (file) {
                 return existing.indexOf(file.bucket + '/' + file.key) === -1;
             });
@@ -153,9 +163,7 @@
             // Without one, do not fall back to the last row: it usually holds
             // a real file, and writing over it destroys a download nobody
             // asked to change. Take an empty row if there is one, or make one.
-            var $row = window.edd_row && window.edd_row.length
-                ? window.edd_row
-                : self.firstEmptyRow();
+            var $row = $target || self.firstEmptyRow();
 
             files.forEach(function (file, index) {
                 if (index > 0 || !$row || !$row.length) {

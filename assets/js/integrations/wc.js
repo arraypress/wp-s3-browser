@@ -6,6 +6,19 @@
         mediaFrame: null,
         originalButtonState: null,
 
+        /**
+         * A downloadable file's URL input, on a product or on a variation.
+         *
+         * A variation's fields are named _wc_variation_file_urls[123][] rather
+         * than _wc_file_urls[], but its table carries the same
+         * .downloadable_files class -- so a selector written for one silently
+         * matches nothing on the other, while a container selector matches
+         * both and lands in whichever happens to be last.
+         */
+        URL_FIELDS: 'input[name^="_wc_file_urls"], input[name^="_wc_variation_file_urls"]',
+
+        NAME_FIELDS: 'input[name^="_wc_file_names"], input[name^="_wc_variation_file_names"]',
+
         init: function () {
             // Check if global config exists
             if (typeof S3BrowserGlobalConfig === 'undefined') {
@@ -48,11 +61,15 @@
         trackFileButton: function () {
             var $button = $(this);
             var $row = $button.closest('tr');
-            var $input = $row.find('input[name="_wc_file_urls[]"]');
+            var $input = $row.find(S3BrowserWCIntegration.URL_FIELDS);
 
             if ($input.length) {
                 window.wc_target_input = $input[0];
                 window.wc_target_row = $row;
+                // The table this row belongs to. A variable product has one
+                // per variation as well as the product's own, and they are
+                // told apart only by which row was clicked.
+                window.wc_target_table = $row.closest('.downloadable_files');
                 window.wc_media_frame_context = 'product_file';
             }
 
@@ -96,10 +113,30 @@
                 return;
             }
 
+            var self = this;
+
+            // Everything below is scoped to one table. Unscoped, a variable
+            // product's variations each add another .downloadable_files, and
+            // rows would be counted, added and filled across all of them.
+            var $table = window.wc_target_table && window.wc_target_table.length
+                ? window.wc_target_table
+                : $('.downloadable_files').first();
+
+            // What the clicked row currently holds is not "already there":
+            // that row is about to be replaced, which is what clicking its
+            // button asks for. Counting it skipped the file as a duplicate and
+            // then overwrote it anyway, so it vanished.
+            var $target = window.wc_target_row && window.wc_target_row.length ? window.wc_target_row : null;
             var existing = [];
 
-            $('.downloadable_files input[name="_wc_file_urls[]"]').each(function () {
-                var value = $.trim($(this).val() || '');
+            $table.find(this.URL_FIELDS).each(function () {
+                var $field = $(this);
+
+                if ($target && $field.closest('tr').is($target)) {
+                    return;
+                }
+
+                var value = $.trim($field.val() || '');
 
                 if (value) {
                     existing.push(value.replace(/^s3:\/\//, '').replace(/^\/+|\/+$/g, ''));
@@ -117,17 +154,16 @@
             }
 
             // Only the row whose button opened the browser is written over --
-            // that is what clicking it asks for. Without one, take an empty row
-            // or add one, rather than replacing a file nobody asked to change.
-            var $row = window.wc_target_row && window.wc_target_row.length
-                ? window.wc_target_row
-                : null;
+            // that is what clicking it asks for. Without one, take an empty
+            // row or add one, rather than replacing a file nobody asked to
+            // change.
+            var $row = $target;
 
             if (!$row) {
-                $('.downloadable_files tbody tr').each(function () {
+                $table.find('tbody tr').each(function () {
                     var $candidate = $(this);
 
-                    if (!$row && !$.trim($candidate.find('input[name="_wc_file_urls[]"]').val() || '')) {
+                    if (!$row && !$.trim($candidate.find(self.URL_FIELDS).val() || '')) {
                         $row = $candidate;
                     }
                 });
@@ -135,12 +171,12 @@
 
             files.forEach(function (file, index) {
                 if (index > 0 || !$row || !$row.length) {
-                    $('.downloadable_files .insert').filter(':visible').first().trigger('click');
-                    $row = $('.downloadable_files tbody tr').last();
+                    $table.find('.insert').first().trigger('click');
+                    $row = $table.find('tbody tr').last();
                 }
 
-                $row.find('input[name="_wc_file_urls[]"]').val(file.bucket + '/' + file.key);
-                $row.find('input[name="_wc_file_names[]"]').val(file.fileName);
+                $row.find(self.URL_FIELDS).val(file.bucket + '/' + file.key);
+                $row.find(self.NAME_FIELDS).val(file.fileName);
             });
 
             this.closeFrame();

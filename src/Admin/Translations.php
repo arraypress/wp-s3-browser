@@ -46,6 +46,9 @@ class Translations {
 					__( 'This action cannot be undone.', 'arraypress' ),
 				] ),
 				'deleteSuccess'    => __( 'File successfully deleted', 'arraypress' ),
+				'deleteBreaksOne'  => __( 'One product sells this file. Deleting it will break that download for everyone who has already bought it.', 'arraypress' ),
+				/* translators: %d: number of products selling the file */
+				'deleteBreaksMany' => __( '%d products sell this file. Deleting it will break those downloads for everyone who has already bought them.', 'arraypress' ),
 				'renameFile'       => __( 'Rename File', 'arraypress' ),
 				'moveFile'         => __( 'Move File', 'arraypress' ),
 				'insertUnavailable' => __( 'Could not add the file to this page automatically. Copy the path below and paste it into the file field.', 'arraypress' ),

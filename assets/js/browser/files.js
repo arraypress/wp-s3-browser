@@ -13,12 +13,51 @@
          */
         deleteFile: function ($button) {
             var self = this;
+
+            // Ask what points at this before destroying it. A rename can be
+            // followed and repaired; a delete cannot, and the products naming
+            // this object stop working the moment it goes.
+            this.makeAjaxRequest('objectReferences', {
+                bucket: $button.data('bucket'),
+                key: $button.data('key')
+            }, {
+                success: function (response) {
+                    self.confirmDelete($button, (response.data && response.data.references) || []);
+                },
+                error: function () {
+                    // A lookup that fails must not block the delete; it just
+                    // means the warning is the ordinary one.
+                    self.confirmDelete($button, []);
+                }
+            });
+        },
+
+        /**
+         * Confirm a delete, naming whatever depends on the file.
+         */
+        confirmDelete: function ($button, references) {
+            var self = this;
             var filename = $button.data('filename');
-            var confirmMessage = s3BrowserConfig.i18n.files.confirmDelete
+            var i18n = s3BrowserConfig.i18n.files;
+
+            var confirmMessage = i18n.confirmDelete
                 .replace('{filename}', filename)
                 .replace(/\\n/g, '\n');
 
-            if (!confirm(confirmMessage)) return;
+            if (references.length) {
+                var heading = (references.length === 1 ? i18n.deleteBreaksOne : i18n.deleteBreaksMany)
+                    .replace('%d', references.length);
+
+                confirmMessage = heading + '\n\n'
+                    + references.map(function (reference) {
+                        return '\u2022 ' + reference.label;
+                    }).join('\n')
+                    + '\n\n' + confirmMessage;
+            }
+
+            if (!confirm(confirmMessage)) {
+                return;
+            }
 
             window.S3Browser.setButtonBusy($button, s3BrowserConfig.i18n.ui.deleting);
 
@@ -38,7 +77,11 @@
                 },
                 error: function (message) {
                     self.showNotification(message, 'error');
-                    $icon.removeClass('spin');
+
+                    // $icon was referenced here and never defined, so a failed
+                    // delete threw a ReferenceError instead of clearing the
+                    // button -- leaving it stuck on "Deleting..." with the
+                    // reason only in the console. clearButtonBusy restores it.
                     window.S3Browser.clearButtonBusy($button);
                 }
             });
