@@ -11,8 +11,8 @@
     }
   ],
   "require": {
-    "arraypress/wp-breadcrumbs": "dev-main",
-    "arraypress/wp-composer-assets": "dev-main",
+    "arraypress/wp-breadcrumbs": "^1.1",
+    "arraypress/wp-composer-assets": "^2.2",
     "arraypress/wp-s3-signer": "^1.2",
     "php": ">=8.2"
   },
