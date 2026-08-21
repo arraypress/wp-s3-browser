@@ -15,7 +15,7 @@ declare( strict_types=1 );
 
 namespace ArrayPress\S3;
 
-use ArrayPress\S3\Abstracts\Provider;
+use ArrayPress\S3\Provider;
 use ArrayPress\S3\Interfaces\Signer as SignerInterface;
 use ArrayPress\S3\Traits\Signer\XmlParser;
 use ArrayPress\S3\Traits\Signer\Authentication;

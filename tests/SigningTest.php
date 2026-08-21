@@ -3,9 +3,9 @@ declare( strict_types=1 );
 
 namespace ArrayPress\S3\Tests;
 
-use ArrayPress\S3\Providers\CloudflareR2;
-use ArrayPress\S3\Providers\DigitalOceanSpaces;
 use ArrayPress\S3\Signer;
+use ArrayPress\S3\Provider;
+use ArrayPress\S3Signer\Provider as ProviderType;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -104,7 +104,9 @@ final class SigningTest extends TestCase {
 		string $expected_host,
 		string $expected_path
 	): void {
-		$provider = new $provider_class( ...$provider_args );
+		$provider = 'r2' === $provider_class
+			? Provider::r2( ...$provider_args )
+			: Provider::regional( ProviderType::DigitalOcean, ...$provider_args );
 		$signer   = new Signer( $provider, self::ACCESS_KEY, self::SECRET_KEY );
 
 		$url = $signer->get_presigned_url( $bucket, $key, 60 )->get_url();
@@ -132,8 +134,8 @@ final class SigningTest extends TestCase {
 	public static function presign_cases(): array {
 		return [
 			'R2 path-style' => [
-				CloudflareR2::class,
-				[ 'default', [ 'account_id' => 'abc123' ] ],
+				'r2',
+				[ 'abc123' ],
 				'auto',
 				'my-bucket',
 				'files/song.wav',
@@ -141,8 +143,8 @@ final class SigningTest extends TestCase {
 				'/my-bucket/files/song.wav',
 			],
 			'R2 path-style, key needing encoding' => [
-				CloudflareR2::class,
-				[ 'default', [ 'account_id' => 'abc123' ] ],
+				'r2',
+				[ 'abc123' ],
 				'auto',
 				'my-bucket',
 				'Drum Kits/Vol 2.zip',
@@ -151,7 +153,7 @@ final class SigningTest extends TestCase {
 			],
 			// Bucket belongs in the host, NOT repeated in the path.
 			'Spaces virtual-hosted' => [
-				DigitalOceanSpaces::class,
+				'spaces',
 				[ 'ams3' ],
 				'ams3',
 				'my-bucket',
@@ -170,7 +172,7 @@ final class SigningTest extends TestCase {
 	 * case-insensitive, so the transport is unaffected.
 	 */
 	public function test_auth_headers_sign_the_addressed_host(): void {
-		$spaces  = new DigitalOceanSpaces( 'ams3' );
+		$spaces  = Provider::regional( ProviderType::DigitalOcean, 'ams3' );
 		$signer  = new Signer( $spaces, self::ACCESS_KEY, self::SECRET_KEY );
 		$headers = $signer->generate_auth_headers( 'DELETE', 'my-bucket', 'files/song.wav' );
 
@@ -193,7 +195,7 @@ final class SigningTest extends TestCase {
 	}
 
 	public function test_empty_payload_hash_is_sha256_of_empty_string(): void {
-		$provider = new CloudflareR2( 'default', [ 'account_id' => 'abc123' ] );
+		$provider = Provider::r2( 'abc123' );
 		$headers  = ( new Signer( $provider, self::ACCESS_KEY, self::SECRET_KEY ) )
 			->generate_auth_headers( 'GET', 'my-bucket' );
 
@@ -201,7 +203,7 @@ final class SigningTest extends TestCase {
 	}
 
 	public function test_presign_expiry_is_clamped_to_the_sigv4_maximum(): void {
-		$provider = new CloudflareR2( 'default', [ 'account_id' => 'abc123' ] );
+		$provider = Provider::r2( 'abc123' );
 		$signer   = new Signer( $provider, self::ACCESS_KEY, self::SECRET_KEY );
 
 		$url = $signer->get_presigned_url( 'b', 'k.txt', 99999999 )->get_url();
