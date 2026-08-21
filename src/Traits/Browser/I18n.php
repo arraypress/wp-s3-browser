@@ -186,7 +186,7 @@ trait I18n {
 
 			// Manual CORS setup
 			's3CompatibleProvider'   => __( 'S3 Compatible Provider', 'arraypress' ),
-			'autoSetupFailed'        => __( 'Automatic CORS setup failed.', 'arraypress' ),
+			'autoSetupFailed'        => __( 'CORS needs to be set up in your provider\'s console.', 'arraypress' ),
 			'manualSetupInstruction' => __( 'You can set up CORS manually through your {provider} console or API.', 'arraypress' ),
 			'requiredCorsConfig'     => __( 'Required CORS Configuration:', 'arraypress' ),
 			'addCorsRule'            => __( 'Add this minimal CORS rule to bucket {bucket}:', 'arraypress' ),

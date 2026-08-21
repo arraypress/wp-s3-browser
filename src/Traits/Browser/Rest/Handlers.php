@@ -440,7 +440,27 @@ trait Handlers {
 		$result = $this->client->set_cors_scenario( $bucket, 'upload_only', [ $origin ] );
 
 		if ( ! $result->is_successful() ) {
-			return $this->rest_fail( 'rest_cors_setup_failed', $result->get_error_message(), 502 );
+			// AccessDenied on PutBucketCors is not a transient failure and no
+			// amount of retrying fixes it: R2 API tokens carry a permission
+			// level, and a token with Object Read & Write can upload objects
+			// while being refused any change to bucket configuration. That is
+			// the recommended way to scope a token, so it is a normal state
+			// rather than a misconfiguration — but it does mean CORS has to be
+			// set once in the provider's console. Saying "setup failed" sends
+			// people to retry something that cannot succeed.
+			$denied = in_array(
+				$result->get_error_code(),
+				[ 'AccessDenied', 'access_denied' ],
+				true
+			) || 403 === $result->get_status_code();
+
+			return $this->rest_fail(
+				$denied ? 'rest_cors_permission_denied' : 'rest_cors_setup_failed',
+				$denied
+					? __( 'This API token can read and write objects but is not permitted to change bucket settings, so CORS has to be configured once in your provider\'s console. The rule to add is below.', 'arraypress' )
+					: $result->get_error_message(),
+				502
+			);
 		}
 
 		$this->client->clear_bucket_cache( $bucket );
