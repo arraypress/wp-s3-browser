@@ -39,8 +39,8 @@ class Assets {
 		}
 
 		// Use this file's location to find assets
-		if ( function_exists( 'wp_enqueue_composer_style' ) ) {
-			return wp_enqueue_composer_style(
+		if ( function_exists( 'arraypress_enqueue_composer_style' ) ) {
+			return arraypress_enqueue_composer_style(
 				$handle,
 				__FILE__,
 				'css/admin.css'

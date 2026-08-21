@@ -46,7 +46,7 @@ trait Integrations {
             $config_handle = $this->enqueue_global_config();
 
             // Enqueue EDD-specific script using WP Composer Assets
-            wp_enqueue_composer_script(
+            arraypress_enqueue_composer_script(
                     's3-browser-edd',
                     __FILE__,
                     'js/s3-browser-edd.js',
@@ -80,7 +80,7 @@ trait Integrations {
             $config_handle = $this->enqueue_global_config();
 
             // Enqueue WooCommerce-specific script using WP Composer Assets
-            wp_enqueue_composer_script(
+            arraypress_enqueue_composer_script(
                     's3-browser-woocommerce',
                     __FILE__,
                     'js/s3-browser-woocommerce.js',
