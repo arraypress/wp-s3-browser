@@ -270,13 +270,6 @@
     transition: all 0.2s ease;
 }
 
-#s3-load-more .dashicons {
-    font-size: 16px;
-    width: 16px;
-    height: 16px;
-    margin: 0;
-}
-
 #s3-load-more:hover:not(:disabled) {
     background-color: #f0f6fc;
     border-color: #0969da;
@@ -289,6 +282,50 @@
     background-color: #f6f8fa;
     border-color: #d1d9e0;
     color: #656d76;
+}
+
+/* -----------------------------------------------------------------------------
+   Busy buttons
+   -----------------------------------------------------------------------------
+   WordPress core draws the busy spinner as a ::before pseudo-element on
+   .button.updating-message, at `font: normal 20px/1 dashicons` with
+   `vertical-align: top` and no margin. Against a 13px button label that puts a
+   20px glyph flush against the text and aligned to the top of the line box,
+   which reads as misaligned.
+
+   Laying the button out as a flex container sidesteps vertical-align entirely:
+   the pseudo-element becomes a flex item and `align-items: center` centres it
+   against the label regardless of the two font sizes. The rule applies in both
+   states so adding the spinner does not shift the layout — with no icon
+   present, a single-child flex container renders identically to the inline
+   button.
+   -------------------------------------------------------------------------- */
+
+.s3-refresh-button,
+.s3-test-connection,
+.s3-insert-file,
+.s3-open-folder,
+#s3-toggle-upload,
+#s3-create-folder {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
+
+.s3-refresh-button.updating-message:before,
+.s3-test-connection.updating-message:before,
+.s3-insert-file.updating-message:before,
+.s3-open-folder.updating-message:before,
+#s3-load-more.updating-message:before,
+#s3-toggle-upload.updating-message:before,
+#s3-create-folder.updating-message:before {
+    /* Match the label rather than towering over it. */
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    line-height: 1;
+    margin: 0;
 }
 
 .s3-toolbar-buttons {
