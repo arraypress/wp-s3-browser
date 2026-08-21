@@ -23,6 +23,22 @@ namespace ArrayPress\S3\Utils;
 class Sanitize {
 
 	/**
+	 * Reduce a string to a lowercase, hyphen-separated slug.
+	 *
+	 * Deliberately not sanitize_title(): that runs through a filter of the
+	 * same name, so a third-party plugin can change what it returns. This
+	 * derives a REST namespace, and a namespace that shifts under a filter
+	 * moves the browser's routes out from under its own JavaScript.
+	 *
+	 * @param string $value Value to slug.
+	 *
+	 * @return string Slug, or '' if nothing usable remained.
+	 */
+	public static function slug( string $value ): string {
+		return trim( strtolower( (string) preg_replace( '/[^A-Za-z0-9]+/', '-', $value ) ), '-' );
+	}
+
+	/**
 	 * Validate and normalize minutes value for S3 URLs
 	 *
 	 * @param int $minutes Minutes to validate

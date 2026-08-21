@@ -133,7 +133,7 @@ class Controller {
 		// library's own vendor name at the front.
 		$base = ( '' === $prefix || 'ArrayPress' === $prefix )
 			? 's3-browser'
-			: strtolower( preg_replace( '/[^A-Za-z0-9]+/', '-', $prefix ) ) . '-s3-browser';
+			: Sanitize::slug( $prefix ) . '-s3-browser';
 
 		return trim( $base, '-' ) . '/v1';
 	}
