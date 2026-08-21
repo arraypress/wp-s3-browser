@@ -48,28 +48,85 @@ trait Helpers {
 	}
 
 	/**
+	 * Check whether a bucket may be addressed through this browser
+	 *
+	 * Every AJAX endpoint takes the bucket straight from $_POST, so without a
+	 * check here the capability gate ('upload_files' by default — Author and
+	 * up) grants read, write, rename and delete over *every* bucket the
+	 * configured credentials can reach, not just the one the browser is
+	 * pointed at. S3 credentials are usually account-wide, so that is a real
+	 * privilege boundary and not a theoretical one.
+	 *
+	 * An empty allow-list preserves the historical behaviour of permitting any
+	 * bucket. Sites that only ever use one bucket should set it — see
+	 * Browser::set_allowed_buckets() and the 's3_browser_allowed_buckets'
+	 * filter.
+	 *
+	 * @param string $bucket Bucket name from the request
+	 *
+	 * @return bool True if the bucket may be used
+	 */
+	private function is_bucket_allowed( string $bucket ): bool {
+		if ( '' === $bucket ) {
+			return false;
+		}
+
+		// Reject anything that is not a syntactically valid bucket name before
+		// it reaches URL building — the value ends up in a Host header or a
+		// request path.
+		if ( ! preg_match( '/^[a-z0-9][a-z0-9.\-]{1,61}[a-z0-9]$/i', $bucket ) ) {
+			return false;
+		}
+
+		$allowed = $this->get_allowed_buckets();
+
+		if ( empty( $allowed ) ) {
+			return true;
+		}
+
+		return in_array( $bucket, $allowed, true );
+	}
+
+	/**
+	 * Validate the bucket for this request, responding with an error if not allowed
+	 *
+	 * @param string $bucket Bucket name from the request
+	 *
+	 * @return bool True if the request may proceed
+	 */
+	private function verify_bucket( string $bucket ): bool {
+		if ( $this->is_bucket_allowed( $bucket ) ) {
+			return true;
+		}
+
+		wp_send_json_error( [ 'message' => __( 'You do not have permission to access this bucket', 'arraypress' ) ] );
+
+		return false;
+	}
+
+	/**
 	 * Get sanitized POST data with proper character handling
 	 *
+	 * Unslash first, then sanitize. WordPress adds slashes to everything in
+	 * $_POST, so sanitizing before unslashing operates on escaped input — which
+	 * is why object keys containing an apostrophe used to arrive as "it\'s.wav".
+	 * The old default path never unslashed at all, leaving literal backslashes
+	 * in every key that contained a quote or backslash.
+	 *
 	 * @param string $key                    Key to retrieve from $_POST
-	 * @param bool   $preserve_special_chars Whether to preserve special characters (default: false)
+	 * @param bool   $preserve_special_chars Retained for backwards compatibility.
+	 *                                       Both paths now handle special
+	 *                                       characters correctly, so this no
+	 *                                       longer changes the result.
 	 *
 	 * @return string Sanitized value or empty string
 	 */
 	private function get_sanitized_post( string $key, bool $preserve_special_chars = false ): string {
-		if ( ! isset( $_POST[ $key ] ) ) {
+		if ( ! isset( $_POST[ $key ] ) || ! is_scalar( $_POST[ $key ] ) ) {
 			return '';
 		}
 
-		$value = $_POST[ $key ];
-
-		// Handle character preservation for file paths and names with special characters
-		if ( $preserve_special_chars ) {
-			$value = wp_unslash( sanitize_text_field( $value ) );
-		} else {
-			$value = sanitize_text_field( $value );
-		}
-
-		return $value;
+		return sanitize_text_field( wp_unslash( (string) $_POST[ $key ] ) );
 	}
 
 	/**

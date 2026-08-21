@@ -78,7 +78,7 @@ trait Files {
 				'prefix'             => $prefix,
 				'delimiter'          => $delimiter,
 				'continuation_token' => $continuation_token
-			] );
+			], $bucket );
 
 			$cached = $this->get_from_cache( $cache_key );
 			if ( $cached !== false ) {

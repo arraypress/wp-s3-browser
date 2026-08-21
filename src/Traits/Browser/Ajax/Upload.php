@@ -54,6 +54,10 @@ trait Upload {
 			return;
 		}
 
+		if ( ! $this->verify_bucket( $bucket ) ) {
+			return;
+		}
+
 		$response = $this->client->get_presigned_upload_url( $bucket, $object_key );
 
 		if ( ! $response->is_successful() ) {

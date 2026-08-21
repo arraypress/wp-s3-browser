@@ -77,13 +77,66 @@ trait Caching {
 	/**
 	 * Generate cache key
 	 *
+	 * The key folds in two monotonic "generation" counters — one global, one
+	 * per bucket. Bumping a counter makes every key derived from it
+	 * unreachable at once, which is how invalidation works here. That matters
+	 * because the previous approach (deleting matching rows from wp_options)
+	 * is a no-op on any site running a persistent object cache, where
+	 * transients never touch the options table at all.
+	 *
 	 * @param string $base   Base key
 	 * @param array  $params Additional parameters to include in key
+	 * @param string $bucket Optional bucket this entry belongs to, so it can be
+	 *                       invalidated independently of the rest
 	 *
 	 * @return string Cache key
 	 */
-	public function get_cache_key( string $base, array $params = [] ): string {
-		return $this->cache_prefix . md5( $base . '_' . serialize( $params ) );
+	public function get_cache_key( string $base, array $params = [], string $bucket = '' ): string {
+		// Most call sites already identify the bucket inside $params; honour that
+		// so they get per-bucket invalidation without having to repeat it.
+		if ( '' === $bucket && isset( $params['bucket'] ) && is_string( $params['bucket'] ) ) {
+			$bucket = $params['bucket'];
+		}
+
+		$generation = $this->get_cache_generation( '' ) . ':' . $this->get_cache_generation( $bucket );
+
+		return $this->cache_prefix . md5( $generation . '|' . $base . '|' . serialize( $params ) );
+	}
+
+	/**
+	 * Get the option name holding a cache generation counter
+	 *
+	 * @param string $bucket Bucket name, or '' for the global counter
+	 *
+	 * @return string
+	 */
+	private function get_cache_generation_option( string $bucket = '' ): string {
+		return $this->cache_prefix . 'cache_gen_' . ( '' === $bucket ? 'global' : md5( $bucket ) );
+	}
+
+	/**
+	 * Read a cache generation counter
+	 *
+	 * @param string $bucket Bucket name, or '' for the global counter
+	 *
+	 * @return int
+	 */
+	private function get_cache_generation( string $bucket = '' ): int {
+		return (int) get_option( $this->get_cache_generation_option( $bucket ), 0 );
+	}
+
+	/**
+	 * Bump a cache generation counter, orphaning every key derived from it
+	 *
+	 * @param string $bucket Bucket name, or '' for the global counter
+	 *
+	 * @return bool
+	 */
+	private function bump_cache_generation( string $bucket = '' ): bool {
+		$option = $this->get_cache_generation_option( $bucket );
+
+		// autoload=false: these are read on demand, not on every page load.
+		return update_option( $option, $this->get_cache_generation( $bucket ) + 1, false );
 	}
 
 	/**
@@ -134,30 +187,45 @@ trait Caching {
 	 * @return bool Whether the operation was successful
 	 */
 	public function clear_all_cache(): bool {
+		// Authoritative step: every existing key is derived from the old
+		// generation, so bumping it invalidates the lot — including on sites
+		// with a persistent object cache, where the row sweep below is a no-op.
+		$bumped = $this->bump_cache_generation();
+
+		// Best-effort tidy-up so orphaned rows don't sit in wp_options until
+		// their TTL lapses. Failure here is not fatal; the bump already did
+		// the real work.
+		$this->delete_transient_rows( $this->cache_prefix );
+
+		return $bumped;
+	}
+
+	/**
+	 * Delete transient rows matching a key prefix
+	 *
+	 * Only meaningful when transients live in the options table. Returns false
+	 * (rather than pretending to succeed) when an external object cache is in
+	 * play, since nothing was actually removed there.
+	 *
+	 * @param string $key_prefix Cache key prefix to match
+	 *
+	 * @return bool Whether rows were swept
+	 */
+	private function delete_transient_rows( string $key_prefix ): bool {
 		global $wpdb;
 
-		if ( ! isset( $wpdb ) || ! $wpdb ) {
+		if ( ! isset( $wpdb ) || ! $wpdb || wp_using_ext_object_cache() ) {
 			return false;
 		}
 
-		$pattern = $wpdb->esc_like( '_transient_' . $this->cache_prefix ) . '%';
+		foreach ( [ '_transient_', '_transient_timeout_' ] as $row_prefix ) {
+			$wpdb->query( $wpdb->prepare(
+				"DELETE FROM $wpdb->options WHERE option_name LIKE %s",
+				$wpdb->esc_like( $row_prefix . $key_prefix ) . '%'
+			) );
+		}
 
-		$sql = $wpdb->prepare(
-			"DELETE FROM $wpdb->options WHERE option_name LIKE %s",
-			$pattern
-		);
-
-		$result = $wpdb->query( $sql );
-
-		// Also clear timeout entries
-		$timeout_pattern = $wpdb->esc_like( '_transient_timeout_' . $this->cache_prefix ) . '%';
-
-		$wpdb->query( $wpdb->prepare(
-			"DELETE FROM $wpdb->options WHERE option_name LIKE %s",
-			$timeout_pattern
-		) );
-
-		return $result !== false;
+		return true;
 	}
 
 	/**
@@ -168,31 +236,11 @@ trait Caching {
 	 * @return bool Whether the operation was successful
 	 */
 	public function clear_bucket_cache( string $bucket ): bool {
-		global $wpdb;
-
-		if ( ! isset( $wpdb ) || ! $wpdb ) {
+		if ( '' === $bucket ) {
 			return false;
 		}
 
-		$prefix  = $this->cache_prefix . md5( 'objects_' . $bucket );
-		$pattern = $wpdb->esc_like( '_transient_' . $prefix ) . '%';
-
-		$sql = $wpdb->prepare(
-			"DELETE FROM $wpdb->options WHERE option_name LIKE %s",
-			$pattern
-		);
-
-		$result = $wpdb->query( $sql );
-
-		// Also clear timeout entries
-		$timeout_pattern = $wpdb->esc_like( '_transient_timeout_' . $prefix ) . '%';
-
-		$wpdb->query( $wpdb->prepare(
-			"DELETE FROM $wpdb->options WHERE option_name LIKE %s",
-			$timeout_pattern
-		) );
-
-		return $result !== false;
+		return $this->bump_cache_generation( $bucket );
 	}
 
 }

@@ -82,6 +82,15 @@ interface Provider {
 	public function format_canonical_uri( string $bucket, string $object_key ): string;
 
 	/**
+	 * Get the Host header value for a request against a given bucket
+	 *
+	 * @param string $bucket Bucket name ('' for service-level operations)
+	 *
+	 * @return string
+	 */
+	public function get_request_host( string $bucket = '' ): string;
+
+	/**
 	 * Get default region
 	 *
 	 * @return string

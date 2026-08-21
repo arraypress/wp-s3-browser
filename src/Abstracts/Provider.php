@@ -189,20 +189,23 @@ abstract class Provider implements ProviderInterface {
 	 * Format object URI for AWS Signature Version 4 signing
 	 *
 	 * This creates the canonical URI component used in AWS signature calculation.
-	 * Unlike format_url(), this does NOT URL-encode the object key because encoding
-	 * happens at a different stage in the signing process.
+	 * SigV4 requires the canonical URI to be the *URI-encoded* resource path, and
+	 * it must match byte-for-byte what actually goes on the wire. This method
+	 * therefore applies exactly the same encoding as format_url() — anything else
+	 * yields SignatureDoesNotMatch for any key containing a space or a character
+	 * outside the RFC 3986 unreserved set.
 	 *
-	 * Used exclusively by:
+	 * Used by:
 	 * - Authentication trait (generate_auth_headers method)
 	 * - Presigned URL generation (for signature calculation)
 	 *
 	 * Examples:
-	 * Path-style: /bucket/folder/file with spaces.jpg
-	 * Virtual-hosted: /folder/file with spaces.jpg
+	 * Path-style: /bucket/folder/file%20with%20spaces.jpg
+	 * Virtual-hosted: /folder/file%20with%20spaces.jpg
 	 * Service-level (empty bucket): /
 	 *
 	 * @param string $bucket     Bucket name
-	 * @param string $object_key Object key (NOT URL-encoded)
+	 * @param string $object_key Object key (raw; encoded here)
 	 *
 	 * @return string Canonical URI for signature calculation (starts with /)
 	 */
@@ -211,15 +214,38 @@ abstract class Provider implements ProviderInterface {
 			return '/';
 		}
 
-		if ( $this->uses_path_style() ) {
-			if ( empty( $object_key ) ) {
-				return '/' . $bucket;
-			}
+		$encoded_key = empty( $object_key ) ? '' : Encode::object_key( $object_key );
 
-			return '/' . $bucket . '/' . ltrim( $object_key, '/' );
-		} else {
-			return '/' . ltrim( $object_key, '/' );
+		// Under virtual-hosted addressing the bucket lives in the Host header,
+		// so it must NOT be repeated in the path.
+		if ( ! $this->uses_path_style() ) {
+			return '/' . $encoded_key;
 		}
+
+		return '/' . rawurlencode( $bucket ) . ( '' === $encoded_key ? '' : '/' . $encoded_key );
+	}
+
+	/**
+	 * Get the Host header value for a request against a given bucket
+	 *
+	 * The Host header is part of every SigV4 canonical request, so the value
+	 * signed has to be the host the request is actually sent to. Under
+	 * virtual-hosted addressing that is "bucket.endpoint", not the bare
+	 * endpoint — signing the latter while requesting the former is an
+	 * immediate SignatureDoesNotMatch.
+	 *
+	 * @param string $bucket Bucket name ('' for service-level operations)
+	 *
+	 * @return string Host header value
+	 */
+	public function get_request_host( string $bucket = '' ): string {
+		$endpoint = $this->get_endpoint();
+
+		if ( empty( $bucket ) || $this->uses_path_style() ) {
+			return $endpoint;
+		}
+
+		return $bucket . '.' . $endpoint;
 	}
 
 	/**
@@ -262,9 +288,10 @@ abstract class Provider implements ProviderInterface {
 		}
 
 		// Check against configured custom domains
+		$host           = self::extract_host( $url_without_protocol );
 		$custom_domains = $this->get_all_custom_domains();
 		foreach ( $custom_domains as $domain ) {
-			if ( str_starts_with( $url_without_protocol, $domain ) ) {
+			if ( self::host_matches( $host, self::extract_host( (string) $domain ) ) ) {
 				return true;
 			}
 		}
@@ -495,14 +522,60 @@ abstract class Provider implements ProviderInterface {
 	 * @return bool
 	 */
 	protected function url_matches_endpoint( string $url_without_protocol, string $endpoint ): bool {
-		// Direct match
-		if ( str_starts_with( $url_without_protocol, $endpoint ) ) {
-			return true;
+		return self::host_matches( self::extract_host( $url_without_protocol ), $endpoint );
+	}
+
+	/**
+	 * Extract the bare host from a protocol-less URL
+	 *
+	 * Everything from the first '/', '?' or '#' onwards is path/query, and any
+	 * ':port' or 'user@' prefix is authority noise. Comparing those as part of
+	 * the host is what lets "evil.com/?x=s3.amazonaws.com" masquerade as an
+	 * endpoint.
+	 *
+	 * @param string $url_without_protocol URL with the scheme already stripped
+	 *
+	 * @return string Lowercase host, or '' if none could be determined
+	 */
+	protected static function extract_host( string $url_without_protocol ): string {
+		$host = preg_split( '#[/?\#]#', $url_without_protocol, 2 )[0] ?? '';
+
+		// Drop any userinfo ("user:pass@host") — the host is what follows '@'.
+		$at = strrpos( $host, '@' );
+		if ( false !== $at ) {
+			$host = substr( $host, $at + 1 );
 		}
 
-		// Virtual-hosted style: bucket.endpoint
-		$pattern = '/^[^.]+\.' . preg_quote( $endpoint, '/' ) . '/';
-		return (bool) preg_match( $pattern, $url_without_protocol );
+		// Drop the port.
+		$colon = strrpos( $host, ':' );
+		if ( false !== $colon ) {
+			$host = substr( $host, 0, $colon );
+		}
+
+		return strtolower( rtrim( $host, '.' ) );
+	}
+
+	/**
+	 * Check whether a host is, or is a subdomain of, a given domain
+	 *
+	 * Match must land on a label boundary. A plain str_starts_with() here would
+	 * accept "s3.amazonaws.com.attacker.example" as belonging to this provider,
+	 * which matters because is_provider_url() is documented as — and used as —
+	 * a security check on URLs from external sources.
+	 *
+	 * @param string $host   Host to test
+	 * @param string $domain Domain to test against
+	 *
+	 * @return bool
+	 */
+	protected static function host_matches( string $host, string $domain ): bool {
+		$domain = strtolower( rtrim( trim( $domain ), '.' ) );
+
+		if ( '' === $host || '' === $domain ) {
+			return false;
+		}
+
+		return $host === $domain || str_ends_with( $host, '.' . $domain );
 	}
 
 	/**
@@ -589,14 +662,20 @@ abstract class Provider implements ProviderInterface {
 	 */
 	protected function parse_custom_domain_url( string $url_without_protocol ): ?array {
 		// Check each custom domain to see which bucket it belongs to
-		foreach ( $this->params as $key => $domain ) {
-			if ( str_starts_with( $key, 'custom_domain_' ) && str_starts_with( $url_without_protocol, $domain ) ) {
-				$bucket = str_replace( 'custom_domain_', '', $key );
+		$host = self::extract_host( $url_without_protocol );
 
-				// Extract object path
-				$domain_length = strlen( $domain );
-				$remaining     = substr( $url_without_protocol, $domain_length );
-				$object        = ltrim( $remaining, '/' );
+		foreach ( $this->params as $key => $domain ) {
+			if ( ! str_starts_with( $key, 'custom_domain_' ) || empty( $domain ) ) {
+				continue;
+			}
+
+			if ( self::host_matches( $host, self::extract_host( (string) $domain ) ) ) {
+				$bucket = substr( $key, strlen( 'custom_domain_' ) );
+
+				// Extract object path — everything after the host, minus any query.
+				$slash     = strpos( $url_without_protocol, '/' );
+				$remaining = false === $slash ? '' : substr( $url_without_protocol, $slash );
+				$object    = ltrim( strtok( $remaining, '?' ) ?: '', '/' );
 
 				return [
 					'bucket' => $bucket,
@@ -648,9 +727,15 @@ abstract class Provider implements ProviderInterface {
 			$url = $this->format_url( $bucket, $object );
 		}
 
-		// Add query parameters if provided
+		// Add query parameters if provided.
+		//
+		// PHP_QUERY_RFC3986 is required, not cosmetic: the signature is computed
+		// over rawurlencode()'d parameters, and http_build_query()'s default
+		// RFC1738 encoding renders a space as "+" and a tilde as "%7E". Any
+		// prefix or continuation token containing either would then be signed
+		// one way and sent another.
 		if ( ! empty( $query_params ) ) {
-			$url .= '?' . http_build_query( $query_params );
+			$url .= '?' . http_build_query( $query_params, '', '&', PHP_QUERY_RFC3986 );
 		}
 
 		return $url;

@@ -56,6 +56,10 @@ trait Folder {
 			return;
 		}
 
+		if ( ! $this->verify_bucket( $bucket ) ) {
+			return;
+		}
+
 		if ( empty( $folder_name ) ) {
 			wp_send_json_error( [ 'message' => __( 'Folder name is required', 'arraypress' ) ] );
 
@@ -112,6 +116,10 @@ trait Folder {
 		if ( empty( $bucket ) || empty( $folder_path ) ) {
 			wp_send_json_error( [ 'message' => __( 'Bucket and folder path are required', 'arraypress' ) ] );
 
+			return;
+		}
+
+		if ( ! $this->verify_bucket( $bucket ) ) {
 			return;
 		}
 

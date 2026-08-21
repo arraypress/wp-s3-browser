@@ -125,27 +125,4 @@ class VultrObjectStorage extends Provider {
 		return false;
 	}
 
-	/**
-	 * Format canonical URI for Vultr
-	 *
-	 * @param string $bucket     Bucket name
-	 * @param string $object_key Object key
-	 *
-	 * @return string
-	 */
-	public function format_canonical_uri( string $bucket, string $object_key = '' ): string {
-		// For Vultr, always use path-style
-		if ( empty( $bucket ) ) {
-			return '/';
-		}
-
-		// For bucket operations, use '/bucket'
-		if ( empty( $object_key ) ) {
-			return '/' . $bucket;
-		}
-
-		// For object operations, use '/bucket/object'
-		return '/' . $bucket . '/' . ltrim( $object_key, '/' );
-	}
-
 }

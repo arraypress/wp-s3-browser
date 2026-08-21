@@ -233,7 +233,7 @@ trait File {
 				'max_keys'  => 1000,
 				'prefix'    => $prefix,
 				'delimiter' => '/'
-			] );
+			], $bucket );
 			$this->clear_cache_item( $cache_key );
 		}
 
@@ -291,7 +291,7 @@ trait File {
 				'max_keys'  => 1000,
 				'prefix'    => $prefix,
 				'delimiter' => '/'
-			] );
+			], $params['target_bucket'] );
 			$this->clear_cache_item( $cache_key );
 		}
 
@@ -604,7 +604,7 @@ trait File {
 				'max_keys'  => 1000,
 				'prefix'    => $prefix,
 				'delimiter' => '/'
-			] );
+			], $bucket );
 			$this->clear_cache_item( $cache_key );
 		}
 

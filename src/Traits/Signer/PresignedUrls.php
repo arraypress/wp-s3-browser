@@ -1,6 +1,6 @@
 <?php
 /**
- * Presigned URL Operations Trait - Clean Version
+ * Presigned URL Operations Trait
  *
  * Handles presigned URL operations for S3-compatible storage.
  *
@@ -18,7 +18,6 @@ namespace ArrayPress\S3\Traits\Signer;
 use ArrayPress\S3\Interfaces\Response as ResponseInterface;
 use ArrayPress\S3\Responses\PresignedUrlResponse;
 use ArrayPress\S3\Responses\ErrorResponse;
-use ArrayPress\S3\Utils\Encode;
 use ArrayPress\S3\Utils\Timestamp;
 
 /**
@@ -27,7 +26,12 @@ use ArrayPress\S3\Utils\Timestamp;
 trait PresignedUrls {
 
 	/**
-	 * Generate a pre-signed URL for an object
+	 * SigV4 caps presigned-URL validity at 7 days.
+	 */
+	private static int $max_presign_minutes = 10080;
+
+	/**
+	 * Generate a pre-signed URL for downloading an object
 	 *
 	 * @param string $bucket     Bucket name
 	 * @param string $object_key Object key
@@ -36,89 +40,7 @@ trait PresignedUrls {
 	 * @return ResponseInterface Presigned URL response
 	 */
 	public function get_presigned_url( string $bucket, string $object_key, int $expires = 60 ): ResponseInterface {
-		if ( empty( $bucket ) || empty( $object_key ) ) {
-			return new ErrorResponse(
-				__( 'Bucket and object key are required', 'arraypress' ),
-				'invalid_parameters',
-				400
-			);
-		}
-
-		// SigV4 caps presigned-URL validity at 7 days (10080 minutes). Negative or
-		// zero values produce malformed URLs; absurdly large values get rejected by
-		// the provider but leak credential metadata over the wire. Clamp here so
-		// every caller — including direct library users — stays inside the spec.
-		$expires = max( 1, min( $expires, 10080 ) );
-
-		// Convert minutes to seconds and get expiration timestamp
-		$expires_seconds = $expires * 60;
-		$expires_at      = Timestamp::in_minutes( $expires );
-
-		$time      = time();
-		$amz_date  = gmdate( 'Ymd\THis\Z', $time );
-		$datestamp = gmdate( 'Ymd', $time );
-
-		// Use our special encoding method to properly handle special characters
-		$encoded_key = Encode::object_key( $object_key );
-
-		// Get endpoint from the provider
-		$host = $this->provider->get_endpoint();
-
-		// Format the canonical URI - this specific format is required for signing
-		$canonical_uri = '/' . $bucket . '/' . $encoded_key;
-
-		// Format the credential scope
-		$credential_scope = $datestamp . '/' . $this->provider->get_region() . '/s3/aws4_request';
-		$credential       = $this->access_key . '/' . $credential_scope;
-
-		// Create the query parameters
-		$query_params = [
-			'X-Amz-Algorithm'     => 'AWS4-HMAC-SHA256',
-			'X-Amz-Credential'    => $credential,
-			'X-Amz-Date'          => $amz_date,
-			'X-Amz-Expires'       => (string) $expires_seconds,
-			'X-Amz-SignedHeaders' => 'host'
-		];
-
-		// Build the canonical query string
-		$canonical_querystring = '';
-
-		// Sort query parameters by key
-		ksort( $query_params );
-
-		foreach ( $query_params as $key => $value ) {
-			if ( $canonical_querystring !== '' ) {
-				$canonical_querystring .= '&';
-			}
-			$canonical_querystring .= rawurlencode( $key ) . '=' . rawurlencode( (string) $value );
-		}
-
-		// Build the canonical request
-		$canonical_request = "GET\n";
-		$canonical_request .= $canonical_uri . "\n";
-		$canonical_request .= $canonical_querystring . "\n";
-		$canonical_request .= "host:" . $host . "\n";
-		$canonical_request .= "\n";
-		$canonical_request .= "host\n";
-		$canonical_request .= "UNSIGNED-PAYLOAD";
-
-		// Debug the canonical request
-		$this->debug( "Presigned URL Canonical Request", $canonical_request );
-
-		// Create the string to sign
-		$string_to_sign = "AWS4-HMAC-SHA256\n";
-		$string_to_sign .= $amz_date . "\n";
-		$string_to_sign .= $credential_scope . "\n";
-		$string_to_sign .= hash( 'sha256', $canonical_request );
-
-		// Calculate the signature
-		$signature = $this->calculate_signature( $string_to_sign, $datestamp );
-
-		$url = $this->provider->build_url_with_encoded_key( $bucket, $encoded_key );
-
-		$presigned_url = $url . '?' . $canonical_querystring . '&X-Amz-Signature=' . $signature;
-
-		return new PresignedUrlResponse( $presigned_url, $expires_at );
+		return $this->build_presigned_url( 'GET', $bucket, $object_key, $expires );
 	}
 
 	/**
@@ -131,6 +53,31 @@ trait PresignedUrls {
 	 * @return ResponseInterface Presigned URL response
 	 */
 	public function get_presigned_upload_url( string $bucket, string $object_key, int $expires = 15 ): ResponseInterface {
+		return $this->build_presigned_url( 'PUT', $bucket, $object_key, $expires );
+	}
+
+	/**
+	 * Build a presigned URL for an arbitrary method
+	 *
+	 * GET and PUT presigning differ only in the verb on the first line of the
+	 * canonical request, so both share this implementation. Keeping one copy
+	 * matters here: the canonical URI, the Host header and the query string
+	 * must agree exactly with what is sent, and two hand-maintained copies of
+	 * that logic drift.
+	 *
+	 * @param string $method     HTTP method ('GET' or 'PUT')
+	 * @param string $bucket     Bucket name
+	 * @param string $object_key Object key
+	 * @param int    $expires    Expiration time in minutes
+	 *
+	 * @return ResponseInterface Presigned URL response
+	 */
+	protected function build_presigned_url(
+		string $method,
+		string $bucket,
+		string $object_key,
+		int $expires
+	): ResponseInterface {
 		if ( empty( $bucket ) || empty( $object_key ) ) {
 			return new ErrorResponse(
 				__( 'Bucket and object key are required', 'arraypress' ),
@@ -139,10 +86,10 @@ trait PresignedUrls {
 			);
 		}
 
-		// Clamp to SigV4's 7-day max (see get_presigned_url for rationale).
-		$expires = max( 1, min( $expires, 10080 ) );
-
-		// Convert minutes to seconds and get expiration timestamp
+		// Negative or zero values produce malformed URLs; absurdly large values
+		// get rejected by the provider but leak credential metadata over the
+		// wire first. Clamp here so every caller stays inside the spec.
+		$expires         = max( 1, min( $expires, self::$max_presign_minutes ) );
 		$expires_seconds = $expires * 60;
 		$expires_at      = Timestamp::in_minutes( $expires );
 
@@ -150,65 +97,47 @@ trait PresignedUrls {
 		$amz_date  = gmdate( 'Ymd\THis\Z', $time );
 		$datestamp = gmdate( 'Ymd', $time );
 
-		// Use our special encoding method to properly handle special characters
-		$encoded_key = Encode::object_key( $object_key );
+		// Ask the provider for both, so path-style and virtual-hosted addressing
+		// stay consistent. Hardcoding "/bucket/key" here signs a path that a
+		// virtual-hosted provider never receives — the bucket is in the host.
+		$host          = $this->provider->get_request_host( $bucket );
+		$canonical_uri = $this->provider->format_canonical_uri( $bucket, $object_key );
 
-		// Format the canonical URI
-		$canonical_uri = '/' . $bucket . '/' . $encoded_key;
-
-		// Format the credential scope
 		$credential_scope = $datestamp . '/' . $this->provider->get_region() . '/s3/aws4_request';
-		$credential       = $this->access_key . '/' . $credential_scope;
 
-		// Create the query parameters - specify a PUT method for upload
 		$query_params = [
 			'X-Amz-Algorithm'     => 'AWS4-HMAC-SHA256',
-			'X-Amz-Credential'    => $credential,
+			'X-Amz-Credential'    => $this->access_key . '/' . $credential_scope,
 			'X-Amz-Date'          => $amz_date,
 			'X-Amz-Expires'       => (string) $expires_seconds,
-			'X-Amz-SignedHeaders' => 'host'
+			'X-Amz-SignedHeaders' => 'host',
 		];
 
-		// Build the canonical query string
-		$canonical_querystring = '';
-		ksort( $query_params );
+		$canonical_querystring = $this->build_canonical_query_string( $query_params );
 
-		foreach ( $query_params as $key => $value ) {
-			if ( $canonical_querystring !== '' ) {
-				$canonical_querystring .= '&';
-			}
-			$canonical_querystring .= rawurlencode( $key ) . '=' . rawurlencode( (string) $value );
-		}
+		$canonical_request = $method . "\n" .
+		                     $canonical_uri . "\n" .
+		                     $canonical_querystring . "\n" .
+		                     'host:' . $host . "\n" .
+		                     "\n" .
+		                     "host\n" .
+		                     'UNSIGNED-PAYLOAD';
 
-		// Get endpoint
-		$host = $this->provider->get_endpoint();
+		$this->debug( "Presigned {$method} Canonical Request", $canonical_request );
 
-		// Build the canonical request - note PUT method for upload
-		$canonical_request = "PUT\n";
-		$canonical_request .= $canonical_uri . "\n";
-		$canonical_request .= $canonical_querystring . "\n";
-		$canonical_request .= "host:" . $host . "\n";
-		$canonical_request .= "\n";
-		$canonical_request .= "host\n";
-		$canonical_request .= "UNSIGNED-PAYLOAD";
+		$string_to_sign = "AWS4-HMAC-SHA256\n" .
+		                  $amz_date . "\n" .
+		                  $credential_scope . "\n" .
+		                  hash( 'sha256', $canonical_request );
 
-		// Debug the canonical request
-		$this->debug( "Presigned Upload URL Canonical Request", $canonical_request );
-
-		// Create the string to sign
-		$string_to_sign = "AWS4-HMAC-SHA256\n";
-		$string_to_sign .= $amz_date . "\n";
-		$string_to_sign .= $credential_scope . "\n";
-		$string_to_sign .= hash( 'sha256', $canonical_request );
-
-		// Calculate the signature
 		$signature = $this->calculate_signature( $string_to_sign, $datestamp );
 
-		$url = $this->provider->build_url_with_encoded_key( $bucket, $encoded_key );
+		// The signed canonical URI is the request path, so reuse it verbatim
+		// rather than re-deriving (and re-encoding) it.
+		$presigned_url = 'https://' . $host . $canonical_uri
+		                 . '?' . $canonical_querystring
+		                 . '&X-Amz-Signature=' . $signature;
 
-		$presigned_url = $url . '?' . $canonical_querystring . '&X-Amz-Signature=' . $signature;
-
-		// Return PresignedUrlResponse
 		return new PresignedUrlResponse( $presigned_url, $expires_at );
 	}
 

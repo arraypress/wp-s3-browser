@@ -50,6 +50,10 @@ trait Bucket {
 			return;
 		}
 
+		if ( ! $this->verify_bucket( $bucket ) ) {
+			return;
+		}
+
 		// Force fresh data by bypassing cache
 		$details_result = $this->client->get_bucket_details( $bucket, $current_origin, false );
 
@@ -84,6 +88,10 @@ trait Bucket {
 		if ( empty( $bucket ) ) {
 			wp_send_json_error( [ 'message' => __( 'Bucket name is required', 'arraypress' ) ] );
 
+			return;
+		}
+
+		if ( ! $this->verify_bucket( $bucket ) ) {
 			return;
 		}
 
@@ -152,6 +160,10 @@ trait Bucket {
 		if ( empty( $bucket ) ) {
 			wp_send_json_error( [ 'message' => __( 'Bucket name is required', 'arraypress' ) ] );
 
+			return;
+		}
+
+		if ( ! $this->verify_bucket( $bucket ) ) {
 			return;
 		}
 

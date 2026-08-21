@@ -108,6 +108,13 @@ class Browser {
 	protected string $capability;
 
 	/**
+	 * Buckets this browser may address. Empty means "no restriction".
+	 *
+	 * @var string[]
+	 */
+	protected array $allowed_buckets = [];
+
+	/**
 	 * Constructor
 	 *
 	 * @param Provider          $provider           The storage provider instance
@@ -168,6 +175,48 @@ class Browser {
 
 		// Initialize WordPress hooks
 		$this->init_hooks();
+	}
+
+	/**
+	 * Restrict this browser to a specific set of buckets
+	 *
+	 * The bucket arrives with each AJAX request, so this is the only thing
+	 * standing between an Author-level user and every bucket the configured
+	 * credentials can reach. Set it whenever the browser is pointed at a known
+	 * bucket.
+	 *
+	 * @param string[] $buckets Bucket names. Empty array removes the restriction.
+	 *
+	 * @return self
+	 */
+	public function set_allowed_buckets( array $buckets ): self {
+		$this->allowed_buckets = array_values( array_filter( array_map( 'strval', $buckets ) ) );
+
+		return $this;
+	}
+
+	/**
+	 * Get the buckets this browser may address
+	 *
+	 * Filterable so integrations can scope access per user or per context —
+	 * e.g. returning a single bucket for non-administrators.
+	 *
+	 * @return string[] Allowed bucket names; empty means no restriction
+	 */
+	public function get_allowed_buckets(): array {
+		/**
+		 * Filter the buckets this browser instance may address.
+		 *
+		 * @param string[] $allowed_buckets Allowed bucket names. Empty array means no restriction.
+		 * @param string   $provider_id     Provider identifier.
+		 * @param string   $context         Browser context.
+		 */
+		return (array) apply_filters(
+			's3_browser_allowed_buckets',
+			$this->allowed_buckets,
+			$this->provider_id,
+			$this->get_context()
+		);
 	}
 
 	/**

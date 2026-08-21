@@ -41,6 +41,13 @@ trait System {
 			return;
 		}
 
+		// Objects::ajax_load_more() reads the bucket from $_POST itself, so gate
+		// it here before delegating — otherwise this endpoint enumerates any
+		// bucket the credentials can reach.
+		if ( ! $this->verify_bucket( $this->get_sanitized_post( 'bucket' ) ) ) {
+			return;
+		}
+
 		Objects::ajax_load_more( $this->client, $this->provider_id );
 	}
 

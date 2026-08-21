@@ -54,6 +54,10 @@ trait File {
 			return;
 		}
 
+		if ( ! $this->verify_bucket( $bucket ) ) {
+			return;
+		}
+
 		$result = $this->client->delete_object( $bucket, $object_key );
 
 		if ( ! $result->is_successful() ) {
@@ -91,6 +95,10 @@ trait File {
 
 		$params = $this->validate_required_params( [ 'bucket', 'current_key', 'new_filename' ], true );
 		if ( $params === false ) {
+			return;
+		}
+
+		if ( ! $this->verify_bucket( $params['bucket'] ) ) {
 			return;
 		}
 
@@ -167,6 +175,10 @@ trait File {
 		if ( empty( $bucket ) || empty( $object_key ) ) {
 			wp_send_json_error( [ 'message' => __( 'Bucket and object key are required', 'arraypress' ) ] );
 
+			return;
+		}
+
+		if ( ! $this->verify_bucket( $bucket ) ) {
 			return;
 		}
 

@@ -497,9 +497,12 @@ class Objects extends WP_List_Table {
 	 * @return void
 	 */
 	public static function ajax_load_more( Client $client, string $provider_id ): void {
-		$bucket             = sanitize_text_field( $_POST['bucket'] ?? '' );
-		$prefix             = sanitize_text_field( $_POST['prefix'] ?? '' );
-		$continuation_token = sanitize_text_field( $_POST['continuation_token'] ?? '' );
+		// wp_unslash() before sanitizing: WordPress slashes $_POST, so a prefix
+		// like "Dave's Mixes/" would otherwise arrive as "Dave\'s Mixes/" and
+		// never match anything in the bucket.
+		$bucket             = sanitize_text_field( wp_unslash( $_POST['bucket'] ?? '' ) );
+		$prefix             = sanitize_text_field( wp_unslash( $_POST['prefix'] ?? '' ) );
+		$continuation_token = sanitize_text_field( wp_unslash( $_POST['continuation_token'] ?? '' ) );
 
 		if ( empty( $bucket ) ) {
 			wp_send_json_error( [ 'message' => 'Bucket parameter is required' ] );

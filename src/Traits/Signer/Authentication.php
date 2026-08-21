@@ -41,8 +41,10 @@ trait Authentication {
 		// Format the canonical URI
 		$canonical_uri = $this->provider->format_canonical_uri( $bucket, $object_key );
 
-		// Get endpoint from the provider
-		$host = $this->provider->get_endpoint();
+		// Host header for this request. Under virtual-hosted addressing this is
+		// "bucket.endpoint" — signing the bare endpoint while the HTTP client
+		// dials the bucket subdomain is an immediate SignatureDoesNotMatch.
+		$host = $this->provider->get_request_host( $bucket );
 
 		$time      = time();
 		$amz_date  = gmdate( 'Ymd\THis\Z', $time );
