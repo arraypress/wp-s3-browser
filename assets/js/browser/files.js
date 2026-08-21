@@ -159,43 +159,16 @@
         /**
          * Build details HTML content
          */
+        /**
+         * Render the file details modal body.
+         *
+         * See the note in buckets.js: markup is an Underscore template and
+         * escaping is the default rather than a per-field decision.
+         */
         buildDetailsHtml: function (fileData, checksumInfo) {
-            var details = s3BrowserConfig.i18n.fileDetails;
+            var render = wp.template('s3-file-details');
 
-            return [
-                '<div class="s3-details-content">',
-                '  <div class="s3-details-section">',
-                '    <h4>' + details.basicInfo + '</h4>',
-                '    <table class="s3-details-table">',
-                '      <tr><td><strong>' + details.filename + '</strong></td><td>' + $('<div>').text(fileData.filename).html() + '</td></tr>',
-                '      <tr><td><strong>' + details.objectKey + '</strong></td><td><code>' + $('<div>').text(fileData.key).html() + '</code></td></tr>',
-                '      <tr><td><strong>' + details.size + '</strong></td><td>' + fileData.sizeFormatted + ' (' + fileData.sizeBytes.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') + ' ' + details.bytes + ')</td></tr>',
-                '      <tr><td><strong>' + details.lastModified + '</strong></td><td>' + fileData.modifiedFormatted + '</td></tr>',
-                '      <tr><td><strong>' + details.mimeType + '</strong></td><td>' + $('<div>').text(fileData.mimeType).html() + '</td></tr>',
-                '      <tr><td><strong>' + details.category + '</strong></td><td>' + $('<div>').text(fileData.category).html() + '</td></tr>',
-                '    </table>',
-                '  </div>',
-                '  <div class="s3-details-section">',
-                '    <h4>' + details.storageInfo + '</h4>',
-                '    <table class="s3-details-table">',
-                '      <tr><td><strong>' + details.storageClass + '</strong></td><td>' + $('<div>').text(fileData.storageClass).html() + '</td></tr>',
-                '      <tr><td><strong>' + details.etag + '</strong></td><td><code>' + $('<div>').text(fileData.etag).html() + '</code></td></tr>',
-                fileData.isMultipart ?
-                    '      <tr><td><strong>' + details.uploadType + '</strong></td><td>' + details.multipart + (fileData.partCount ? ' (' + fileData.partCount + ' ' + details.parts + ')' : '') + '</td></tr>' :
-                    '      <tr><td><strong>' + details.uploadType + '</strong></td><td>' + details.singlePart + '</td></tr>',
-                '    </table>',
-                '  </div>',
-                '  <div class="s3-details-section">',
-                '    <h4>' + details.checksumInfo + '</h4>',
-                '    <table class="s3-details-table">',
-                '      <tr><td><strong>' + details.checksumType + '</strong></td><td><span class="' + checksumInfo.class + '">' + checksumInfo.type + '</span></td></tr>',
-                '      <tr><td><strong>' + details.checksumValue + '</strong></td><td><code class="' + checksumInfo.class + '">' + checksumInfo.display + '</code></td></tr>',
-                checksumInfo.note ?
-                    '      <tr><td colspan="2"><small class="description">' + checksumInfo.note + '</small></td></tr>' : '',
-                '    </table>',
-                '  </div>',
-                '</div>'
-            ].join('');
+            return render($.extend({}, fileData, {checksum: checksumInfo || null}));
         },
 
         /**

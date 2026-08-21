@@ -46,6 +46,10 @@ final class RouteHost {
  */
 final class RestRoutesTest extends TestCase {
 
+	protected function tearDown(): void {
+		$GLOBALS['test_user_can'] = true;
+	}
+
 	protected function setUp(): void {
 		$GLOBALS['registered_rest_routes'] = [];
 		$GLOBALS['doing_it_wrong']         = [];

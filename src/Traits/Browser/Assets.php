@@ -108,7 +108,7 @@ trait Assets {
 			's3-connection-test',
 			__FILE__,
 			'js/admin/connection.js',
-			[ 'jquery', $config_handle ]
+			[ 'jquery', 'wp-util', $config_handle ]
 		);
 	}
 
@@ -195,7 +195,7 @@ trait Assets {
 				's3-browser-woocommerce',
 				__FILE__,
 				'js/integrations/woocommerce.js',
-				[ 'jquery', $config_handle ]
+				[ 'jquery', 'wp-util', $config_handle ]
 			);
 		} elseif ( $post_type === 'download' ) {
 			// EDD integration
@@ -203,7 +203,7 @@ trait Assets {
 				's3-browser-edd',
 				__FILE__,
 				'js/integrations/easy-digital-downloads.js',
-				[ 'jquery', $config_handle ]
+				[ 'jquery', 'wp-util', $config_handle ]
 			);
 		}
 	}
@@ -234,31 +234,31 @@ trait Assets {
 		$scripts = [
 			's3-browser-core'         => [
 				'file' => 'js/browser/core.js',
-				'deps' => [ 'jquery', $config_handle ]
+				'deps' => [ 'jquery', 'wp-util', $config_handle ]
 			],
 			's3-browser-modals'       => [
 				'file' => 'js/browser/modal.js',
-				'deps' => [ 'jquery', 's3-browser-core' ]
+				'deps' => [ 'jquery', 'wp-util', 's3-browser-core' ]
 			],
 			's3-browser-files'        => [
 				'file' => 'js/browser/files.js',
-				'deps' => [ 'jquery', 's3-browser-core', 's3-browser-modals' ]
+				'deps' => [ 'jquery', 'wp-util', 's3-browser-core', 's3-browser-modals' ]
 			],
 			's3-browser-folders'      => [
 				'file' => 'js/browser/folders.js',
-				'deps' => [ 'jquery', 's3-browser-core', 's3-browser-modals' ]
+				'deps' => [ 'jquery', 'wp-util', 's3-browser-core', 's3-browser-modals' ]
 			],
 			's3-browser-integrations' => [
 				'file' => 'js/browser/integrations.js',
-				'deps' => [ 'jquery', 's3-browser-core' ]
+				'deps' => [ 'jquery', 'wp-util', 's3-browser-core' ]
 			],
 			's3-browser-cors'         => [
 				'file' => 'js/browser/buckets.js',
-				'deps' => [ 'jquery', 's3-browser-core', 's3-browser-modals' ]
+				'deps' => [ 'jquery', 'wp-util', 's3-browser-core', 's3-browser-modals' ]
 			],
 			's3-upload-script'        => [
 				'file' => 'js/browser/upload.js',
-				'deps' => [ 'jquery', $config_handle, 's3-browser-core' ]
+				'deps' => [ 'jquery', 'wp-util', $config_handle, 's3-browser-core' ]
 			]
 		];
 

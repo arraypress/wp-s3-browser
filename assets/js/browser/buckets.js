@@ -147,103 +147,22 @@
         /**
          * Build bucket details content
          */
+        /**
+         * Render the bucket details modal body.
+         *
+         * Markup lives in the `s3-bucket-details` Underscore template, printed
+         * by PHP. Underscore escapes `{{ }}` by default, so provider-supplied
+         * values — bucket names, CORS details, recommendations — cannot become
+         * markup by omission. Previously each of these was a separate manual
+         * escapeHtml() call, and getting one wrong was silent.
+         */
         buildBucketDetailsContent: function (bucket, data) {
-            var self = this;
-            var i18n = s3BrowserConfig.i18n.buckets;
-            var content = '<div class="s3-bucket-details-content">';
+            var render = wp.template('s3-bucket-details');
 
-            // Basic bucket information
-            content += '<div class="s3-details-section">';
-            content += '<h4>' + i18n.bucketInformation + '</h4>';
-            content += '<table class="s3-details-table">';
-            content += '<tr><td><strong>' + i18n.bucketName + '</strong></td><td><code>' + self.escapeHtml(bucket) + '</code></td></tr>';
-
-            if (data.basic) {
-                if (data.basic.region) {
-                    content += '<tr><td><strong>' + i18n.region + '</strong></td><td>' + self.escapeHtml(data.basic.region) + '</td></tr>';
-                }
-                if (data.basic.created) {
-                    content += '<tr><td><strong>' + i18n.created + '</strong></td><td>' + self.escapeHtml(data.basic.created) + '</td></tr>';
-                }
-            }
-
-            content += '<tr><td><strong>' + i18n.provider + '</strong></td><td>' + (S3BrowserGlobalConfig.providerName || i18n.s3Compatible) + '</td></tr>';
-            content += '</table>';
-            content += '</div>';
-
-            // Upload capability section
-            if (data.cors) {
-                content += '<div class="s3-details-section">';
-                content += '<h4>' + i18n.uploadCapability + '</h4>';
-                content += '<table class="s3-details-table">';
-                content += '<tr><td><strong>' + i18n.uploadReady + '</strong></td><td>';
-
-                if (data.cors.upload_ready) {
-                    content += '<span class="s3-status-success">✓ ' + i18n.yes + '</span>';
-                } else {
-                    content += '<span class="s3-status-error">✗ ' + i18n.no + '</span>';
-                }
-
-                content += '</td></tr>';
-                content += '<tr><td><strong>' + i18n.currentDomain + '</strong></td><td>' + self.escapeHtml(data.cors.current_origin || window.location.origin) + '</td></tr>';
-
-                if (data.cors.details) {
-                    content += '<tr><td colspan="2"><small>' + self.escapeHtml(data.cors.details) + '</small></td></tr>';
-                }
-
-                content += '</table>';
-                content += '</div>';
-            }
-
-            // CORS configuration summary
-            if (data.cors && data.cors.analysis) {
-                var analysis = data.cors.analysis;
-                content += '<div class="s3-details-section">';
-                content += '<h4>' + i18n.corsConfiguration + '</h4>';
-                content += '<table class="s3-details-table">';
-                content += '<tr><td><strong>' + i18n.hasCors + '</strong></td><td>' + (analysis.has_cors ? i18n.yes : i18n.no) + '</td></tr>';
-
-                if (analysis.has_cors) {
-                    content += '<tr><td><strong>' + i18n.rulesCount + '</strong></td><td>' + (analysis.rules_count || 0) + '</td></tr>';
-
-                    if (analysis.security_warnings && analysis.security_warnings.length > 0) {
-                        content += '<tr><td><strong>' + i18n.securityWarnings + '</strong></td><td>';
-                        content += '<span class="s3-status-warning">' + i18n.warningCount.replace('{count}', analysis.security_warnings.length) + '</span>';
-                        content += '</td></tr>';
-                    }
-                }
-
-                content += '</table>';
-                content += '</div>';
-            }
-
-            // Permissions summary (if available)
-            if (data.permissions) {
-                content += '<div class="s3-details-section">';
-                content += '<h4>' + i18n.permissions + '</h4>';
-                content += '<table class="s3-details-table">';
-                content += '<tr><td><strong>' + i18n.readAccess + '</strong></td><td>' + (data.permissions.read ? '✓ ' + i18n.yes : '✗ ' + i18n.no) + '</td></tr>';
-                content += '<tr><td><strong>' + i18n.writeAccess + '</strong></td><td>' + (data.permissions.write ? '✓ ' + i18n.yes : '✗ ' + i18n.no) + '</td></tr>';
-                content += '<tr><td><strong>' + i18n.deleteAccess + '</strong></td><td>' + (data.permissions.delete ? '✓ ' + i18n.yes : '✗ ' + i18n.no) + '</td></tr>';
-                content += '</table>';
-                content += '</div>';
-            }
-
-            // Recommendations
-            if (data.cors && data.cors.analysis && data.cors.analysis.recommendations) {
-                content += '<div class="s3-details-section">';
-                content += '<h4>' + i18n.recommendations + '</h4>';
-                content += '<ul class="s3-recommendations-list">';
-                data.cors.analysis.recommendations.forEach(function (rec) {
-                    content += '<li>' + self.escapeHtml(rec) + '</li>';
-                });
-                content += '</ul>';
-                content += '</div>';
-            }
-
-            content += '</div>';
-
-            return content;
+            return render($.extend({}, data, {
+                bucket: bucket,
+                providerName: S3BrowserGlobalConfig.providerName || ''
+            }));
         },
 
         /**
