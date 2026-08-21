@@ -88,6 +88,20 @@ class Assets {
 	}
 
 	/**
+	 * Load the admin stylesheet on its own
+	 *
+	 * The settings screen renders before there are credentials to build a
+	 * browser from, and it is the browser that normally brings this in -- so
+	 * the validation panel a consumer draws while unconfigured had no styles
+	 * at all. Static, because at that point there is no instance.
+	 *
+	 * @return void
+	 */
+	public static function enqueue_admin_style(): void {
+		arraypress_enqueue_composer_style( 's3-admin-components', __FILE__, 'css/admin.css' );
+	}
+
+	/**
 	 * Load the settings-screen assets.
 	 *
 	 * @param string $hook Current admin page hook suffix.
