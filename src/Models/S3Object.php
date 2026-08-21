@@ -357,7 +357,7 @@ class S3Object {
 		if ( $this->is_multipart() ) {
 			$multipart_info = $this->get_multipart_info();
 			if ( $multipart_info ) {
-				$data_attrs['data-part-count'] = $multipart_info['part_count'];
+				$data_attrs['data-part-count'] = esc_attr( (string) $multipart_info['part_count'] );
 			}
 		}
 
