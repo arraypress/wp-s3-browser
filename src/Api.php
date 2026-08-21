@@ -27,7 +27,6 @@ use ArrayPress\S3\Traits\Api\Batch;
 use ArrayPress\S3\Traits\Api\Headers;
 use ArrayPress\S3\Traits\Api\Cors;
 use ArrayPress\S3\Traits\Shared\Debug;
-use ArrayPress\S3\Traits\Shared\Config;
 use ArrayPress\S3\Traits\Shared\Timeouts;
 
 /**
@@ -43,7 +42,6 @@ class Api implements ApiInterface {
 	use Batch;
 	use Headers;
 	use Debug;
-	use Config;
 	use Timeouts;
 	use Cors;
 

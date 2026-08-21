@@ -25,6 +25,36 @@ use ArrayPress\S3\Utils\Encode;
 trait Headers {
 
 	/**
+	 * User agent for HTTP requests
+	 *
+	 * @var string
+	 */
+	private string $user_agent = 'ArrayPress-S3-Client/1.0';
+
+	/**
+	 * Get the user agent, naming the WordPress and PHP versions
+	 *
+	 * Some providers vary their behaviour by client, and a support ticket
+	 * that names both versions is worth more than one that names neither.
+	 *
+	 * @return string
+	 */
+	public function get_enhanced_user_agent(): string {
+		return sprintf( '%s WordPress/%s PHP/%s', $this->user_agent, get_bloginfo( 'version' ), PHP_VERSION );
+	}
+
+	/**
+	 * Get the headers every request carries, merged with any extras
+	 *
+	 * @param array $additional_headers Headers to merge over the base set.
+	 *
+	 * @return array
+	 */
+	public function get_base_request_headers( array $additional_headers = [] ): array {
+		return array_merge( [ 'User-Agent' => $this->get_enhanced_user_agent() ], $additional_headers );
+	}
+
+	/**
 	 * Build headers for S3 copy operations
 	 *
 	 * Creates the necessary headers for S3 copy operations including the

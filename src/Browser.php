@@ -23,7 +23,6 @@ use ArrayPress\S3\Traits\Browser\Hooks;
 use ArrayPress\S3\Traits\Browser\Helpers;
 use ArrayPress\S3\Traits\Shared\Context;
 use ArrayPress\S3\Traits\Shared\Debug;
-use ArrayPress\S3\Traits\Shared\Config;
 
 // Load WP_List_Table if not loaded
 if ( ! class_exists( 'WP_List_Table' ) ) {
@@ -45,7 +44,6 @@ class Browser {
 	use Helpers;
 	use Context;
 	use Debug;
-	use Config;
 
 	/**
 	 * Handle for the global S3 browser configuration script
@@ -112,6 +110,13 @@ class Browser {
 	 * @var string[]
 	 */
 	protected array $allowed_buckets = [];
+
+	/**
+	 * Admin page hooks this browser enqueues its assets on.
+	 *
+	 * @var array
+	 */
+	private array $admin_hook = [];
 
 	/**
 	 * The REST surface for this instance.
@@ -264,6 +269,34 @@ class Browser {
 			$this->provider_id,
 			$this->get_context()
 		);
+	}
+
+	/**
+	 * Set the admin page hook(s) this browser loads its assets on
+	 *
+	 * @param string|array $hook Hook suffix, or several.
+	 *
+	 * @return void
+	 */
+	public function set_admin_hook( $hook ): void {
+		if ( is_string( $hook ) && '' !== $hook ) {
+			$this->admin_hook = [ $hook ];
+
+			return;
+		}
+
+		$this->admin_hook = is_array( $hook ) ? array_filter( $hook ) : [];
+	}
+
+	/**
+	 * Whether the current admin page is one this browser loads on
+	 *
+	 * @param string $hook Hook suffix to test.
+	 *
+	 * @return bool
+	 */
+	public function matches_admin_hook( string $hook ): bool {
+		return in_array( $hook, $this->admin_hook, true );
 	}
 
 	/**
