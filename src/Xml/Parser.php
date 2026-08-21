@@ -44,6 +44,29 @@ class Parser {
 			);
 		}
 
+		// Refuse a document type declaration outright.
+		//
+		// The parse options below do not stop this. LIBXML_NOENT governs
+		// *external* entity substitution; general entities declared in the
+		// internal subset are expanded by libxml regardless, and newer
+		// versions apply no expansion limit while doing it. A six-level
+		// billion-laughs document parsed here reached a megabyte on CI while
+		// libxml 2.9.13 locally refused it -- so relying on the library's
+		// behaviour means relying on which libxml a customer's host happens to
+		// ship.
+		//
+		// No S3-compatible provider sends a DOCTYPE in a response, so there is
+		// nothing to lose by rejecting one. A literal '<!DOCTYPE' cannot
+		// appear in element content of a well-formed document without being
+		// escaped, so this does not reject anything legitimate.
+		if ( false !== stripos( $xml_string, '<!DOCTYPE' ) ) {
+			return new ErrorResponse(
+				__( 'Refused an XML document type declaration', 'arraypress' ),
+				'xml_doctype_refused',
+				400
+			);
+		}
+
 		$use_errors = libxml_use_internal_errors( true );
 		libxml_clear_errors();
 

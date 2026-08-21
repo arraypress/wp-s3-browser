@@ -83,42 +83,54 @@ final class ParserTest extends TestCase {
 	}
 
 	/**
-	 * External entity resolution is the classic XXE vector. The parse options
-	 * must leave entity substitution off, so the entity never expands.
+	 * A document type declaration is refused before parsing.
+	 *
+	 * This is the whole defence, and it has to be, because the parse options
+	 * are not one. LIBXML_NOENT governs *external* entity substitution;
+	 * general entities declared in the internal subset are expanded by libxml
+	 * regardless of it, and newer versions apply no limit while doing so.
+	 *
+	 * That difference is invisible locally: libxml 2.9.13 refuses these
+	 * documents on its own, so a parser relying on the library's behaviour
+	 * looks safe on one machine and expands a megabyte on another. CI running
+	 * a newer libxml is what surfaced it.
 	 */
-	public function test_external_entities_are_not_resolved(): void {
+	public function test_a_doctype_is_refused(): void {
+		$result = Parser::parse( '<?xml version="1.0"?><!DOCTYPE r><r><v>x</v></r>' );
+
+		$this->assertInstanceOf( ErrorResponse::class, $result );
+		$this->assertSame( 'xml_doctype_refused', $result->get_error_code() );
+	}
+
+	public function test_a_doctype_is_refused_whatever_its_case(): void {
+		foreach ( [ '<!DOCTYPE', '<!doctype', '<!DocType' ] as $spelling ) {
+			$this->assertInstanceOf(
+				ErrorResponse::class,
+				Parser::parse( '<?xml version="1.0"?>' . $spelling . ' r><r><v>x</v></r>' ),
+				"Not refused: {$spelling}"
+			);
+		}
+	}
+
+	/**
+	 * External entity resolution is the classic XXE vector: an entity pointing
+	 * at a local file, expanded into the response the caller reads.
+	 */
+	public function test_an_external_entity_never_reaches_the_output(): void {
 		$xml = '<?xml version="1.0"?>'
 			. '<!DOCTYPE r [<!ENTITY xxe SYSTEM "file:///etc/passwd">]>'
 			. '<r><v>&xxe;</v></r>';
 
-		$parsed = Parser::parse( $xml );
+		$result = Parser::parse( $xml );
 
-		if ( $parsed instanceof ErrorResponse ) {
-			$this->assertSame( 'xml_parse_error', $parsed->get_error_code() );
-
-			return;
-		}
-
-		$this->assertStringNotContainsString( 'root:', (string) ( $parsed['v']['value'] ?? '' ) );
+		$this->assertInstanceOf( ErrorResponse::class, $result );
 	}
 
 	/**
-	 * A billion-laughs document must not expand without bound.
-	 *
-	 * Six levels of nesting would reach a million characters if every entity
-	 * were substituted. What stops it varies by libxml version -- 2.9.13
-	 * rejects the document outright, newer builds apply their own expansion
-	 * limits -- so this asserts the outcome that matters rather than the
-	 * mechanism: either the parse fails, or what comes back is nowhere near
-	 * full expansion.
-	 *
-	 * An earlier version of this test asserted the result was under 1000
-	 * characters against a three-level payload that expands to exactly 1000.
-	 * It passed locally, where the document is refused, and failed on CI,
-	 * where it expands -- reporting a version difference as a security
-	 * problem.
+	 * A billion-laughs document. Six levels reach a million characters if
+	 * every entity is substituted, and nine reach a gigabyte.
 	 */
-	public function test_entity_expansion_does_not_blow_up(): void {
+	public function test_an_entity_bomb_never_expands(): void {
 		$xml = '<?xml version="1.0"?><!DOCTYPE r ['
 			. '<!ENTITY a "aaaaaaaaaa">'
 			. '<!ENTITY b "&a;&a;&a;&a;&a;&a;&a;&a;&a;&a;">'
@@ -128,16 +140,22 @@ final class ParserTest extends TestCase {
 			. '<!ENTITY f "&e;&e;&e;&e;&e;&e;&e;&e;&e;&e;">'
 			. ']><r><v>&f;</v></r>';
 
-		$parsed = Parser::parse( $xml );
+		$result = Parser::parse( $xml );
 
-		if ( $parsed instanceof ErrorResponse ) {
-			$this->assertSame( 'xml_parse_error', $parsed->get_error_code() );
+		$this->assertInstanceOf( ErrorResponse::class, $result );
+		$this->assertSame( 'xml_doctype_refused', $result->get_error_code() );
+	}
 
-			return;
+	/**
+	 * Rejecting a DOCTYPE must not reject anything a provider actually sends.
+	 */
+	public function test_real_provider_payloads_still_parse(): void {
+		foreach ( glob( __DIR__ . '/../fixtures/*.xml' ) as $fixture ) {
+			$this->assertIsArray(
+				Parser::parse( (string) file_get_contents( $fixture ) ),
+				'Fixture rejected: ' . basename( $fixture )
+			);
 		}
-
-		// Fully expanded this is 1,000,000 characters.
-		$this->assertLessThan( 100000, strlen( (string) ( $parsed['v']['value'] ?? '' ) ) );
 	}
 
 	public function test_namespaced_children_are_prefixed(): void {
