@@ -143,15 +143,6 @@ final class Provider {
 	}
 
 	/**
-	 * The provider enum case.
-	 *
-	 * @return ProviderType
-	 */
-	public function get_type(): ProviderType {
-		return $this->type;
-	}
-
-	/**
 	 * Region this provider signs with.
 	 *
 	 * @return string

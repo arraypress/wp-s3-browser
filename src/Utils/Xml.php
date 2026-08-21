@@ -23,27 +23,6 @@ namespace ArrayPress\S3\Utils;
 class Xml {
 
 	/**
-	 * Get value from an XML array using a dot notation path
-	 *
-	 * @param array $array XML array
-	 * @param string $path Dot notation path (e.g., 'Owner.ID.value')
-	 * @return mixed|null Value if found, null otherwise
-	 */
-	public static function get_value( array $array, string $path ) {
-		$keys = explode( '.', $path );
-		$current = $array;
-
-		foreach ( $keys as $key ) {
-			if ( ! is_array( $current ) || ! isset( $current[ $key ] ) ) {
-				return null;
-			}
-			$current = $current[ $key ];
-		}
-
-		return $current;
-	}
-
-	/**
 	 * Search recursively for a key in XML array
 	 *
 	 * @param array $array XML array

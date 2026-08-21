@@ -19,8 +19,6 @@ use ArrayPress\S3\Interfaces\Response as ResponseInterface;
 use ArrayPress\S3\Responses\ErrorResponse;
 use ArrayPress\S3\Responses\ObjectsResponse;
 use ArrayPress\S3\Responses\SuccessResponse;
-use ArrayPress\S3\Utils\Directory;
-use ArrayPress\S3\Utils\File;
 use Generator;
 
 /**

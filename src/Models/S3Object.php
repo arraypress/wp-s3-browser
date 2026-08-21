@@ -15,7 +15,6 @@ declare( strict_types=1 );
 
 namespace ArrayPress\S3\Models;
 
-use ArrayPress\S3\Utils\File;
 use WP_Error;
 
 /**

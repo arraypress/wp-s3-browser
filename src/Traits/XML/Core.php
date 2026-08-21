@@ -15,7 +15,6 @@ declare( strict_types=1 );
 
 namespace ArrayPress\S3\Traits\XML;
 
-use ArrayPress\S3\Utils\Xml;
 use ArrayPress\S3\Responses\ErrorResponse;
 use SimpleXMLElement;
 

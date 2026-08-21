@@ -94,20 +94,6 @@ trait Permissions {
 	}
 
 	/**
-	 * Check if the current key can write to the bucket
-	 *
-	 * @param string $bucket    Bucket name
-	 * @param bool   $use_cache Whether to use cached results
-	 *
-	 * @return bool
-	 */
-	public function can_write( string $bucket, bool $use_cache = true ): bool {
-		$permissions = $this->check_key_permissions( $bucket, $use_cache );
-
-		return $permissions['write'] ?? false;
-	}
-
-	/**
 	 * Test read permission
 	 *
 	 * @param string $bucket      Bucket name

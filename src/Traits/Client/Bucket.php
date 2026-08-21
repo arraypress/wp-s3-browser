@@ -16,7 +16,6 @@ declare( strict_types=1 );
 namespace ArrayPress\S3\Traits\Client;
 
 use ArrayPress\S3\Interfaces\Response as ResponseInterface;
-use ArrayPress\S3\Responses\BucketsResponse;
 use ArrayPress\S3\Responses\SuccessResponse;
 use ArrayPress\S3\Responses\ErrorResponse;
 use ArrayPress\S3\Utils\Cors;
