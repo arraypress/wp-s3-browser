@@ -170,7 +170,8 @@ trait Buckets {
 				}
 			}
 
-			$code = $response instanceof ErrorResponse ? $response->get_error_code() : '';
+			$code   = $response instanceof ErrorResponse ? $response->get_error_code() : '';
+			$status = $response instanceof ErrorResponse ? $response->get_status_code() : 0;
 
 			// A 403 AccessDenied here is not a credential problem: the request
 			// was signed and accepted, the token simply lacks
@@ -178,7 +179,11 @@ trait Buckets {
 			// like, and Cloudflare recommends scoping tokens. Bad credentials
 			// present differently — InvalidAccessKeyId or SignatureDoesNotMatch
 			// — so the two must not share a message.
-			if ( in_array( $code, [ 'AccessDenied', 'access_denied' ], true ) ) {
+			// Key off the status as well as the code. The code is only present
+			// when the provider returned a parseable error document, and a 403
+			// on a service-level listing already means the request was signed
+			// and accepted but the token lacks ListAllMyBuckets.
+			if ( 403 === $status || in_array( $code, [ 'AccessDenied', 'access_denied' ], true ) ) {
 				return new ErrorResponse(
 					__( 'This API token cannot list buckets. That is expected for a bucket-scoped token — specify the bucket name directly.', 'arraypress' ),
 					'bucket_listing_forbidden',

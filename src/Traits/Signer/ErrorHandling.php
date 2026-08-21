@@ -32,15 +32,33 @@ trait ErrorHandling {
 	 * @return ErrorResponse
 	 */
 	private function handle_error_response( int $status_code, string $body, string $default_msg ): ErrorResponse {
-		// Try to parse an error message from XML if available
-		if ( strpos( $body, '<?xml' ) !== false ) {
+		// Parse the provider's error document when there is one.
+		//
+		// This used to require an '<?xml' declaration. Cloudflare R2 returns
+		// the <Error> element without a prolog, so every R2 failure fell
+		// through to the caller's generic default and the provider's actual
+		// error code — the thing that distinguishes a scoped token from bad
+		// credentials — was discarded.
+		if ( false !== stripos( $body, '<Error' ) ) {
 			$error_xml = $this->parse_response( $body, false );
-			if ( ! is_wp_error( $error_xml ) && isset( $error_xml['Error'] ) ) {
-				$error_info    = $error_xml['Error'];
-				$error_message = $this->extract_text_value( $error_info['Message'] ?? '' );
-				$error_code    = $this->extract_text_value( $error_info['Code'] ?? 'unknown_error' );
 
-				return new ErrorResponse( $error_message, $error_code, $status_code );
+			if ( ! is_wp_error( $error_xml ) && is_array( $error_xml ) ) {
+				// S3 returns <Error> as the *root* element, so the parser hands
+				// back its children — ['Code' => ..., 'Message' => ...] — with
+				// no 'Error' key to look under. This previously tested for that
+				// key alone, which is never present in a real S3 error
+				// document, so every provider error fell through to the
+				// caller's generic default and the actual code and message were
+				// discarded. Accept both shapes.
+				$error_info = $error_xml['Error'] ?? $error_xml;
+
+				if ( isset( $error_info['Code'] ) || isset( $error_info['Message'] ) ) {
+					return new ErrorResponse(
+						$this->extract_text_value( $error_info['Message'] ?? '' ) ?: $default_msg,
+						$this->extract_text_value( $error_info['Code'] ?? '' ) ?: 'unknown_error',
+						$status_code
+					);
+				}
 			}
 		}
 

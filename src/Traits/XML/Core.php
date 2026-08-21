@@ -50,12 +50,10 @@ trait Core {
 		// WordPress pattern: Clear any existing errors before parsing
 		libxml_clear_errors();
 
-		// SECURITY: Disable external entity loading (WordPress SimplePie pattern)
-		// This prevents XXE (XML External Entity) attacks
-		$disable_entities = false;
-		if ( function_exists( 'libxml_disable_entity_loader' ) ) {
-			$disable_entities = libxml_disable_entity_loader( true );
-		}
+		// No libxml_disable_entity_loader() call: it is deprecated as of PHP 8.0
+		// precisely because external entity loading is off by default there,
+		// and this package requires 8.2. Calling it only emits a deprecation.
+		// XXE protection comes from the parse options below.
 
 		// SECURITY: Parse with secure options to prevent XXE attacks
 		// LIBXML_NONET: Disable network access during XML loading
@@ -75,10 +73,6 @@ trait Core {
 		// WordPress pattern: Always restore previous libxml settings
 		libxml_clear_errors();
 		libxml_use_internal_errors( $use_errors );
-
-		if ( function_exists( 'libxml_disable_entity_loader' ) ) {
-			libxml_disable_entity_loader( $disable_entities );
-		}
 
 		// Handle parsing failure
 		if ( false === $xml ) {
