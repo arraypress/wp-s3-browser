@@ -14,6 +14,7 @@
             }
 
             this.bindEvents();
+            this.listenForInserts();
             this.extendMediaFrame();
             this.startButtonMonitoring();
         },
@@ -51,10 +52,72 @@
 
             if ($input.length) {
                 window.wc_target_input = $input[0];
+                window.wc_target_row = $row;
                 window.wc_media_frame_context = 'product_file';
             }
 
             window.wc_gallery_frame = false;
+        },
+
+        /**
+         * Carry out an insert the browser asked for.
+         *
+         * By message rather than the browser writing here directly: it renders
+         * in a frame whose parent cannot be read -- touching window.parent
+         * throws a SecurityError -- so this page, which holds the fields, is
+         * the only one that can fill them.
+         */
+        listenForInserts: function () {
+            var self = this;
+
+            window.addEventListener('message', function (event) {
+                var data = event.data;
+
+                if (!data || data.type !== 's3-browser:insert') {
+                    return;
+                }
+
+                // Origin will not identify the sender: a frame with an opaque
+                // origin posts as "null". The token comes from this page's own
+                // configuration, so a frame without it is not ours.
+                if (!data.token || data.token !== S3BrowserGlobalConfig.insertToken) {
+                    return;
+                }
+
+                self.insertFiles(data.files || []);
+            });
+        },
+
+        /**
+         * Write the files into the downloadable files table.
+         */
+        insertFiles: function (files) {
+            if (!files.length) {
+                return;
+            }
+
+            var $row = window.wc_target_row && window.wc_target_row.length
+                ? window.wc_target_row
+                : $('.downloadable_files tbody tr').last();
+
+            files.forEach(function (file, index) {
+                if (index > 0) {
+                    $('.downloadable_files .insert').filter(':visible').first().trigger('click');
+                    $row = $('.downloadable_files tbody tr').last();
+                }
+
+                $row.find('input[name="_wc_file_urls[]"]').val(file.bucket + '/' + file.key);
+                $row.find('input[name="_wc_file_names[]"]').val(file.fileName);
+            });
+
+            try {
+                if (window.wp && window.wp.media && window.wp.media.frame) {
+                    window.wp.media.frame.close();
+                }
+            } catch (e) {
+                // A frame that will not close is not a reason to lose the
+                // files that were just written.
+            }
         },
 
         captureButtonState: function () {

@@ -64,10 +64,18 @@
          */
         handleFileSelection: function ($button) {
             var parent = this.getHostWindow();
+            var file = {
+                fileName: $button.data('filename'),
+                bucket: $button.data('bucket'),
+                key: $button.data('key')
+            };
 
+            // No reachable frame: ask the other side to do it.
             if (!parent) {
-                window.console.warn('S3 Browser: no host window. ' + this.describeHost());
-                window.alert(s3BrowserConfig.i18n.files.insertUnavailable);
+                if (!this.requestHostInsert([ file ])) {
+                    window.console.warn('S3 Browser: no insert target. ' + this.describeHost());
+                    window.prompt(s3BrowserConfig.i18n.files.insertUnavailable, file.bucket + '/' + file.key);
+                }
 
                 return;
             }
@@ -147,8 +155,10 @@
             var parent = this.getHostWindow();
 
             if (!parent) {
-                window.console.warn('S3 Browser: no host window. ' + this.describeHost());
-                window.alert(s3BrowserConfig.i18n.files.insertUnavailable);
+                if (!this.requestHostInsert(files)) {
+                    window.console.warn('S3 Browser: no insert target. ' + this.describeHost());
+                    window.prompt(s3BrowserConfig.i18n.files.insertUnavailable, files[0].bucket + '/' + files[0].key);
+                }
 
                 return;
             }
@@ -261,6 +271,43 @@
                 // A frame that will not close is not a reason to lose the
                 // files that were just written.
             }
+        },
+
+        /**
+         * Ask the page that opened the browser to insert these files.
+         *
+         * postMessage is the only thing that crosses an origin boundary, and
+         * there is one to cross: the browser renders in a frame whose parent
+         * cannot be read at all. Reading window.parent throws a SecurityError
+         * rather than returning something unhelpful, so no amount of guarding
+         * the DOM access makes it work -- the page on the other side has to do
+         * the writing, because it is the only one that can.
+         *
+         * The message is addressed to the admin's own origin, so it goes to
+         * the page that opened this and nowhere else, and carries a token the
+         * receiving page can check against its own copy. Origin alone will not
+         * identify the sender: a frame with an opaque origin posts as "null".
+         *
+         * @return bool Whether a request could be sent.
+         */
+        requestHostInsert: function (files) {
+            var config = window.S3BrowserGlobalConfig || {};
+
+            if (!config.adminOrigin || !config.insertToken) {
+                return false;
+            }
+
+            try {
+                window.parent.postMessage({
+                    type: 's3-browser:insert',
+                    token: config.insertToken,
+                    files: files
+                }, config.adminOrigin);
+            } catch (e) {
+                return false;
+            }
+
+            return true;
         },
 
         /**

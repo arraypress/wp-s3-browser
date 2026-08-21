@@ -161,6 +161,12 @@ class Assets {
 				'providerId'        => $this->config->hook_suffix(),
 				'providerName'      => $this->config->provider_name,
 				'baseUrl'           => admin_url( 'media-upload.php' ),
+				// Where to post an insert request, and a token proving it came
+				// from this site's own browser. The frame the browser runs in
+				// can have an opaque origin, so the receiving page cannot
+				// identify the sender by origin alone.
+				'adminOrigin'       => $this->admin_origin(),
+				'insertToken'       => wp_create_nonce( 's3_browser_insert' ),
 				'restUrl'           => esc_url_raw( rest_url( $this->rest->route_path() ) ),
 				'restNonce'         => wp_create_nonce( 'wp_rest' ),
 				'defaultBucket'     => $this->config->default_bucket,
@@ -171,6 +177,26 @@ class Assets {
 		) );
 
 		return $handle;
+	}
+
+	/**
+	 * The origin the admin is served from.
+	 *
+	 * Used as the postMessage target, so an insert request reaches the page
+	 * that opened the browser and nowhere else.
+	 *
+	 * @return string
+	 */
+	private function admin_origin(): string {
+		$parts = wp_parse_url( admin_url() );
+
+		if ( empty( $parts['host'] ) ) {
+			return '';
+		}
+
+		$origin = ( $parts['scheme'] ?? 'https' ) . '://' . $parts['host'];
+
+		return empty( $parts['port'] ) ? $origin : $origin . ':' . $parts['port'];
 	}
 
 	/**
