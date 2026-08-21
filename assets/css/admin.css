@@ -69,28 +69,24 @@
     line-height: 1.4;
 }
 
+/* Styling comes from WordPress' own .button-primary. Overriding padding and
+   font-size here is what stopped the core busy spinner sitting straight: it is
+   a 20px dashicon drawn with vertical-align: top, laid out for core's button
+   metrics. Flex centring makes the two font sizes irrelevant. */
 .s3-test-connection {
-    background: #0073aa;
-    border: 1px solid #0073aa;
-    color: #fff;
-    padding: 6px 12px;
-    font-size: 12px;
-    border-radius: 3px;
-    cursor: pointer;
-    text-decoration: none;
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
     margin-right: 10px;
 }
 
-.s3-test-connection:hover:not(:disabled) {
-    background: #005a87;
-    border-color: #005a87;
-    color: #fff;
-}
-
-.s3-test-connection:disabled {
-    opacity: 0.6;
-    cursor: default;
+.s3-test-connection.updating-message:before {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    line-height: 1;
+    margin: 0;
 }
 
 /* Connection Test Results - Clean */

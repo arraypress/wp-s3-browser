@@ -267,6 +267,7 @@
    -------------------------------------------------------------------------- */
 
 .s3-refresh-button,
+.s3-bucket-details,
 .s3-test-connection,
 .s3-insert-file,
 .s3-open-folder,
@@ -279,6 +280,7 @@
 }
 
 .s3-refresh-button.updating-message:before,
+.s3-bucket-details.updating-message:before,
 .s3-test-connection.updating-message:before,
 .s3-insert-file.updating-message:before,
 .s3-open-folder.updating-message:before,

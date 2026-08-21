@@ -131,8 +131,11 @@ trait MediaLibrary {
         // Output content
         echo '<div class="s3-browser-container">';
 
-        // Add upload zone here, after breadcrumbs/navigation
-        $this->render_upload_zone();
+        // Pass the resolved bucket rather than letting the upload zone read
+        // $_GET again: when a default bucket is configured the browser enters
+        // it with no ?bucket= in the URL, and the zone would find nothing and
+        // render no toolbar at all — no Upload, no New Folder.
+        $this->render_upload_zone( $view === 'objects' ? $bucket : '', $prefix );
 
         if ( $view === 'buckets' ) {
             $this->display_buckets_list();
@@ -162,14 +165,17 @@ trait MediaLibrary {
     /**
      * Enhanced ContentRendering Trait - Modify render_upload_zone() method
      */
-    public function render_upload_zone() {
-        // Only show the upload zone on object views (not bucket listing)
-        if ( empty( $_GET['bucket'] ) ) {
-            return;
+    public function render_upload_zone( string $bucket = '', string $prefix = '' ) {
+        // Fall back to the query string for any caller that still relies on it.
+        if ( '' === $bucket ) {
+            $bucket = isset( $_GET['bucket'] ) ? sanitize_text_field( wp_unslash( $_GET['bucket'] ) ) : '';
+            $prefix = isset( $_GET['prefix'] ) ? sanitize_text_field( wp_unslash( $_GET['prefix'] ) ) : $prefix;
         }
 
-        $bucket = sanitize_text_field( $_GET['bucket'] );
-        $prefix = isset( $_GET['prefix'] ) ? sanitize_text_field( $_GET['prefix'] ) : '';
+        // The toolbar belongs to a bucket view, not the bucket listing.
+        if ( '' === $bucket ) {
+            return;
+        }
 
         ?>
         <div class="s3-upload-wrapper">
@@ -183,6 +189,19 @@ trait MediaLibrary {
                         data-bucket="<?php echo esc_attr( $bucket ); ?>"
                         data-prefix="<?php echo esc_attr( $prefix ); ?>">
 					<?php esc_html_e( 'New Folder', 'arraypress' ); ?>
+                </button>
+
+                <?php
+                // Bucket details — and with it CORS setup, which browser
+                // uploads require. It was previously reachable only from the
+                // bucket listing, which a site with a default bucket
+                // configured never sees: the browser opens straight into the
+                // bucket, so there was no route to configuring CORS at all.
+                ?>
+                <button type="button" class="button button-secondary s3-bucket-details"
+                        data-bucket="<?php echo esc_attr( $bucket ); ?>"
+                        data-provider="<?php echo esc_attr( $this->provider_id ); ?>">
+					<?php esc_html_e( 'Bucket Settings', 'arraypress' ); ?>
                 </button>
             </div>
 

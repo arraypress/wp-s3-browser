@@ -114,7 +114,7 @@ class Admin {
         <div class="s3-connection-test">
             <h4><?php esc_html_e( 'Connection Test', 'arraypress' ); ?></h4>
             <p>
-                <button type="button" id="<?php echo esc_attr( $button_id ); ?>" class="button s3-test-connection">
+                <button type="button" id="<?php echo esc_attr( $button_id ); ?>" class="button button-primary s3-test-connection">
                     <?php esc_html_e( 'Test Connection', 'arraypress' ); ?>
                 </button>
                 <span id="<?php echo esc_attr( $result_id ); ?>" class="s3-test-result"></span>
