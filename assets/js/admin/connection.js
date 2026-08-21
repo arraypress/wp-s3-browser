@@ -140,30 +140,45 @@
         },
 
         handleSuccess: function ($result, response) {
-            if (response.success) {
-                const strings = this.getTranslationStrings();
-                $result.removeClass('loading error').addClass('success');
-
-                let html = '✓ ' + (response.data.message || strings.connectionSuccess || 'Connection successful!');
-
-                // Add bucket count summary
-                if (response.data.summary) {
-                    html += '<br><strong>' + response.data.summary + '</strong>';
-                }
-
-                // Add bucket list if available and not too many
-                if (response.data.buckets && response.data.buckets.length > 0) {
-                    if (response.data.buckets.length <= 5) {
-                        html += '<br><span class="s3-bucket-list">Buckets: ' + this.escapeHtml(response.data.buckets.join(', ')) + '</span>';
-                    } else {
-                        html += '<br><span class="s3-bucket-list">First 5 buckets: ' + this.escapeHtml(response.data.buckets.slice(0, 5).join(', ')) + '...</span>';
-                    }
-                }
-
-                $result.html(html);
-            } else {
+            if (!response.success) {
                 this.showError($result, response.data.message, response.data.details);
+                return;
             }
+
+            const strings = this.getTranslationStrings();
+            const data = response.data || {};
+
+            // Three outcomes, not two. A bucket-scoped token cannot list
+            // buckets, which is Cloudflare's recommended setup rather than a
+            // fault — reporting it with a red cross sends people to re-enter
+            // credentials that were never wrong.
+            const state = data.status || 'ok';
+            const marks = {ok: '\u2713', needs_bucket: '\u2139', failed: '\u2717'};
+            const classes = {ok: 'success', needs_bucket: 'notice', failed: 'error'};
+
+            $result
+                .removeClass('loading success notice error')
+                .addClass(classes[state] || 'success');
+
+            let html = (marks[state] || marks.ok) + ' ' +
+                this.escapeHtml(data.message || strings.connectionSuccess || 'Connection successful.');
+
+            if (data.summary) {
+                html += '<br><strong>' + this.escapeHtml(data.summary) + '</strong>';
+            }
+
+            if (data.buckets && data.buckets.length > 0) {
+                const shown = data.buckets.slice(0, 5);
+                const label = data.buckets.length > 5
+                    ? 'First 5 buckets: '
+                    : 'Buckets: ';
+
+                html += '<br><span class="s3-bucket-list">' + label +
+                    this.escapeHtml(shown.join(', ')) +
+                    (data.buckets.length > 5 ? '...' : '') + '</span>';
+            }
+
+            $result.html(html);
         },
 
         /**

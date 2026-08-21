@@ -111,6 +111,12 @@
     color: #dc3232;
 }
 
+/* A scoped token that simply needs a bucket name is neither success nor
+   failure; colouring it red sends admins to re-check working credentials. */
+.s3-test-result.notice {
+    color: #8a6d00;
+}
+
 .s3-test-result.loading {
     color: #666;
     font-style: italic;

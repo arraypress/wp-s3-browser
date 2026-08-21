@@ -19,7 +19,7 @@ use ArrayPress\S3\Interfaces\Response as ResponseInterface;
 use ArrayPress\S3\Responses\BucketsResponse;
 use ArrayPress\S3\Responses\SuccessResponse;
 use ArrayPress\S3\Responses\ErrorResponse;
-use ArrayPress\S3\utils\Cors;
+use ArrayPress\S3\Utils\Cors;
 use Exception;
 
 /**
@@ -170,9 +170,28 @@ trait Buckets {
 				}
 			}
 
+			$code = $response instanceof ErrorResponse ? $response->get_error_code() : '';
+
+			// A 403 AccessDenied here is not a credential problem: the request
+			// was signed and accepted, the token simply lacks
+			// s3:ListAllMyBuckets. That is what a bucket-scoped token looks
+			// like, and Cloudflare recommends scoping tokens. Bad credentials
+			// present differently — InvalidAccessKeyId or SignatureDoesNotMatch
+			// — so the two must not share a message.
+			if ( in_array( $code, [ 'AccessDenied', 'access_denied' ], true ) ) {
+				return new ErrorResponse(
+					__( 'This API token cannot list buckets. That is expected for a bucket-scoped token — specify the bucket name directly.', 'arraypress' ),
+					'bucket_listing_forbidden',
+					403,
+					[ 'scoped_token' => true ]
+				);
+			}
+
 			return new ErrorResponse(
-				__( 'Unable to retrieve buckets. Please verify your access key, secret key, and region settings are correct.', 'arraypress' ),
-				'bucket_retrieval_failed',
+				$response instanceof ErrorResponse
+					? $response->get_error_message()
+					: __( 'Unable to retrieve buckets.', 'arraypress' ),
+				'' !== $code ? $code : 'bucket_retrieval_failed',
 				400
 			);
 		}
@@ -230,12 +249,10 @@ trait Buckets {
 		$result = $this->get_bucket_models( 1000, '', '', $use_cache );
 
 		if ( ! $result->is_successful() ) {
-			return new ErrorResponse(
-				__( 'Unable to retrieve bucket count', 'arraypress' ),
-				'bucket_count_failed',
-				400,
-				[ 'original_error' => $result->get_error_message() ]
-			);
+			// Pass the underlying reason straight through. Wrapping it in
+			// "Unable to retrieve bucket count" hid the one detail a caller
+			// needs: whether the token is scoped or the credentials are wrong.
+			return $result;
 		}
 
 		$data         = $result->get_data();

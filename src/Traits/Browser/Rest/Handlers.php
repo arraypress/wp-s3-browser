@@ -71,7 +71,8 @@ trait Handlers {
 			$data = $result->get_data();
 
 			return $this->rest_ok( [
-				'message' => __( 'Connection successful!', 'arraypress' ),
+				'status'  => 'ok',
+				'message' => __( 'Connection successful.', 'arraypress' ),
 				'summary' => sprintf(
 					_n( 'Found %d accessible bucket', 'Found %d accessible buckets', $data['count'], 'arraypress' ),
 					$data['count']
@@ -81,22 +82,64 @@ trait Handlers {
 			] );
 		}
 
-		// Cloudflare R2 best practice is to scope API tokens to a single
-		// bucket; those tokens cannot list account buckets (403 AccessDenied).
-		// Fall back to a HeadBucket against a consumer-supplied bucket name.
+		// A token scoped to specific buckets cannot list them. That is not a
+		// failure — Cloudflare recommends scoping R2 tokens — so it must not be
+		// reported as one. The only thing missing is the bucket name, which the
+		// consumer supplies through this filter.
+		$scoped          = 'bucket_listing_forbidden' === $result->get_error_code();
 		$fallback_bucket = (string) apply_filters( 'arraypress_s3_connection_test_fallback_bucket', '' );
 
-		if ( '' !== $fallback_bucket && $this->client->bucket_exists( $fallback_bucket, false )->is_successful() ) {
+		if ( '' !== $fallback_bucket ) {
+			$exists = $this->client->bucket_exists( $fallback_bucket, false );
+
+			if ( $exists->is_successful() ) {
+				return $this->rest_ok( [
+					'status'  => 'ok',
+					'message' => __( 'Connection successful.', 'arraypress' ),
+					'summary' => sprintf(
+						/* translators: %s: bucket name */
+						__( 'Verified access to "%s". This token is scoped to specific buckets, so it cannot list the others.', 'arraypress' ),
+						$fallback_bucket
+					),
+					'buckets' => [ $fallback_bucket ],
+					'count'   => 1,
+					'scoped'  => true,
+				] );
+			}
+
+			// The name is wrong, or the token cannot reach it. Say which
+			// bucket was tried — otherwise the admin has no way to tell a typo
+			// from a permissions problem.
 			return $this->rest_ok( [
-				'message' => __( 'Connection successful (bucket-scoped token).', 'arraypress' ),
-				'summary' => sprintf( __( 'Token has access to "%s".', 'arraypress' ), $fallback_bucket ),
-				'buckets' => [ $fallback_bucket ],
-				'count'   => 1,
+				'status'  => 'failed',
+				'message' => __( 'Could not reach that bucket.', 'arraypress' ),
+				'summary' => sprintf(
+					/* translators: 1: bucket name, 2: error from the provider */
+					__( 'The credentials work, but "%1$s" could not be reached: %2$s', 'arraypress' ),
+					$fallback_bucket,
+					$exists->get_error_message()
+				),
+				'scoped'  => $scoped,
+			] );
+		}
+
+		if ( $scoped ) {
+			// Credentials are fine; the configuration is simply incomplete.
+			return $this->rest_ok( [
+				'status'  => 'needs_bucket',
+				'message' => __( 'Credentials accepted.', 'arraypress' ),
+				'summary' => __( 'This token is scoped to specific buckets, so it cannot list them — which is the recommended setup. Enter the bucket name to finish configuring and verify access.', 'arraypress' ),
 				'scoped'  => true,
 			] );
 		}
 
-		return $this->rest_fail( 'rest_connection_failed', $result->get_error_message(), 502 );
+		// Anything else really is a credential or endpoint problem, and the
+		// provider's own message is more useful than a generic one.
+		return $this->rest_ok( [
+			'status'  => 'failed',
+			'message' => __( 'Connection failed.', 'arraypress' ),
+			'summary' => $result->get_error_message(),
+		] );
 	}
 
 	/**
