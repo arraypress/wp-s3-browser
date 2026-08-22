@@ -21,7 +21,12 @@
     <arg name="colors"/>
     <arg value="sp"/>
 
-    <rule ref="WordPress.Security"/>
+    <rule ref="WordPress.Security">
+        <!-- Exception messages are read by a developer in a terminal or a log,
+             never rendered, so running them through esc_html would only
+             corrupt the punctuation of the message it is meant to protect. -->
+        <exclude name="WordPress.Security.EscapeOutput.ExceptionNotEscaped"/>
+    </rule>
     <rule ref="WordPress.DB"/>
     <rule ref="WordPress.WP.I18n"/>
 
