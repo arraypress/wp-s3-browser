@@ -16,6 +16,7 @@ declare( strict_types=1 );
 namespace ArrayPress\S3\Responses;
 
 use ArrayPress\S3\Abstracts\Response;
+use ArrayPress\S3\Utils\Transport;
 use WP_Error;
 
 /**
@@ -141,13 +142,22 @@ class ErrorResponse extends Response {
 	 *
 	 * @return self
 	 */
-	public static function from_wp_error( WP_Error $wp_error, int $status_code = 400 ): self {
-		return new self(
-			$wp_error->get_error_message(),
-			$wp_error->get_error_code(),
-			$status_code,
-			$wp_error->get_error_data() ? (array) $wp_error->get_error_data() : []
-		);
+	public static function from_wp_error( WP_Error $wp_error, int $status_code = 400, string $endpoint = '' ): self {
+		$code    = (string) $wp_error->get_error_code();
+		$message = $wp_error->get_error_message();
+		$data    = $wp_error->get_error_data() ? (array) $wp_error->get_error_data() : [];
+
+		// A request that never completed carries whatever cURL said, which is
+		// a fact about a TLS record layer rather than about the store. Lead
+		// with something the admin can act on, and keep the original -- it is
+		// what makes a genuine network fault diagnosable.
+		if ( Transport::is_transport_error( $code ) ) {
+			$data['transport_error'] = $message;
+
+			$message = Transport::explain( $message, $endpoint );
+		}
+
+		return new self( $message, $code, $status_code, $data );
 	}
 
 	/**

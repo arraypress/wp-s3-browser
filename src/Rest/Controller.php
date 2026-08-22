@@ -21,6 +21,7 @@ declare( strict_types=1 );
 
 namespace ArrayPress\S3\Rest;
 
+use ArrayPress\S3\Utils\Transport;
 use ArrayPress\S3\Client;
 use ArrayPress\S3\Interfaces\Response as ResponseInterface;
 use ArrayPress\S3\Responses\ErrorResponse;
@@ -640,6 +641,17 @@ class Controller {
 		// failure — Cloudflare recommends scoping R2 tokens — so it must not be
 		// reported as one. The only thing missing is the bucket name, which the
 		// consumer supplies through this filter.
+		// Nothing answered, so nothing has been learned about the credentials.
+		// Falling through would try the bucket next, fail the same way, and
+		// report a reachability problem as a problem with the bucket.
+		if ( Transport::is_transport_error( (string) $result->get_error_code() ) ) {
+			return $this->rest_ok( [
+				'status'  => 'failed',
+				'message' => __( 'Could not reach the storage provider.', 'arraypress' ),
+				'summary' => $result->get_error_message(),
+			] );
+		}
+
 		$scoped          = 'bucket_listing_forbidden' === $result->get_error_code();
 		$fallback_bucket = (string) apply_filters( 'arraypress_s3_connection_test_fallback_bucket', '' );
 

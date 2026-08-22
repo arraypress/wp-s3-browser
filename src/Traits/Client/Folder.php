@@ -126,7 +126,7 @@ trait Folder {
 		] );
 
 		if ( is_wp_error( $response ) ) {
-			return ErrorResponse::from_wp_error( $response );
+			return ErrorResponse::from_wp_error( $response, 400, $this->provider->get_endpoint() );
 		}
 
 		$status_code = wp_remote_retrieve_response_code( $response );
