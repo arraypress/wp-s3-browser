@@ -224,10 +224,17 @@ trait Buckets {
 				);
 			}
 
+			// Hand the original back rather than copying its message into a
+			// new one. Rebuilding dropped everything attached to it -- the raw
+			// transport error among it, which is the only thing that makes a
+			// genuine network fault diagnosable once the message has been
+			// rewritten for the admin.
+			if ( $response instanceof ErrorResponse ) {
+				return $response;
+			}
+
 			return new ErrorResponse(
-				$response instanceof ErrorResponse
-					? $response->get_error_message()
-					: __( 'Unable to retrieve buckets.', 'arraypress' ),
+				__( 'Unable to retrieve buckets.', 'arraypress' ),
 				'' !== $code ? $code : 'bucket_retrieval_failed',
 				400
 			);
