@@ -98,6 +98,15 @@ class Admin {
 				</button>
 				<span id="<?php echo esc_attr( $result_id ); ?>" class="s3-test-result"></span>
 			</p>
+			<p class="description">
+				<?php
+				// The test runs against the stored credentials, so a change
+				// typed into the fields above is not what gets tested. Without
+				// saying so, the button looks like it is checking what is on
+				// screen and reports the old values as though they were.
+				esc_html_e( 'Tests the saved credentials, not what is currently in the fields above. Save your changes first.', 'arraypress' );
+				?>
+			</p>
 		</div>
 		<?php
 	}
