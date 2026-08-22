@@ -69,6 +69,18 @@ final class TransportTest extends TestCase {
 		$this->assertStringNotContainsString( 'cURL', $message );
 	}
 
+	/**
+	 * The provider hands back a bare host, not a URL, and parse_url reads a
+	 * schemeless string as a path -- so the hostname went missing from the one
+	 * message that exists to name it.
+	 */
+	public function test_a_bare_host_is_still_named(): void {
+		$message = Transport::explain( self::TLS, 'wrongaccountid.r2.cloudflarestorage.com' );
+
+		$this->assertStringContainsString( 'wrongaccountid.r2.cloudflarestorage.com', $message );
+		$this->assertStringNotContainsString( 'the storage endpoint', $message );
+	}
+
 	public function test_without_an_endpoint_it_still_reads_as_a_sentence(): void {
 		$message = Transport::explain( self::TLS );
 

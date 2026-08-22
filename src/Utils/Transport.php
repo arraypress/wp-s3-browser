@@ -52,7 +52,7 @@ class Transport {
 	 * @return string
 	 */
 	public static function explain( string $message, string $endpoint = '' ): string {
-		$host = '' === $endpoint ? '' : (string) wp_parse_url( $endpoint, PHP_URL_HOST );
+		$host = self::host( $endpoint );
 		$name = '' === $host ? __( 'the storage endpoint', 'arraypress' ) : $host;
 
 		// A wrong account id is the usual cause: on providers that put it in
@@ -87,6 +87,31 @@ class Transport {
 			__( 'Could not reach %s.', 'arraypress' ),
 			$name
 		);
+	}
+
+	/**
+	 * Host part of an endpoint.
+	 *
+	 * Providers hand back a bare host as often as a URL, and parse_url reads a
+	 * schemeless string as a path -- so the hostname, which is the whole point
+	 * of naming it, would come back empty.
+	 *
+	 * @param string $endpoint Endpoint, with or without a scheme.
+	 *
+	 * @return string
+	 */
+	private static function host( string $endpoint ): string {
+		$endpoint = trim( $endpoint );
+
+		if ( '' === $endpoint ) {
+			return '';
+		}
+
+		if ( ! str_contains( $endpoint, '//' ) ) {
+			$endpoint = '//' . $endpoint;
+		}
+
+		return (string) ( wp_parse_url( $endpoint, PHP_URL_HOST ) ?? '' );
 	}
 
 	/**
