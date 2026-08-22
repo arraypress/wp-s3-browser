@@ -56,7 +56,6 @@ class Translations {
 				/* translators: %d: number of files selected */
 				'manySelected'     => __( '%d files selected', 'arraypress' ),
 				/* translators: %1$d: number inserted, %2$d: number selected */
-				'insertPartial'    => __( 'Only %1$d of %2$d files could be added. Add the remaining rows manually.', 'arraypress' ),
 				'moveTo'           => __( 'Choose a folder to move this file into:', 'arraypress' ),
 				'moveRoot'         => __( 'Bucket root', 'arraypress' ),
 				'moveHere'         => __( 'Move here', 'arraypress' ),

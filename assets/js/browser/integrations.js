@@ -162,123 +162,32 @@
             }
 
             var parent = this.getHostWindow();
+            var context = parent ? this.detectCallingContext(parent) : 'unknown';
 
-            if (!parent) {
+            // Hand the whole set to the host page's own integration script.
+            //
+            // It owns the file table and is the only side that can place rows
+            // safely: which row's button opened the browser, which rows are
+            // genuinely empty, and how that platform adds another one. This
+            // document used to walk the parent DOM itself, and the two copies
+            // drifted -- it looked for WooCommerce's add-file control by a
+            // class WooCommerce does not use, so the table never grew and only
+            // the first file landed; and it wrote that first file into the
+            // last row whether or not the row already held one.
+            if ('edd' === context || 'woocommerce_file' === context || !parent) {
                 if (this.requestHostInsert(files)) {
                     // Only once the request is away. A failed insert keeps the
                     // selection so it can be retried.
                     this.clearSelection();
-                } else {
-                    window.console.warn('S3 Browser: no insert target. ' + this.describeHost());
-                    window.prompt(s3BrowserConfig.i18n.files.insertUnavailable, files[0].bucket + '/' + files[0].key);
-                }
 
-                return;
-            }
-
-            var context = this.detectCallingContext(parent);
-
-            // One file is the ordinary path and needs none of this.
-            if (files.length === 1 || context === 'unknown') {
-                if (this.insertOne(files[0], context, parent, true)) {
-                    this.clearSelection();
-                } else {
-                    window.console.warn('S3 Browser: no insert target. ' + this.describeHost());
-                    window.prompt(s3BrowserConfig.i18n.files.insertUnavailable, files[0].bucket + '/' + files[0].key);
-                }
-
-                return;
-            }
-
-            var self = this;
-            var inserted = 0;
-
-            files.forEach(function (file, index) {
-                if (index > 0 && !self.addRepeatableRow(parent, context)) {
                     return;
                 }
-
-                if (self.insertOne(file, context, parent, false)) {
-                    inserted++;
-                }
-            });
-
-            if (inserted) {
-                this.clearSelection();
             }
 
-            if (inserted < files.length) {
-                // Something refused to grow. Say so rather than closing and
-                // leaving the admin to notice the missing rows themselves.
-                window.alert(
-                    s3BrowserConfig.i18n.files.insertPartial
-                        .replace('%1$d', inserted)
-                        .replace('%2$d', files.length)
-                );
-            }
-
-            this.closeFrame(parent, context);
+            window.console.warn('S3 Browser: no insert target. ' + this.describeHost());
+            window.prompt(s3BrowserConfig.i18n.files.insertUnavailable, files[0].bucket + '/' + files[0].key);
         },
 
-        /**
-         * Add an empty row to the host plugin's file table.
-         *
-         * Returns whether a row appeared, so a caller can stop rather than
-         * overwrite the row it already filled.
-         */
-        addRepeatableRow: function (parent, context) {
-            var $ = parent.jQuery;
-            var selector = context === 'edd' ? '.edd_add_repeatable' : '.insert_row';
-            var rowSelector = context === 'edd' ? '.edd_repeatable_row' : '.wc-metabox';
-
-            var before = $(rowSelector).length;
-            var $button = $(selector).filter(':visible').first();
-
-            if (!$button.length) {
-                return false;
-            }
-
-            $button.trigger('click');
-
-            return $(rowSelector).length > before;
-        },
-
-        /**
-         * Write one file into the last row of the host plugin's file table.
-         */
-        insertOne: function (file, context, parent, closeAfter) {
-            var $ = parent.jQuery;
-            var url = file.bucket + '/' + file.key;
-            var written = false;
-
-            if (context === 'edd') {
-                var $row = $('.edd_repeatable_row').last();
-
-                if ($row.length) {
-                    $row.find('.edd_repeatable_upload_field').val(url);
-                    $row.find('.edd_repeatable_name_field').val(file.fileName);
-                    written = true;
-                }
-            } else if (context === 'woocommerce_file') {
-                var $wcRow = $('.wc-metabox, .downloadable_files tbody tr').last();
-
-                if ($wcRow.length) {
-                    $wcRow.find('input.file_url, input[name="_wc_file_urls[]"]').val(url);
-                    $wcRow.find('input[name="_wc_file_names[]"]').val(file.fileName);
-                    written = true;
-                }
-            }
-
-            if (closeAfter) {
-                this.closeFrame(parent, context);
-            }
-
-            return written;
-        },
-
-        /**
-         * Close whichever frame the browser was opened in.
-         */
         closeFrame: function (parent, context) {
             try {
                 if (context === 'edd' && parent.tb_remove) {
