@@ -151,6 +151,33 @@ final class CacheTest extends TestCase {
 		$this->assertFalse( $writer->get( $writer->key( 'objects', [ 'bucket' => 'b' ] ) ) );
 	}
 
+	/**
+	 * Two plugins can each ship their own Strauss-prefixed copy of this
+	 * library. Client used to leave Cache on its default prefix, so both
+	 * addressed the same transients and one read back the other's response
+	 * object -- a TypeError on a return type, from an apparent cache hit.
+	 */
+	public function test_an_object_from_another_build_reads_as_a_miss(): void {
+		require_once __DIR__ . '/fixtures/foreign-build.php';
+
+		$cache = new Cache();
+		$key   = $cache->key( 'objects', [ 'bucket' => 'b' ] );
+
+		set_transient( $key, new \OtherPlugin\ArrayPress\S3\Responses\ObjectsResponse() );
+
+		$this->assertFalse( $cache->get( $key ), 'a foreign build\'s object must not be handed back' );
+	}
+
+	public function test_this_builds_own_objects_still_cache(): void {
+		$cache = new Cache();
+		$key   = $cache->key( 'own', [] );
+		$value = new \ArrayPress\S3\Cache();
+
+		$cache->set( $key, $value );
+
+		$this->assertSame( $value, $cache->get( $key ) );
+	}
+
 	public function test_distinct_prefixes_do_not_collide(): void {
 		$a = new Cache( true, 3600, 's3_a_' );
 		$b = new Cache( true, 3600, 's3_b_' );

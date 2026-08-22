@@ -80,7 +80,35 @@ class Cache {
 	 * @return mixed|false Entry, or false when absent or caching is off.
 	 */
 	public function get( string $key ) {
-		return $this->enabled ? get_transient( $key ) : false;
+		if ( ! $this->enabled ) {
+			return false;
+		}
+
+		$value = get_transient( $key );
+
+		// Two plugins can each ship their own Strauss-prefixed copy of this
+		// library and run side by side. Should they ever share a key, one copy
+		// reads back an object built from the other's classes -- which
+		// satisfies no type declaration here and takes the request down with a
+		// TypeError, from what looks like a plain cache hit. Prefixing keys per
+		// build (see Client) keeps them apart; this makes a collision degrade
+		// into a miss rather than a fatal.
+		if ( is_object( $value ) && ! self::is_own_class( $value ) ) {
+			return false;
+		}
+
+		return $value;
+	}
+
+	/**
+	 * Whether an object comes from this build of the library.
+	 *
+	 * @param object $value Cached object.
+	 *
+	 * @return bool
+	 */
+	private static function is_own_class( object $value ): bool {
+		return strtok( get_class( $value ), '\\' ) === strtok( __NAMESPACE__, '\\' );
 	}
 
 	/**

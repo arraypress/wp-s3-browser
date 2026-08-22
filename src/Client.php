@@ -15,6 +15,7 @@ declare( strict_types=1 );
 
 namespace ArrayPress\S3;
 
+use ArrayPress\S3\Utils\Sanitize;
 use ArrayPress\S3\Provider;
 use ArrayPress\S3\Traits\Client\Buckets;
 use ArrayPress\S3\Traits\Client\Bucket;
@@ -98,7 +99,7 @@ class Client {
 	) {
 		$this->provider = $provider;
 		$this->api      = new Api( $provider, $access_key, $secret_key );
-		$this->cache    = new Cache( $use_cache, $cache_ttl );
+		$this->cache    = new Cache( $use_cache, $cache_ttl, self::cache_prefix( $context ) );
 
 		// Both objects carry their own debug flag, so setting only this one
 		// left every debug call in the request path silently disabled — the
@@ -130,6 +131,30 @@ class Client {
 		$this->api->set_debug( $enable );
 
 		return $this;
+	}
+
+	/**
+	 * Cache key prefix for this build of the library.
+	 *
+	 * Every Client used to take Cache's default prefix, so two plugins each
+	 * shipping their own Strauss-prefixed copy addressed the same transients:
+	 * one read back a response object built from the other's classes, which
+	 * satisfies no return type here. The root namespace differs per build
+	 * (WCR2\, EDDR2\) and is exactly the discriminator needed. $context
+	 * separates several clients within a single plugin.
+	 *
+	 * @param string|null $context Optional context identifier.
+	 *
+	 * @return string
+	 */
+	private static function cache_prefix( ?string $context ): string {
+		$parts = [ Sanitize::slug( strtok( __NAMESPACE__, '\\' ) ), 's3' ];
+
+		if ( null !== $context && '' !== $context ) {
+			$parts[] = Sanitize::slug( $context );
+		}
+
+		return implode( '_', array_filter( $parts ) ) . '_';
 	}
 
 	/**
