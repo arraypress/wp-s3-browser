@@ -342,12 +342,14 @@ class Commands {
 				continue;
 			}
 
+			$before = count( $plan->files ) - count( $plan->added ) + count( $plan->removed );
+
 			WP_CLI::log(
 				sprintf(
 					'%s: %d file%s -> %d',
 					$entry['label'],
-					count( $plan->files ) - count( $plan->added ) + count( $plan->removed ),
-					1 === count( $plan->files ) ? '' : 's',
+					$before,
+					1 === $before ? '' : 's',
 					count( $plan->files )
 				)
 			);
